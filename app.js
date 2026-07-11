@@ -40,10 +40,25 @@ fileInput.addEventListener("change", async (event) => {
     const arrayBuffer = await file.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    // IMPORTANT: Essentia expects 44.1 kHz
+    // IMPORTANT: Essentia expects 44.1 kHz, resample here
     console.log(audioBuffer.sampleRate);
+    const targetSampleRate = 44100;
 
-    const samples = audioBuffer.getChannelData(0); // Float32Array
+    const offline = new OfflineAudioContext(
+        1, // mono
+        Math.ceil(audioBuffer.duration * targetSampleRate),
+        targetSampleRate
+    );
+
+    // Copy the decoded audio into the offline context
+    const source = offline.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offline.destination);
+    source.start();
+
+    const resampledBuffer = await offline.startRendering();
+
+    const samples = resampledBuffer.getChannelData(0); // Float32Array
 
     const signal = essentia.arrayToVector(samples);
 
