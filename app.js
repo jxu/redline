@@ -11,9 +11,20 @@ function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
 }
 
+// 1000Hz click with fade-out
+function createClick(clickLength, sampleRate) {
+    return Array.from({ length: clickLength }, (_, i) => {
+        const t = i / sampleRate;
+        return Math.sin(2 * Math.PI * 1000 * t) * (1 - i / clickLength) * 0.4;
+    });
+}
+
 // Manually create metronome buffer
 function createMetronomeBuffer(ticks, duration, sampleRate) {
     const length = Math.ceil(duration * sampleRate);
+    const clickLength = Math.floor(0.05 * sampleRate); // 50ms
+
+    const click = createClick(clickLength, sampleRate);
 
     const buffer = audioContext.createBuffer(
         1,
@@ -23,23 +34,13 @@ function createMetronomeBuffer(ticks, duration, sampleRate) {
 
     const data = buffer.getChannelData(0);
 
-    for (const tick of ticks) {
+    ticks.forEach((tick) => {
         const start = Math.floor(tick * sampleRate);
 
-        const clickLength = Math.floor(0.05 * sampleRate); // 50ms
-
-        for (let i = 0; i < clickLength; i++) {
-            if (start + i >= data.length) break;
-
-            const t = i / sampleRate;
-
-            // 1000Hz click with fade-out
-            data[start + i] +=
-                Math.sin(2 * Math.PI * 1000 * t) *
-                (1 - i / clickLength) *
-                0.4;
-        }
-    }
+        click.forEach((sample, i) => {
+            if (start + i < data.length) data[start + i] += sample;
+        });
+    });
 
     return buffer;
 }

@@ -1,15 +1,10 @@
 export function generateOsuTimingPoints(ticks) {
-    const lines = [];
+    const lines = ticks.slice(0, -1).map((tick, i) => {
+        const timeMs = Math.round(tick * 1000);
+        const beatLength = ((ticks[i + 1] - tick) * 1000).toFixed(2);
 
-    for (let i = 0; i < ticks.length - 1; i++) {
-        const timeMs = Math.round(ticks[i] * 1000);
-
-        const beatLength = ((ticks[i + 1] - ticks[i]) * 1000).toFixed(2);
-
-        lines.push(
-            `${timeMs},${beatLength},4,2,0,100,1,0`
-        );
-    }
+        return `${timeMs},${beatLength},4,2,0,100,1,0`;
+    });
 
     return `[TimingPoints]\n${lines.join("\n")}`;
 }
