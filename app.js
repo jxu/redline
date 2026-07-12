@@ -238,7 +238,8 @@ fileInput.addEventListener("change", async (event) => {
     const signal = essentia.arrayToVector(samples);
 
     // main rhythm extractor function
-    const result = essentia.RhythmExtractor2013(signal);
+    // args: (signal, maxTempo, method, minTempo)
+    const result = essentia.RhythmExtractor2013(signal, 250, "multifeature", 60);
 
     console.log(result);
 
