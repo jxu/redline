@@ -188,6 +188,8 @@ fileInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    resultsBox.textContent = "Analyzing...";
+
     // reset playback state for the new track
     pauseMixed();
     pausedAt = 0;
