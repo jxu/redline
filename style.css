@@ -26,6 +26,11 @@ body {
     font-family: monospace;
 }
 
+.red-l {
+    color: red;
+    font-family: sans-serif; /* l should be vertical line for fun */
+}
+
 footer {
     margin-top: 2rem;
     padding-top: 1rem;
