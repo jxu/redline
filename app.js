@@ -10,7 +10,7 @@ import Regions from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.
 
 function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
-};
+}
 
 // Manually create metronome buffer
 function createMetronomeBuffer(ticks, duration, sampleRate) {
@@ -78,7 +78,6 @@ const player = document.getElementById("player");
 const audioContext = new AudioContext();
 
 // Hidden WebAudio state
-let source = null;
 let startTime = 0;
 let pausedAt = 0;
 let playing = false;
@@ -108,7 +107,6 @@ fileInput.addEventListener("change", async (event) => {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
     // IMPORTANT: Essentia expects 44.1 kHz, resample here
-    console.log(audioBuffer.sampleRate);
     const targetSampleRate = 44100;
 
     const offline = new OfflineAudioContext(
@@ -136,14 +134,12 @@ fileInput.addEventListener("change", async (event) => {
 
     console.log(result);
 
-    // convert Emscripten vector to JS array?
-    const tickArray = Array.from(
+    // convert Emscripten vector to JS array
+    const ticks = Array.from(
         { length: result.ticks.size() },
         (_, i) => result.ticks.get(i)
     );
 
-    console.log(tickArray);
-    const ticks = tickArray;
     const resultsBox = document.getElementById("results");
 
     resultsBox.innerHTML = `
@@ -165,7 +161,7 @@ fileInput.addEventListener("change", async (event) => {
     );
 
     wavesurfer.once("ready", () => {
-        for (const beat of tickArray) {
+        for (const beat of ticks) {
             regions.addRegion({
                 start: beat,
                 end: beat + 0.01,
@@ -177,9 +173,6 @@ fileInput.addEventListener("change", async (event) => {
     });
 
     await wavesurfer.loadBlob(file);
-
-    // buffer only lives once
-    let newsource = null;
 
     function playMixed() {
         if (playing) return;
@@ -247,10 +240,7 @@ fileInput.addEventListener("change", async (event) => {
         }
     });
 
-    const osuTiming = generateOsuTimingPoints(
-        tickArray,
-        result.bpm
-    );
+    const osuTiming = generateOsuTimingPoints(ticks);
 
     document.getElementById("osuTimingPoints").value = osuTiming;
 
@@ -259,15 +249,12 @@ fileInput.addEventListener("change", async (event) => {
         title: "My Song",
         artist: "Unknown",
         creator: "",
-        timingPoints: generateOsuTimingPoints(ticks)
+        timingPoints: osuTiming
     });
 
-    document.getElementById("downloadOsu").onclick = () => {
-        if (!osuText) {
-            alert("Generate a beatmap first.");
-            return;
-        }
+    const downloadButton = document.getElementById("downloadOsu");
 
+    downloadButton.onclick = () => {
         const blob = new Blob(
             [osuText],
             { type: "text/plain" }
@@ -293,7 +280,6 @@ fileInput.addEventListener("change", async (event) => {
 
 
     // show download button
-    const downloadButton = document.getElementById("downloadOsu");
     downloadButton.style.display = "block";
 });
 
