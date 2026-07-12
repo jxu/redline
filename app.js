@@ -7,6 +7,7 @@ import { EssentiaWASM } from 'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dis
 import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js';
 import Regions from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js';
 
+
 function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
 };
@@ -252,6 +253,48 @@ fileInput.addEventListener("change", async (event) => {
     );
 
     document.getElementById("osuTimingPoints").value = osuTiming;
+
+    const osuText = generateOsuFile({
+        audioFilename: file.name,
+        title: "My Song",
+        artist: "Unknown",
+        creator: "",
+        timingPoints: generateOsuTimingPoints(ticks)
+    });
+
+    document.getElementById("downloadOsu").onclick = () => {
+        if (!osuText) {
+            alert("Generate a beatmap first.");
+            return;
+        }
+
+        const blob = new Blob(
+            [osuText],
+            { type: "text/plain" }
+        );
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+
+        // Generate osu beatmap
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+
+        link.download = `${baseName}.osu`;
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+    };
+
+
+    // show download button
+    const downloadButton = document.getElementById("downloadOsu");
+    downloadButton.style.display = "block";
 });
 
 
@@ -269,4 +312,51 @@ function generateOsuTimingPoints(ticks) {
     }
 
     return `[TimingPoints]\n${lines.join("\n")}`;
+}
+
+export function generateOsuFile({
+    audioFilename,
+    title = "My Song",
+    artist = "Unknown",
+    creator = "",
+    timingPoints
+}) {
+    return `osu file format v14
+
+[General]
+AudioFilename: ${audioFilename}
+AudioLeadIn: 0
+PreviewTime: -1
+Countdown: 0
+SampleSet: Soft
+StackLeniency: 0.7
+Mode: 0
+WidescreenStoryboard: 1
+
+[Editor]
+DistanceSpacing: 1
+BeatDivisor: 4
+GridSize: 32
+TimelineZoom: 1
+
+[Metadata]
+Title:${title}
+Artist:${artist}
+Creator:${creator}
+Version:Auto BPM
+
+[Difficulty]
+HPDrainRate:5
+CircleSize:4
+OverallDifficulty:5
+ApproachRate:5
+SliderMultiplier:1.4
+SliderTickRate:1
+
+[Events]
+
+${timingPoints}
+
+[HitObjects]
+`;
 }
