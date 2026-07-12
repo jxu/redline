@@ -11,6 +11,13 @@ function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
 }
 
+// beatLength (ms, 2 dp) of the interval starting at each tick except the last
+function beatLengthsMs(ticks) {
+    return ticks.slice(0, -1).map((tick, i) =>
+        ((ticks[i + 1] - tick) * 1000).toFixed(2)
+    );
+}
+
 // 1000Hz click with fade-out
 function createClick(clickLength, sampleRate) {
     return Array.from({ length: clickLength }, (_, i) => {
@@ -249,6 +256,8 @@ fileInput.addEventListener("change", async (event) => {
         (_, i) => result.ticks.get(i)
     );
 
+    const beatLengths = beatLengthsMs(ticks);
+
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${result.bpm.toFixed(2)}</p>
@@ -268,20 +277,25 @@ fileInput.addEventListener("change", async (event) => {
     );
 
     wavesurfer.once("ready", () => {
-        for (const beat of ticks) {
-            // no `end` => a marker (fixed-width vertical line, see ::part(marker) in CSS)
+        ticks.forEach((beat, i) => {
+            // red if it starts a new tempo (first tick or changed beatLength), else gray
+            const isNewTempo =
+                i === 0 ||
+                (i < beatLengths.length && beatLengths[i] !== beatLengths[i - 1]);
+
+            // no `end` => a marker (fixed-width vertical line, see ::part(region) in CSS)
             regions.addRegion({
                 start: beat,
-                color: "rgba(255,0,0,0.6)",
+                color: isNewTempo ? "rgba(255, 0, 0, 0.9)" : "rgba(150, 150, 150, 0.9)",
                 drag: false,
                 resize: false,
             });
-        }
+        });
     });
 
     await wavesurfer.loadBlob(file);
 
-    const osuTiming = generateOsuTimingPoints(ticks);
+    const osuTiming = generateOsuTimingPoints(ticks, beatLengths);
 
     document.getElementById("osuTimingPoints").value = osuTiming;
 
