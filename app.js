@@ -141,6 +141,16 @@ function updateWaveSurferCursor() {
     const current =
         audioContext.currentTime - startTime;
 
+    // stop advancing once the track finishes
+    if (current >= mixedBuffer.duration) {
+        wavesurfer.setTime(mixedBuffer.duration);
+
+        newSource = null; // source stops itself at the end
+        playing = false;
+        pausedAt = 0; // next play restarts from the beginning
+        return;
+    }
+
     wavesurfer.setTime(current);
 
     requestAnimationFrame(updateWaveSurferCursor);
@@ -154,14 +164,21 @@ document
     .getElementById("pause")
     .onclick = pauseMixed;
 
-// sync seeking
+// zoom: minPxPerSec grows as the slider increases
+document
+    .getElementById("zoom")
+    .oninput = (event) => wavesurfer.zoom(Number(event.target.value));
+
+// sync seeking (works whether paused or mid-playback)
 wavesurfer.on("interaction", (time) => {
+    const wasPlaying = playing;
+
+    // pause first so pauseMixed() can't overwrite the new position
+    if (wasPlaying) pauseMixed();
+
     pausedAt = time;
 
-    if (playing) {
-        pauseMixed();
-        playMixed();
-    }
+    if (wasPlaying) playMixed();
 });
 
 downloadButton.onclick = () => {
