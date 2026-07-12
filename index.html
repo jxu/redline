@@ -22,6 +22,28 @@
 
 <input type="file" id="audioFile" accept="audio/*">
 
+<div id="controls">
+    <!-- smoothing: moving-average window (beats) that removes jitter;
+         keep small to preserve real tempo drift on live recordings -->
+    <div class="control">
+        <label for="smoothing">Smoothing: <span id="smoothingValue">4</span></label>
+        <input type="range" id="smoothing" min="1" max="16" value="4">
+    </div>
+
+    <!-- tolerance: collapse near-equal beats into one red line;
+         low = faithful to drift, high = treat the song as fixed tempo -->
+    <div class="control">
+        <label for="tolerance">Tolerance (ms): <span id="toleranceValue">5</span></label>
+        <input type="range" id="tolerance" min="0" max="20" value="5">
+    </div>
+
+    <button id="calculate">Calculate</button>
+    <!-- fix octave errors (e.g. detected 102 for a 204 BPM song) on the
+         existing beats without re-running detection -->
+    <button id="halveTempo">÷2 tempo</button>
+    <button id="doubleTempo">×2 tempo</button>
+</div>
+
 <div id="waveform"></div>
 
 <label for="zoom">Zoom</label>

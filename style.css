@@ -22,6 +22,32 @@ body {
     border-radius: 0 !important;
 }
 
+#controls {
+    margin: 1rem 0;
+}
+
+.control {
+    margin: 0.4rem 0;
+}
+
+/* fixed-width label so every slider starts at the same x; the value readout
+   sits in a fixed-width, right-aligned box so changing digit count (e.g.
+   60 -> 250) never shoves the slider sideways */
+.control label {
+    display: inline-block;
+    width: 14rem;
+}
+
+.control label span {
+    display: inline-block;
+    width: 2.5rem;
+    text-align: right;
+}
+
+.control input[type="range"] {
+    vertical-align: middle;
+}
+
 #play, #pause, #downloadOsu {
     margin-right: 0.5rem;
 }
