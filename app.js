@@ -280,10 +280,19 @@ document
     .getElementById("pause")
     .onclick = pauseMixed;
 
-// zoom: minPxPerSec grows as the slider increases
-document
-    .getElementById("zoom")
-    .oninput = (event) => wavesurfer.zoom(Number(event.target.value));
+// zoom with the mouse wheel over the waveform. zoom() takes pixels-per-second,
+// so we scale it multiplicatively (each notch is a constant ratio, which feels
+// even across the range) and clamp between fully zoomed-out and a tight view.
+const MIN_PX_PER_SEC = 1;
+const MAX_PX_PER_SEC = 500;
+let pxPerSec = MIN_PX_PER_SEC;
+
+document.getElementById("waveform").addEventListener("wheel", (event) => {
+    event.preventDefault(); // don't scroll the page while zooming
+    const factor = Math.exp(-event.deltaY * 0.002); // up = in, down = out
+    pxPerSec = clamp(pxPerSec * factor, MIN_PX_PER_SEC, MAX_PX_PER_SEC);
+    wavesurfer.zoom(pxPerSec);
+}, { passive: false });
 
 // smoothing knobs just update their readouts; they apply on the next Calculate
 smoothingSlider.oninput = () => { smoothingValue.textContent = smoothingSlider.value; };
