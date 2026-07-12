@@ -4,7 +4,15 @@ import { EssentiaWASM } from "essentia.js/wasm";
 import WaveSurfer from "wavesurfer.js";
 import Regions from "wavesurfer.js/regions";
 
-import { generateOsuTimingPoints, generateOsuFile } from './osuFormat.js';
+function generateOsuTimingPoints(ticks, beatLengths) {
+    // keep only points whose beatLength differs from the previous one
+    const lines = beatLengths
+        .map((beatLength, i) => ({ timeMs: Math.round(ticks[i] * 1000), beatLength }))
+        .filter((point, i) => i === 0 || point.beatLength !== beatLengths[i - 1])
+        .map((point) => `${point.timeMs},${point.beatLength},4,2,0,100,1,0`);
+
+    return `[TimingPoints]\n${lines.join("\n")}`;
+}
 
 
 function clamp(x, min = -1, max = 1) {
@@ -153,7 +161,6 @@ const essentia = new Essentia(EssentiaWASM);
 const fileInput = document.getElementById("audioFile");
 const player = document.getElementById("player");
 const resultsBox = document.getElementById("results");
-const downloadButton = document.getElementById("downloadOsu");
 
 const smoothingSlider = document.getElementById("smoothing");
 const toleranceSlider = document.getElementById("tolerance");
@@ -170,8 +177,6 @@ let newSource = null;
 
 // Per-track state, set on each file load
 let mixedBuffer = null;
-let osuText = "";
-let osuFileBaseName = "";
 
 // Decoded audio for the current file, reused across re-calculations so re-running
 // (or a ×2/÷2 octave fix) doesn't force another decode/resample.
@@ -293,26 +298,6 @@ wavesurfer.on("interaction", (time) => {
     if (wasPlaying) playMixed();
 });
 
-downloadButton.onclick = () => {
-    const blob = new Blob(
-        [osuText],
-        { type: "text/plain" }
-    );
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${osuFileBaseName}.osu`;
-
-    document.body.appendChild(link);
-    link.click();
-
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
-};
-
 // decode + resample once per file; store the results for reuse on re-calculation
 async function loadFile(file) {
     const arrayBuffer = await file.arrayBuffer();
@@ -337,7 +322,6 @@ async function loadFile(file) {
 
     currentSamples = resampledBuffer.getChannelData(0); // Float32Array
     currentFile = file;
-    osuFileBaseName = file.name.replace(/\.[^/.]+$/, "");
 }
 
 // run beat detection on the loaded file, then hand the ticks to renderTicks()
@@ -436,17 +420,6 @@ function renderTicks() {
     const osuTiming = generateOsuTimingPoints(currentTicks, beatLengths);
 
     document.getElementById("osuTimingPoints").value = osuTiming;
-
-    osuText = generateOsuFile({
-        audioFilename: currentFile.name,
-        title: "My Song",
-        artist: "Unknown",
-        creator: "",
-        timingPoints: osuTiming
-    });
-
-    // show download button
-    downloadButton.style.display = "block";
 }
 
 fileInput.addEventListener("change", async (event) => {
@@ -458,7 +431,6 @@ fileInput.addEventListener("change", async (event) => {
     pausedAt = 0;
     regions.clearRegions();
     currentTicks = [];
-    downloadButton.style.display = "none";
     resultsBox.textContent = "Adjust smoothing, then press Calculate.";
 
     // decode + show the waveform now; run beat detection only on Calculate
