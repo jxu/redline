@@ -31,16 +31,19 @@ body {
     margin: 0.4rem 0;
 }
 
-/* fixed-width label so every slider starts at the same x; the value readout
-   sits in a fixed-width, right-aligned box so changing digit count (e.g.
-   60 -> 250) never shoves the slider sideways */
+/* fixed-width label so every slider starts at the same x; space-between pushes
+   the value readout to the label's right edge so values line up vertically
+   across rows regardless of the caption length before them */
 .control label {
-    display: inline-block;
+    display: inline-flex;
+    justify-content: space-between;
     width: 14rem;
+    vertical-align: middle;
 }
 
+/* fixed-width, right-aligned box so changing digit count (e.g. 60 -> 250)
+   never shoves the slider sideways */
 .control label span {
-    display: inline-block;
     width: 2.5rem;
     text-align: right;
 }
