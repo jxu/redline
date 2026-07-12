@@ -48,24 +48,24 @@ function createMetronomeBuffer(ticks, duration, sampleRate) {
 function mixBuffers(original, clicks) {
     const channels = original.numberOfChannels;
 
+    // click track is mono, shared across channels
+    const click = clicks.getChannelData(0);
+
     const mixed = audioContext.createBuffer(
         channels,
         original.length,
         original.sampleRate
     );
 
-    for (let ch = 0; ch < channels; ch++) {
-        const output = mixed.getChannelData(ch);
+    Array.from({ length: channels }, (_, ch) => ch)
+    .forEach((ch) => {
         const input = original.getChannelData(ch);
 
-        // click track is mono
-        const click = clicks.getChannelData(0);
-
         // prevent clipping
-        for (let i = 0; i < output.length; i++) {
-            output[i] = clamp(input[i] + click[i]);
-        }
-    }
+        const output = input.map((sample, i) => clamp(sample + click[i]));
+
+        mixed.getChannelData(ch).set(output);
+    });
 
     return mixed;
 }
