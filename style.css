@@ -1,0 +1,27 @@
+body {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: sans-serif;
+}
+
+#waveform {
+    height: 120px;
+    margin: 1rem 0;
+    border: 1px solid #ccc;
+}
+
+#play, #pause, #downloadOsu {
+    margin-right: 0.5rem;
+}
+
+#results {
+    margin: 1rem 0;
+}
+
+#osuTimingPoints {
+    display: block;
+    width: 100%;
+    margin: 1rem 0;
+    font-family: monospace;
+}
