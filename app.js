@@ -1,11 +1,8 @@
-import Essentia from "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.es.js";
+import Essentia from "essentia.js";
+import { EssentiaWASM } from "essentia.js/wasm";
 
-// import essentia-wasm-module
-import { EssentiaWASM } from 'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.es.js';
-
-// import WaveSurfer and Regions module
-import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js';
-import Regions from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js';
+import WaveSurfer from "wavesurfer.js";
+import Regions from "wavesurfer.js/regions";
 
 import { generateOsuTimingPoints, generateOsuFile } from './osuFormat.js';
 
