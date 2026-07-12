@@ -268,9 +268,9 @@ fileInput.addEventListener("change", async (event) => {
 
     wavesurfer.once("ready", () => {
         for (const beat of ticks) {
+            // no `end` => a marker (fixed-width vertical line, see ::part(marker) in CSS)
             regions.addRegion({
                 start: beat,
-                end: beat + 0.01,
                 color: "rgba(255,0,0,0.6)",
                 drag: false,
                 resize: false,

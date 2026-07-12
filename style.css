@@ -11,6 +11,16 @@ body {
     border: 1px solid #ccc;
 }
 
+/* beat markers represent instants, so pin them to a constant 2px line.
+   The plugin sizes regions by percentage (left/right); setting an explicit
+   width makes the browser ignore `right`, so `left` still positions the line
+   but its width no longer scales with zoom. !important beats the inline styles. */
+#waveform ::part(region) {
+    width: 2px !important;
+    border-left: 2px solid red !important;
+    border-radius: 0 !important;
+}
+
 #play, #pause, #downloadOsu {
     margin-right: 0.5rem;
 }
