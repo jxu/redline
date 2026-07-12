@@ -149,7 +149,6 @@ fileInput.addEventListener("change", async (event) => {
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${result.bpm.toFixed(2)}</p>
         <p><strong>Confidence:</strong> ${result.confidence.toFixed(2)}</p>
-        <p><strong>Beats detected:</strong> ${tickArray}</p>
     `;
 
     // create mixed result
@@ -247,5 +246,27 @@ fileInput.addEventListener("change", async (event) => {
         }
     });
 
+    const osuTiming = generateOsuTimingPoints(
+        tickArray,
+        result.bpm
+    );
+
+    document.getElementById("osuTimingPoints").value = osuTiming;
 });
 
+
+function generateOsuTimingPoints(ticks) {
+    const lines = [];
+
+    for (let i = 0; i < ticks.length - 1; i++) {
+        const timeMs = Math.round(ticks[i] * 1000);
+
+        const beatLength = ((ticks[i + 1] - ticks[i]) * 1000).toFixed(2);
+
+        lines.push(
+            `${timeMs},${beatLength},4,2,0,100,1,0`
+        );
+    }
+
+    return `[TimingPoints]\n${lines.join("\n")}`;
+}
