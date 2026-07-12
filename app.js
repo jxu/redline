@@ -7,6 +7,8 @@ import { EssentiaWASM } from 'https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dis
 import WaveSurfer from 'https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js';
 import Regions from 'https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js';
 
+import { generateOsuTimingPoints, generateOsuFile } from './osuFormat.js';
+
 
 function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
@@ -61,7 +63,7 @@ function mixBuffers(original, clicks) {
         // click track is mono
         const click = clicks.getChannelData(0);
 
-        // prevent clipping?
+        // prevent clipping
         for (let i = 0; i < output.length; i++) {
             output[i] = clamp(input[i] + click[i]);
         }
@@ -74,6 +76,8 @@ const essentia = new Essentia(EssentiaWASM);
 
 const fileInput = document.getElementById("audioFile");
 const player = document.getElementById("player");
+const resultsBox = document.getElementById("results");
+const downloadButton = document.getElementById("downloadOsu");
 
 const audioContext = new AudioContext();
 
@@ -81,10 +85,14 @@ const audioContext = new AudioContext();
 let startTime = 0;
 let pausedAt = 0;
 let playing = false;
-
 let newSource = null;
 
-// WaveSurfer 
+// Per-track state, set on each file load
+let mixedBuffer = null;
+let osuText = "";
+let osuFileBaseName = "";
+
+// WaveSurfer
 const regions = Regions.create();
 
 const wavesurfer = WaveSurfer.create({
@@ -95,12 +103,96 @@ const wavesurfer = WaveSurfer.create({
     plugins: [regions],
 });
 
+function playMixed() {
+    if (playing || !mixedBuffer) return;
 
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    newSource = audioContext.createBufferSource();
+    newSource.buffer = mixedBuffer;
+    newSource.connect(audioContext.destination);
+
+    startTime = audioContext.currentTime - pausedAt;
+
+    newSource.start(
+        0,
+        pausedAt
+    );
+
+    playing = true;
+
+    updateWaveSurferCursor();
+}
+
+function pauseMixed() {
+    if (!playing) return;
+
+    newSource.stop();
+
+    pausedAt = audioContext.currentTime - startTime;
+
+    playing = false;
+    newSource = null; // get rid of it
+}
+
+function updateWaveSurferCursor() {
+    if (!playing) return;
+
+    const current =
+        audioContext.currentTime - startTime;
+
+    wavesurfer.setTime(current);
+
+    requestAnimationFrame(updateWaveSurferCursor);
+}
+
+document
+    .getElementById("play")
+    .onclick = playMixed;
+
+document
+    .getElementById("pause")
+    .onclick = pauseMixed;
+
+// sync seeking
+wavesurfer.on("interaction", (time) => {
+    pausedAt = time;
+
+    if (playing) {
+        pauseMixed();
+        playMixed();
+    }
+});
+
+downloadButton.onclick = () => {
+    const blob = new Blob(
+        [osuText],
+        { type: "text/plain" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${osuFileBaseName}.osu`;
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+};
 
 fileInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    // reset playback state for the new track
+    pauseMixed();
+    pausedAt = 0;
 
     // For Essentia
     const arrayBuffer = await file.arrayBuffer();
@@ -127,8 +219,6 @@ fileInput.addEventListener("change", async (event) => {
 
     const signal = essentia.arrayToVector(samples);
 
-
-    
     // main rhythm extractor function
     const result = essentia.RhythmExtractor2013(signal);
 
@@ -139,8 +229,6 @@ fileInput.addEventListener("change", async (event) => {
         { length: result.ticks.size() },
         (_, i) => result.ticks.get(i)
     );
-
-    const resultsBox = document.getElementById("results");
 
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
@@ -155,7 +243,7 @@ fileInput.addEventListener("change", async (event) => {
         audioBuffer.sampleRate
     );
 
-    const mixedBuffer = mixBuffers(
+    mixedBuffer = mixBuffers(
         audioBuffer,
         clickBuffer
     );
@@ -174,77 +262,11 @@ fileInput.addEventListener("change", async (event) => {
 
     await wavesurfer.loadBlob(file);
 
-    function playMixed() {
-        if (playing) return;
-
-        if (audioContext.state === "suspended") {
-            audioContext.resume();
-        }
-
-        
-        newSource = audioContext.createBufferSource();
-
-
-        newSource.buffer = mixedBuffer;
-        newSource.connect(audioContext.destination);
-
-        startTime = audioContext.currentTime - pausedAt;
-
-        newSource.start(
-            0,
-            pausedAt
-        );
-
-        playing = true;
-
-        updateWaveSurferCursor();
-    }
-
-    function pauseMixed() {
-        if (!playing) return;
-
-        newSource.stop();
-
-        pausedAt = audioContext.currentTime - startTime;
-
-        playing = false;
-        newSource = null; // get rid of it
-    }
-
-    function updateWaveSurferCursor() {
-        if (!playing) return;
-
-        const current =
-            audioContext.currentTime - startTime;
-
-        wavesurfer.setTime(current);
-
-        requestAnimationFrame(updateWaveSurferCursor);
-    }
-
-    document
-        .getElementById("play")
-        .onclick = playMixed;
-
-    document
-        .getElementById("pause")
-        .onclick = pauseMixed;
-
-    // sync seeking
-    wavesurfer.on("interaction", (time) => {
-        pausedAt = time;
-
-        if (playing) {
-            pauseMixed();
-            playMixed();
-        }
-    });
-
     const osuTiming = generateOsuTimingPoints(ticks);
 
     document.getElementById("osuTimingPoints").value = osuTiming;
 
-    const osuText = generateOsuFile({
+    osuText = generateOsuFile({
         audioFilename: file.name,
         title: "My Song",
         artist: "Unknown",
@@ -252,97 +274,8 @@ fileInput.addEventListener("change", async (event) => {
         timingPoints: osuTiming
     });
 
-    const downloadButton = document.getElementById("downloadOsu");
-
-    downloadButton.onclick = () => {
-        const blob = new Blob(
-            [osuText],
-            { type: "text/plain" }
-        );
-
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-
-        // Generate osu beatmap
-        const baseName = file.name.replace(/\.[^/.]+$/, "");
-
-        link.download = `${baseName}.osu`;
-
-        document.body.appendChild(link);
-        link.click();
-
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
-    };
-
+    osuFileBaseName = file.name.replace(/\.[^/.]+$/, "");
 
     // show download button
     downloadButton.style.display = "block";
 });
-
-
-function generateOsuTimingPoints(ticks) {
-    const lines = [];
-
-    for (let i = 0; i < ticks.length - 1; i++) {
-        const timeMs = Math.round(ticks[i] * 1000);
-
-        const beatLength = ((ticks[i + 1] - ticks[i]) * 1000).toFixed(2);
-
-        lines.push(
-            `${timeMs},${beatLength},4,2,0,100,1,0`
-        );
-    }
-
-    return `[TimingPoints]\n${lines.join("\n")}`;
-}
-
-export function generateOsuFile({
-    audioFilename,
-    title = "My Song",
-    artist = "Unknown",
-    creator = "",
-    timingPoints
-}) {
-    return `osu file format v14
-
-[General]
-AudioFilename: ${audioFilename}
-AudioLeadIn: 0
-PreviewTime: -1
-Countdown: 0
-SampleSet: Soft
-StackLeniency: 0.7
-Mode: 0
-WidescreenStoryboard: 1
-
-[Editor]
-DistanceSpacing: 1
-BeatDivisor: 4
-GridSize: 32
-TimelineZoom: 1
-
-[Metadata]
-Title:${title}
-Artist:${artist}
-Creator:${creator}
-Version:Auto BPM
-
-[Difficulty]
-HPDrainRate:5
-CircleSize:4
-OverallDifficulty:5
-ApproachRate:5
-SliderMultiplier:1.4
-SliderTickRate:1
-
-[Events]
-
-${timingPoints}
-
-[HitObjects]
-`;
-}
