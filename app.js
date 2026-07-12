@@ -4,6 +4,24 @@ import { EssentiaWASM } from "essentia.js/wasm";
 import WaveSurfer from "wavesurfer.js";
 import Regions from "wavesurfer.js/regions";
 
+// A BPM label pinned just right of a marker line. Styled inline because regions
+// render inside wavesurfer's shadow DOM, which external stylesheets can't reach.
+function makeBpmLabel(text) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    Object.assign(span.style, {
+        position: "absolute",
+        top: "0",
+        left: "3px",
+        fontSize: "0.7rem",
+        lineHeight: "1",
+        color: "red",
+        whiteSpace: "nowrap",
+        pointerEvents: "none", // don't block hover/tooltip on the line itself
+    });
+    return span;
+}
+
 function generateOsuTimingPoints(ticks, beatLengths) {
     // keep only points whose beatLength differs from the previous one
     const lines = beatLengths
@@ -408,10 +426,20 @@ function renderTicks() {
             i === 0 ||
             (i < beatLengths.length && beatLengths[i] !== beatLengths[i - 1]);
 
-        // no `end` => a marker (fixed-width vertical line, see ::part(region) in CSS)
+        // only red (new-tempo) lines get a BPM label; gray ones would just repeat it.
+        // beatLength is ms-per-beat, so BPM = 60000 / beatLength.
+        const showLabel = isNewTempo && i < beatLengths.length;
+        const bpmText = showLabel
+            ? `${(60000 / Number(beatLengths[i])).toFixed(1)} BPM`
+            : "";
+
+        // no `end` => a marker (fixed-width vertical line, see ::part(region) in CSS).
+        // regions live in wavesurfer's shadow DOM, so external CSS can't reach the
+        // label span -- makeBpmLabel styles it inline, which pierces the boundary.
         regions.addRegion({
             start: beat,
             color: isNewTempo ? "rgba(255, 0, 0, 0.9)" : "rgba(150, 150, 150, 0.9)",
+            content: bpmText ? makeBpmLabel(bpmText) : undefined,
             drag: false,
             resize: false,
         });

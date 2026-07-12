@@ -20,6 +20,7 @@ body {
 #waveform ::part(region) {
     width: 2px !important;
     border-radius: 0 !important;
+    overflow: visible !important; /* let the BPM label escape the 2px line */
 }
 
 #controls {
@@ -48,7 +49,7 @@ body {
     vertical-align: middle;
 }
 
-#play, #pause, #downloadOsu {
+#play, #pause {
     margin-right: 0.5rem;
 }
 
