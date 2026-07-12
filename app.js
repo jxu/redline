@@ -207,9 +207,10 @@ fileInput.addEventListener("change", async (event) => {
 
     resultsBox.textContent = "Analyzing...";
 
-    // reset playback state for the new track
+    // reset playback state and beat markers for the new track
     pauseMixed();
     pausedAt = 0;
+    regions.clearRegions();
 
     // For Essentia
     const arrayBuffer = await file.arrayBuffer();
