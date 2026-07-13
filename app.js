@@ -58,10 +58,11 @@ function beatLengthsMs(ticks, tolerance = BEAT_TOLERANCE_MS, windowSize = BEAT_W
     return averageSteadyRuns(smoothed, tolerance).map((ms) => ms.toFixed(2));
 }
 
-// trailing moving average over `windowSize` samples (shorter at the start)
+// centered moving average over `windowSize` samples (window shrinks near either end)
 function movingAverage(values, windowSize) {
+    const half = Math.floor((windowSize - 1) / 2);
     return values.map((_, i) => {
-        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        const window = values.slice(Math.max(0, i - half), i - half + windowSize);
         return window.reduce((sum, v) => sum + v, 0) / window.length;
     });
 }
