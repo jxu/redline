@@ -117,29 +117,45 @@ function averageBpm(ticks) {
     return 60 / secondsPerBeat;
 }
 
-// Plot instantaneous BPM (60 / each beat gap) against time for the whole song.
+// Plot instantaneous BPM against time for the whole song: the raw per-beat BPM
+// (60 / each detected gap) as a faint line, with the smoothed series (what the
+// markers/osu export use) drawn on top so you can see what smoothing did.
 // One Chart.js instance is reused across recalcs: create it on first draw, then
 // just swap its data (destroying/recreating each time would leak canvases).
 let bpmChart = null;
 
-function drawBpmGraph(ticks) {
-    // one point per beat gap: its BPM, placed at the gap's start time
-    const data = ticks.slice(0, -1).map((t, i) => ({
+function drawBpmGraph(ticks, beatLengths) {
+    // both series share an x (the gap's start time); raw comes from the tick
+    // spacing, smoothed from the collapsed beatLengths (ms/beat -> BPM)
+    const raw = ticks.slice(0, -1).map((t, i) => ({
         x: t,
         y: 60 / (ticks[i + 1] - t),
+    }));
+    const smoothed = ticks.slice(0, -1).map((t, i) => ({
+        x: t,
+        y: 60000 / Number(beatLengths[i]),
     }));
 
     if (!bpmChart) {
         bpmChart = new Chart(document.getElementById("bpmGraph"), {
             type: "line",
             data: {
-                datasets: [{
-                    label: "BPM",
-                    data,
-                    borderColor: "#4F4A85",
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                }],
+                datasets: [
+                    {
+                        label: "raw",
+                        data: raw,
+                        borderColor: "rgba(79, 74, 133, 0.35)",
+                        borderWidth: 1,
+                        pointRadius: 0,
+                    },
+                    {
+                        label: "smoothed",
+                        data: smoothed,
+                        borderColor: "#4F4A85",
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                    },
+                ],
             },
             options: {
                 animation: false,
@@ -148,13 +164,14 @@ function drawBpmGraph(ticks) {
                     x: { type: "linear", title: { display: true, text: "seconds" } },
                     y: { title: { display: true, text: "BPM" } },
                 },
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true } },
             },
         });
         return;
     }
 
-    bpmChart.data.datasets[0].data = data;
+    bpmChart.data.datasets[0].data = raw;
+    bpmChart.data.datasets[1].data = smoothed;
     bpmChart.update();
 }
 
@@ -459,7 +476,7 @@ function renderTicks() {
         <p><strong>Confidence:</strong> ${currentConfidence.toFixed(1)}</p>
     `;
 
-    drawBpmGraph(currentTicks);
+    drawBpmGraph(currentTicks, beatLengths);
 
     // create mixed result
     const clickBuffer = createMetronomeBuffer(
