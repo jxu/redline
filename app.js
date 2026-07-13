@@ -4,6 +4,8 @@ import { EssentiaWASM } from "essentia.js/wasm";
 import WaveSurfer from "wavesurfer.js";
 import Regions from "wavesurfer.js/regions";
 
+import Chart from "chart.js/auto";
+
 // A BPM label pinned just right of a marker line. Styled inline because regions
 // render inside wavesurfer's shadow DOM, which external stylesheets can't reach.
 function makeBpmLabel(text) {
@@ -113,6 +115,47 @@ function averageBpm(ticks) {
     if (ticks.length < 2) return 0;
     const secondsPerBeat = (ticks[ticks.length - 1] - ticks[0]) / (ticks.length - 1);
     return 60 / secondsPerBeat;
+}
+
+// Plot instantaneous BPM (60 / each beat gap) against time for the whole song.
+// One Chart.js instance is reused across recalcs: create it on first draw, then
+// just swap its data (destroying/recreating each time would leak canvases).
+let bpmChart = null;
+
+function drawBpmGraph(ticks) {
+    // one point per beat gap: its BPM, placed at the gap's start time
+    const data = ticks.slice(0, -1).map((t, i) => ({
+        x: t,
+        y: 60 / (ticks[i + 1] - t),
+    }));
+
+    if (!bpmChart) {
+        bpmChart = new Chart(document.getElementById("bpmGraph"), {
+            type: "line",
+            data: {
+                datasets: [{
+                    label: "BPM",
+                    data,
+                    borderColor: "#4F4A85",
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                }],
+            },
+            options: {
+                animation: false,
+                maintainAspectRatio: false, // fill the CSS-sized canvas box
+                scales: {
+                    x: { type: "linear", title: { display: true, text: "seconds" } },
+                    y: { title: { display: true, text: "BPM" } },
+                },
+                plugins: { legend: { display: false } },
+            },
+        });
+        return;
+    }
+
+    bpmChart.data.datasets[0].data = data;
+    bpmChart.update();
 }
 
 // 1000Hz click with fade-out
@@ -415,6 +458,8 @@ function renderTicks() {
         <p><strong>Average BPM:</strong> ${averageBpm(currentTicks).toFixed(1)}</p>
         <p><strong>Confidence:</strong> ${currentConfidence.toFixed(1)}</p>
     `;
+
+    drawBpmGraph(currentTicks);
 
     // create mixed result
     const clickBuffer = createMetronomeBuffer(

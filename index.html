@@ -10,7 +10,8 @@
     "essentia.js": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.es.js",
     "essentia.js/wasm": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.es.js",
     "wavesurfer.js": "https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js",
-    "wavesurfer.js/regions": "https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js"
+    "wavesurfer.js/regions": "https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js",
+    "chart.js/auto": "https://esm.sh/chart.js@4/auto"
   }
 }
 </script>
@@ -52,6 +53,12 @@
 
 <div id="results">
     No analysis yet.
+</div>
+
+<!-- instantaneous BPM (60 / beat gap) across the whole song, drawn in app.js.
+     Chart.js sizes the canvas to this relatively-positioned, fixed-height box. -->
+<div id="bpmGraphBox">
+    <canvas id="bpmGraph"></canvas>
 </div>
 
 <textarea id="osuTimingPoints" rows="10" cols="80"></textarea>
