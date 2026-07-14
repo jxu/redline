@@ -39,6 +39,10 @@ function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
 }
 
+function mean(values) {
+    return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
 // Beat-smoothing config. Essentia's per-tick jitter makes adjacent intervals
 // swing wildly (differencing amplifies noise), so a raw spread test can never
 // group them. Two stages instead:
@@ -61,10 +65,9 @@ function beatLengthsMs(ticks, tolerance = BEAT_TOLERANCE_MS, windowSize = BEAT_W
 // centered moving average over `windowSize` samples (window shrinks near either end)
 function movingAverage(values, windowSize) {
     const half = Math.floor((windowSize - 1) / 2);
-    return values.map((_, i) => {
-        const window = values.slice(Math.max(0, i - half), i - half + windowSize);
-        return window.reduce((sum, v) => sum + v, 0) / window.length;
-    });
+    return values.map((_, i) =>
+        mean(values.slice(Math.max(0, i - half), i - half + windowSize))
+    );
 }
 
 // Replace each maximal run of values whose spread stays within `tolerance`
@@ -88,8 +91,7 @@ function averageSteadyRuns(values, tolerance) {
             end++;
         }
 
-        const avg =
-            values.slice(start, end + 1).reduce((sum, v) => sum + v, 0) / (end - start + 1);
+        const avg = mean(values.slice(start, end + 1));
         for (let i = start; i <= end; i++) result[i] = avg;
 
         start = end + 1;
