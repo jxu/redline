@@ -357,21 +357,15 @@ document.getElementById("waveform").addEventListener("wheel", (event) => {
     wavesurfer.zoom(pxPerSec);
 }, { passive: false });
 
-// smoothing knobs update their readout immediately and re-render the smoothing
-// view on a short debounce -- re-detection isn't needed (see renderSmoothing).
-// Debounced so a fast drag doesn't redraw every marker on each input event.
-let smoothingTimer = null;
-function scheduleSmoothing() {
-    clearTimeout(smoothingTimer);
-    smoothingTimer = setTimeout(renderSmoothing, 100);
-}
+// smoothing knobs update their readout and re-render the smoothing view live --
+// re-detection isn't needed and renderSmoothing() is cheap (see its comment).
 smoothingSlider.oninput = () => {
     smoothingValue.textContent = smoothingSlider.value;
-    scheduleSmoothing();
+    renderSmoothing();
 };
 toleranceSlider.oninput = () => {
     toleranceValue.textContent = toleranceSlider.value;
-    scheduleSmoothing();
+    renderSmoothing();
 };
 
 document.getElementById("calculate").onclick = analyze;
@@ -505,7 +499,7 @@ function renderTicks() {
 
 // smoothing-dependent view: beat lengths, BPM graph, waveform markers, osu
 // export. No essentia and no full-buffer mixing, so the sliders can re-run this
-// live (debounced) without re-detecting beats or interrupting playback.
+// live on every input without re-detecting beats or interrupting playback.
 function renderSmoothing() {
     if (!currentTicks.length) return;
 
@@ -558,7 +552,7 @@ fileInput.addEventListener("change", async (event) => {
     pausedAt = 0;
     regions.clearRegions();
     currentTicks = [];
-    resultsBox.textContent = "Press Calculate to detect beats, then adjust smoothing if needed.";
+    resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
 
     // decode + show the waveform now; run beat detection only on Calculate
     await loadFile(file);
