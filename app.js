@@ -357,9 +357,22 @@ document.getElementById("waveform").addEventListener("wheel", (event) => {
     wavesurfer.zoom(pxPerSec);
 }, { passive: false });
 
-// smoothing knobs just update their readouts; they apply on the next Calculate
-smoothingSlider.oninput = () => { smoothingValue.textContent = smoothingSlider.value; };
-toleranceSlider.oninput = () => { toleranceValue.textContent = toleranceSlider.value; };
+// smoothing knobs update their readout immediately and re-render the smoothing
+// view on a short debounce -- re-detection isn't needed (see renderSmoothing).
+// Debounced so a fast drag doesn't redraw every marker on each input event.
+let smoothingTimer = null;
+function scheduleSmoothing() {
+    clearTimeout(smoothingTimer);
+    smoothingTimer = setTimeout(renderSmoothing, 100);
+}
+smoothingSlider.oninput = () => {
+    smoothingValue.textContent = smoothingSlider.value;
+    scheduleSmoothing();
+};
+toleranceSlider.oninput = () => {
+    toleranceValue.textContent = toleranceSlider.value;
+    scheduleSmoothing();
+};
 
 document.getElementById("calculate").onclick = analyze;
 
@@ -459,19 +472,14 @@ async function analyze() {
     renderTicks();
 }
 
-// build everything downstream of the beats: readout, metronome, markers, osu.
-// Called by analyze() and by the ×2/÷2 buttons (which only reshape currentTicks).
+// rebuild everything downstream of the beats. Split in two: the audio mix +
+// readout depend only on currentTicks (analyze / ×2 / ÷2), while the smoothing
+// view also depends on the sliders -- renderSmoothing() owns that part and is
+// cheap enough to re-run live as the sliders move.
 function renderTicks() {
-    // reset playback and clear old markers before rebuilding
+    // reset playback before rebuilding the mixed audio
     pauseMixed();
     pausedAt = 0;
-    regions.clearRegions();
-
-    const beatLengths = beatLengthsMs(
-        currentTicks,
-        Number(toleranceSlider.value),
-        Number(smoothingSlider.value)
-    );
 
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
@@ -479,9 +487,8 @@ function renderTicks() {
         <p><strong>Confidence:</strong> ${currentConfidence.toFixed(1)}</p>
     `;
 
-    drawBpmGraph(currentTicks, beatLengths);
-
-    // create mixed result
+    // click track + mixed audio place clicks at currentTicks, so they're
+    // unaffected by the smoothing sliders -- built here, not in renderSmoothing
     const clickBuffer = createMetronomeBuffer(
         currentTicks,
         currentAudioBuffer.duration,
@@ -493,7 +500,25 @@ function renderTicks() {
         clickBuffer
     );
 
-    // waveform is already loaded (on file upload), so draw markers directly
+    renderSmoothing();
+}
+
+// smoothing-dependent view: beat lengths, BPM graph, waveform markers, osu
+// export. No essentia and no full-buffer mixing, so the sliders can re-run this
+// live (debounced) without re-detecting beats or interrupting playback.
+function renderSmoothing() {
+    if (!currentTicks.length) return;
+
+    const beatLengths = beatLengthsMs(
+        currentTicks,
+        Number(toleranceSlider.value),
+        Number(smoothingSlider.value)
+    );
+
+    drawBpmGraph(currentTicks, beatLengths);
+
+    // redraw markers from scratch against the new beat lengths
+    regions.clearRegions();
     currentTicks.forEach((beat, i) => {
         // red if it starts a new tempo (first tick or changed beatLength), else gray
         const isNewTempo =
@@ -533,7 +558,7 @@ fileInput.addEventListener("change", async (event) => {
     pausedAt = 0;
     regions.clearRegions();
     currentTicks = [];
-    resultsBox.textContent = "Adjust smoothing, then press Calculate.";
+    resultsBox.textContent = "Press Calculate to detect beats, then adjust smoothing if needed.";
 
     // decode + show the waveform now; run beat detection only on Calculate
     await loadFile(file);
