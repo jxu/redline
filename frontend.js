@@ -1,10 +1,11 @@
-import Essentia from "essentia.js";
-import { EssentiaWASM } from "essentia.js/wasm";
-
+// Browser entry point: UI, playback, and rendering.
 import WaveSurfer from "wavesurfer.js";
 import Regions from "wavesurfer.js/regions";
 
 import Chart from "chart.js/auto";
+
+import { detectBeats } from "./beat-detector.js";
+import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
 
 // A BPM label pinned just right of a marker line. Styled inline because regions
 // render inside wavesurfer's shadow DOM, which external stylesheets can't reach.
@@ -24,100 +25,8 @@ function makeBpmLabel(text) {
     return span;
 }
 
-function generateOsuTimingPoints(ticks, beatLengths) {
-    // keep only points whose beatLength differs from the previous one
-    const lines = beatLengths
-        .map((beatLength, i) => ({ timeMs: Math.round(ticks[i] * 1000), beatLength }))
-        .filter((point, i) => i === 0 || point.beatLength !== beatLengths[i - 1])
-        .map((point) => `${point.timeMs},${point.beatLength},4,2,0,100,1,0`);
-
-    return `[TimingPoints]\n${lines.join("\n")}`;
-}
-
-
 function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
-}
-
-function mean(values) {
-    return values.reduce((sum, v) => sum + v, 0) / values.length;
-}
-
-// Beat-smoothing config. Essentia's per-tick jitter makes adjacent intervals
-// swing wildly (differencing amplifies noise), so a raw spread test can never
-// group them. Two stages instead:
-//   BEAT_WINDOW      - moving-average the intervals; averaging W of them measures
-//                      the period over a W-beat baseline, cutting jitter by ~sqrt(W)
-//                      and cancelling the long/short/long alternation when W is even.
-//   BEAT_TOLERANCE_MS - group the now-smooth series into runs (spread <= tolerance)
-//                      and replace each run by its mean, so steady tempo -> one value.
-const BEAT_TOLERANCE_MS = 5;
-const BEAT_WINDOW = 4;
-
-// beatLength (ms, 2 dp) of the interval starting at each tick except the last,
-// smoothed over a window then collapsed into steady runs (see config above)
-function beatLengthsMs(ticks, tolerance = BEAT_TOLERANCE_MS, windowSize = BEAT_WINDOW) {
-    const intervals = ticks.slice(0, -1).map((tick, i) => (ticks[i + 1] - tick) * 1000);
-    const smoothed = movingAverage(intervals, windowSize);
-    return averageSteadyRuns(smoothed, tolerance).map((ms) => ms.toFixed(2));
-}
-
-// centered moving average over `windowSize` samples (window shrinks near either end)
-function movingAverage(values, windowSize) {
-    const half = Math.floor((windowSize - 1) / 2);
-    return values.map((_, i) =>
-        mean(values.slice(Math.max(0, i - half), i - half + windowSize))
-    );
-}
-
-// Replace each maximal run of values whose spread stays within `tolerance`
-// with the run's average, so a steady tempo collapses to a single value.
-function averageSteadyRuns(values, tolerance) {
-    const result = values.slice();
-
-    let start = 0;
-    while (start < values.length) {
-        let end = start; // inclusive end of the current run
-        let min = values[start];
-        let max = values[start];
-
-        // extend the run while its spread stays within `tolerance`
-        while (end + 1 < values.length) {
-            const nextMin = Math.min(min, values[end + 1]);
-            const nextMax = Math.max(max, values[end + 1]);
-            if (nextMax - nextMin > tolerance) break;
-            min = nextMin;
-            max = nextMax;
-            end++;
-        }
-
-        const avg = mean(values.slice(start, end + 1));
-        for (let i = start; i <= end; i++) result[i] = avg;
-
-        start = end + 1;
-    }
-
-    return result;
-}
-
-// ×2 octave fix: place a beat at the midpoint of every gap (102 -> 204 BPM)
-function doubleTicks(ticks) {
-    return ticks.flatMap((tick, i) =>
-        i < ticks.length - 1 ? [tick, (tick + ticks[i + 1]) / 2] : [tick]
-    );
-}
-
-// ÷2 octave fix: keep every other beat (204 -> 102 BPM)
-function halveTicks(ticks) {
-    return ticks.filter((_, i) => i % 2 === 0);
-}
-
-// overall BPM from the mean beat spacing (reflects the current ticks, so it
-// updates after ×2/÷2 unlike essentia's one-shot reported bpm)
-function averageBpm(ticks) {
-    if (ticks.length < 2) return 0;
-    const secondsPerBeat = (ticks[ticks.length - 1] - ticks[0]) / (ticks.length - 1);
-    return 60 / secondsPerBeat;
 }
 
 // Plot instantaneous BPM against time for the whole song: the raw per-beat BPM
@@ -127,18 +36,7 @@ function averageBpm(ticks) {
 // just swap its data (destroying/recreating each time would leak canvases).
 let bpmChart = null;
 
-function drawBpmGraph(ticks, beatLengths) {
-    // both series share an x (the gap's start time); raw comes from the tick
-    // spacing, smoothed from the collapsed beatLengths (ms/beat -> BPM)
-    const raw = ticks.slice(0, -1).map((t, i) => ({
-        x: t,
-        y: 60 / (ticks[i + 1] - t),
-    }));
-    const smoothed = ticks.slice(0, -1).map((t, i) => ({
-        x: t,
-        y: 60000 / Number(beatLengths[i]),
-    }));
-
+function drawBpmGraph(raw, smoothed) {
     if (!bpmChart) {
         bpmChart = new Chart(document.getElementById("bpmGraph"), {
             type: "line",
@@ -237,10 +135,7 @@ function mixBuffers(original, clicks) {
     return mixed;
 }
 
-const essentia = new Essentia(EssentiaWASM);
-
 const fileInput = document.getElementById("audioFile");
-const player = document.getElementById("player");
 const resultsBox = document.getElementById("results");
 
 const smoothingSlider = document.getElementById("smoothing");
@@ -433,35 +328,14 @@ async function analyze() {
         requestAnimationFrame(() => requestAnimationFrame(resolve))
     );
 
-    // essentia allocates in WASM memory; every vector we create or receive must be
-    // freed, or repeated Calculate clicks leak tens of MB each and eventually hang
-    const signal = essentia.arrayToVector(currentSamples);
-
-    let result;
     try {
-        // main rhythm extractor function, widest range for a confident detection;
-        // octave errors are fixed afterwards with the ×2/÷2 buttons
-        // args: (signal, maxTempo, method, minTempo)
-        result = essentia.RhythmExtractor2013(signal, 250, "multifeature", 40);
+        const result = detectBeats(currentSamples);
+        currentTicks = result.ticks;
+        currentConfidence = result.confidence;
     } catch (err) {
         resultsBox.textContent = `Analysis failed: ${err}`;
         return;
-    } finally {
-        signal.delete();
     }
-
-    console.log(result);
-
-    // convert Emscripten vector to JS array, then free the WASM-side vectors
-    currentTicks = Array.from(
-        { length: result.ticks.size() },
-        (_, i) => result.ticks.get(i)
-    );
-    currentConfidence = result.confidence;
-
-    result.ticks.delete();
-    result.estimates?.delete?.();
-    result.bpmIntervals?.delete?.();
 
     renderTicks();
 }
@@ -475,9 +349,14 @@ function renderTicks() {
     pauseMixed();
     pausedAt = 0;
 
+    const timing = calculateTiming(currentTicks, {
+        toleranceMs: Number(toleranceSlider.value),
+        windowSize: Number(smoothingSlider.value),
+    });
+
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
-        <p><strong>Average BPM:</strong> ${averageBpm(currentTicks).toFixed(1)}</p>
+        <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
         <p><strong>Confidence:</strong> ${currentConfidence.toFixed(1)}</p>
     `;
 
@@ -494,22 +373,22 @@ function renderTicks() {
         clickBuffer
     );
 
-    renderSmoothing();
+    renderSmoothing(timing);
 }
 
 // smoothing-dependent view: beat lengths, BPM graph, waveform markers, osu
 // export. No essentia and no full-buffer mixing, so the sliders can re-run this
 // live on every input without re-detecting beats or interrupting playback.
-function renderSmoothing() {
+function renderSmoothing(timing = null) {
     if (!currentTicks.length) return;
 
-    const beatLengths = beatLengthsMs(
-        currentTicks,
-        Number(toleranceSlider.value),
-        Number(smoothingSlider.value)
-    );
+    timing ??= calculateTiming(currentTicks, {
+        toleranceMs: Number(toleranceSlider.value),
+        windowSize: Number(smoothingSlider.value),
+    });
+    const { beatLengths } = timing;
 
-    drawBpmGraph(currentTicks, beatLengths);
+    drawBpmGraph(timing.rawBpmSeries, timing.smoothedBpmSeries);
 
     // redraw markers from scratch against the new beat lengths
     regions.clearRegions();
@@ -538,9 +417,7 @@ function renderSmoothing() {
         });
     });
 
-    const osuTiming = generateOsuTimingPoints(currentTicks, beatLengths);
-
-    document.getElementById("osuTimingPoints").value = osuTiming;
+    document.getElementById("osuTimingPoints").value = timing.osuTimingPoints;
 }
 
 fileInput.addEventListener("change", async (event) => {
