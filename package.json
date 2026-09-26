@@ -2,6 +2,7 @@
   "type": "module",
   "scripts": {
     "benchmark": "node benchmark/run.js",
+    "benchmark:listen": "node benchmark/render-comparison.js",
     "dev": "http-server -c-1 .",
     "test": "node --test"
   },

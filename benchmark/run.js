@@ -46,7 +46,10 @@ async function runCase(benchmarkCase) {
     ]);
 
     const timingPoints = parseOsuTimingPoints(osuText);
-    const referenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs);
+    const onlineOffsetMs = benchmarkCase.onlineOffsetMs ?? 0;
+    const referenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs)
+        .map((beatMs) => beatMs + onlineOffsetMs)
+        .filter((beatMs) => beatMs >= 0 && beatMs < decoded.durationMs);
     const detection = detectBeats(decoded.samples);
     const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
     const scaleCandidates = evaluateTempoScales(
@@ -68,6 +71,7 @@ async function runCase(benchmarkCase) {
         essentiaSampleRate: 44100,
         durationMs: decoded.durationMs,
         confidence: detection.confidence,
+        onlineOffsetMs,
         allowedTempoScales: benchmarkCase.allowedTempoScales,
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
@@ -93,6 +97,7 @@ for (const benchmarkCase of selectedCases) {
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
+    console.log(`  Online offset:   ${result.onlineOffsetMs} ms`);
     console.log(`  Raw detections:  ${result.rawDetectedBeatsMs.length}`);
     console.log(
         `  Selected scale:  ${result.selectedTempoScale}x` +

@@ -6,6 +6,7 @@
   "essentiaSampleRate": 44100,
   "durationMs": 135906.66666666666,
   "confidence": 2.107959747314453,
+  "onlineOffsetMs": 0,
   "allowedTempoScales": [
     0.5,
     1,
