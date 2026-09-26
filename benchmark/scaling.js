@@ -48,20 +48,31 @@ function symmetricMeanNearestError(detectedBeatsMs, referenceBeatsMs) {
     ) / 2;
 }
 
-export function evaluateTempoScales(detectedBeatsMs, referenceBeatsMs, allowedTempoScales) {
+export function evaluateTempoScales(
+    detectedBeatsMs,
+    referenceBeatsMs,
+    allowedTempoScales,
+    { startMs = -Infinity, endMs = Infinity } = {}
+) {
     if (!allowedTempoScales?.length) throw new Error("At least one tempo scale is required");
+    if (startMs >= endMs) throw new Error("Evaluation start must be before its end");
+
+    const evaluationReferenceBeatsMs = referenceBeatsMs.filter(
+        (beatMs) => beatMs >= startMs && beatMs < endMs
+    );
 
     const candidates = allowedTempoScales.flatMap((tempoScale) => {
         const phaseCount = tempoScale < 1 ? subdivisionCount(tempoScale) : 1;
         return Array.from({ length: phaseCount }, (_, phase) => {
-            const beatsMs = scaleBeatGrid(detectedBeatsMs, tempoScale, phase);
+            const beatsMs = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)
+                .filter((beatMs) => beatMs >= startMs && beatMs < endMs);
             return {
                 tempoScale,
                 phase,
                 beatsMs,
                 symmetricMeanNearestErrorMs: symmetricMeanNearestError(
                     beatsMs,
-                    referenceBeatsMs
+                    evaluationReferenceBeatsMs
                 ),
             };
         });

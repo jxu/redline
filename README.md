@@ -46,8 +46,9 @@ npm run benchmark -- 1670652
 Each run expands the ranked map's red timing points into a reference beat grid,
 generates Essentia's detected beat grid from the same audio, and tests the
 case's allowed tempo scales. It benchmarks the scale with the lowest symmetric
-nearest-grid error and writes every candidate score plus detailed results under
-`benchmark/results/`.
+nearest-grid error. Beats in the first and last five seconds of the audio are
+excluded from scale selection and metrics. The command writes every candidate
+score plus detailed results under `benchmark/results/`.
 
 Render the ranked and detected grids as click tracks mixed with the corpus audio:
 

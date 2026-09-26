@@ -30,3 +30,15 @@ test("tries both phases when reducing a double-tempo grid", () => {
     assert.equal(candidates[0].phase, 1);
     assert.deepEqual(candidates[0].beatsMs, [500, 1500]);
 });
+
+test("scores only beats inside the evaluation window", () => {
+    const candidates = evaluateTempoScales(
+        [0, 1000, 2000, 3000],
+        [0, 500, 1000, 1500, 2000, 2500, 3000],
+        [2],
+        { startMs: 500, endMs: 2500 }
+    );
+
+    assert.equal(candidates[0].symmetricMeanNearestErrorMs, 0);
+    assert.deepEqual(candidates[0].beatsMs, [500, 1000, 1500, 2000]);
+});

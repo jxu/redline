@@ -8,6 +8,7 @@ import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timin
 import { evaluateTempoScales } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
+const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const requestedId = process.argv[2];
 const selectedCases = requestedId
@@ -47,15 +48,21 @@ async function runCase(benchmarkCase) {
 
     const timingPoints = parseOsuTimingPoints(osuText);
     const onlineOffsetMs = benchmarkCase.onlineOffsetMs ?? 0;
-    const referenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs)
+    const fullReferenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs)
         .map((beatMs) => beatMs + onlineOffsetMs)
         .filter((beatMs) => beatMs >= 0 && beatMs < decoded.durationMs);
+    const evaluationStartMs = evaluationMarginMs;
+    const evaluationEndMs = decoded.durationMs - evaluationMarginMs;
+    const referenceBeatsMs = fullReferenceBeatsMs.filter(
+        (beatMs) => beatMs >= evaluationStartMs && beatMs < evaluationEndMs
+    );
     const detection = detectBeats(decoded.samples);
     const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
     const scaleCandidates = evaluateTempoScales(
         rawDetectedBeatsMs,
-        referenceBeatsMs,
-        benchmarkCase.allowedTempoScales
+        fullReferenceBeatsMs,
+        benchmarkCase.allowedTempoScales,
+        { startMs: evaluationStartMs, endMs: evaluationEndMs }
     );
     const selectedScale = scaleCandidates[0];
     const detectedBeatsMs = selectedScale.beatsMs;
@@ -70,6 +77,9 @@ async function runCase(benchmarkCase) {
         sourceSampleRate: decoded.sourceSampleRate,
         essentiaSampleRate: 44100,
         durationMs: decoded.durationMs,
+        evaluationMarginMs,
+        evaluationStartMs,
+        evaluationEndMs,
         confidence: detection.confidence,
         onlineOffsetMs,
         allowedTempoScales: benchmarkCase.allowedTempoScales,
@@ -97,6 +107,9 @@ for (const benchmarkCase of selectedCases) {
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
+    console.log(
+        `  Evaluation:      ${result.evaluationStartMs}-${result.evaluationEndMs.toFixed(3)} ms`
+    );
     console.log(`  Online offset:   ${result.onlineOffsetMs} ms`);
     console.log(`  Raw detections:  ${result.rawDetectedBeatsMs.length}`);
     console.log(
