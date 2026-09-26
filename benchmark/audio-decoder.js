@@ -3,6 +3,40 @@ import { readFile } from "node:fs/promises";
 
 import { ESSENTIA_SAMPLE_RATE } from "../audio-decoder.js";
 
+export function removeLeadingId3Padding(encodedAudio) {
+    if (
+        encodedAudio.length < 10 ||
+        encodedAudio[0] !== 0x49 ||
+        encodedAudio[1] !== 0x44 ||
+        encodedAudio[2] !== 0x33
+    ) {
+        return encodedAudio;
+    }
+
+    const tagSize =
+        ((encodedAudio[6] & 0x7f) << 21) |
+        ((encodedAudio[7] & 0x7f) << 14) |
+        ((encodedAudio[8] & 0x7f) << 7) |
+        (encodedAudio[9] & 0x7f);
+    const footerSize = encodedAudio[5] & 0x10 ? 10 : 0;
+    let audioStart = 10 + tagSize + footerSize;
+
+    while (encodedAudio[audioStart] === 0) audioStart++;
+    return audioStart === 10 + tagSize + footerSize
+        ? encodedAudio
+        : Uint8Array.from(encodedAudio.subarray(audioStart));
+}
+
+async function decodeWithId3PaddingFallback(encodedAudio) {
+    try {
+        return await decode(encodedAudio);
+    } catch (error) {
+        const withoutPadding = removeLeadingId3Padding(encodedAudio);
+        if (withoutPadding === encodedAudio || error.message !== "Unknown audio format") throw error;
+        return decode(withoutPadding);
+    }
+}
+
 function downmix(audioBuffer) {
     const sampleCount = audioBuffer.channelData[0]?.length ?? 0;
     const mono = new Float32Array(sampleCount);
@@ -35,7 +69,7 @@ function resampleLinear(samples, sourceRate, targetRate) {
 
 export async function decodeAudioFile(path) {
     const encodedAudio = await readFile(path);
-    const audioBuffer = await decode(encodedAudio);
+    const audioBuffer = await decodeWithId3PaddingFallback(encodedAudio);
     const mono = downmix(audioBuffer);
 
     return {

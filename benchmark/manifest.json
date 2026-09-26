@@ -14,5 +14,37 @@
     "osu": "./corpus/236292/Agressor Bunx - Tornado (Original Mix) (Shadren) [Insane].osu",
     "onlineOffsetMs": 5,
     "allowedTempoScales": [0.5, 1, 2]
+  },
+  {
+    "id": "13012",
+    "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
+    "audio": "./corpus/13012/SO DEEP (PERFECT SPHERE REMIX).mp3",
+    "osu": "./corpus/13012/Silvertear - So Deep (Perfect Sphere Remix) (yeahyeahyeahhh) [Heavy].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1, 2]
+  },
+  {
+    "id": "1371996",
+    "name": "umu. - Ai no Sukima [Howling]",
+    "audio": "./corpus/1371996/audio.mp3",
+    "osu": "./corpus/1371996/umu. - Ai no Sukima (Half) [Howling].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1, 2]
+  },
+  {
+    "id": "2470141",
+    "name": "Beach Bunny - Prom Queen [I love you however you are]",
+    "audio": "./corpus/2470141/audio.mp3",
+    "osu": "./corpus/2470141/Beach Bunny - Prom Queen (Mita) [I love you however you are].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1, 2]
+  },
+  {
+    "id": "30485",
+    "name": "Inspector K - Disconnected Hardkore (CanBlaster Remix) [Insane]",
+    "audio": "./corpus/30485/Disconnected_Hardkore.mp3",
+    "osu": "./corpus/30485/Inspector K - Disconnected Hardkore (CanBlaster Remix) (7odoa) [Insane].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1, 2]
   }
 ]
