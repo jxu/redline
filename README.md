@@ -23,3 +23,22 @@ Run the calculation tests with:
 ```bash
 npm test
 ```
+
+## Benchmark
+
+Place each exact audio and `.osu` pair under `benchmark/corpus/<mapset-id>/`,
+then run every configured corpus case from the command line:
+
+```bash
+npm run benchmark
+```
+
+To run one mapset:
+
+```bash
+npm run benchmark -- 1670652
+```
+
+Each run expands the ranked map's red timing points into a reference beat grid,
+generates Essentia's detected beat grid from the same audio, and writes detailed
+JSON results under `benchmark/results/`.

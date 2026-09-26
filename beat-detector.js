@@ -1,5 +1,14 @@
-import Essentia from "essentia.js";
-import { EssentiaWASM } from "essentia.js/wasm";
+let Essentia;
+let EssentiaWASM;
+
+if (typeof window === "undefined") {
+    const essentiaPackage = (await import("essentia.js")).default;
+    Essentia = essentiaPackage.Essentia;
+    EssentiaWASM = essentiaPackage.EssentiaWASM;
+} else {
+    Essentia = (await import("essentia.js")).default;
+    EssentiaWASM = (await import("essentia.js/wasm")).EssentiaWASM;
+}
 
 const essentia = new Essentia(EssentiaWASM);
 

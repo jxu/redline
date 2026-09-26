@@ -4,6 +4,7 @@ import Regions from "wavesurfer.js/regions";
 
 import Chart from "chart.js/auto";
 
+import { decodeAudio } from "./audio-decoder.js";
 import { detectBeats } from "./beat-detector.js";
 import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
 
@@ -292,26 +293,9 @@ wavesurfer.on("interaction", (time) => {
 // decode + resample once per file; store the results for reuse on re-calculation
 async function loadFile(file) {
     const arrayBuffer = await file.arrayBuffer();
-    state.track.audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // IMPORTANT: Essentia expects 44.1 kHz mono, resample here
-    const targetSampleRate = 44100;
-
-    const offline = new OfflineAudioContext(
-        1, // mono
-        Math.ceil(state.track.audioBuffer.duration * targetSampleRate),
-        targetSampleRate
-    );
-
-    // Copy the decoded audio into the offline context
-    const offlineSource = offline.createBufferSource();
-    offlineSource.buffer = state.track.audioBuffer;
-    offlineSource.connect(offline.destination);
-    offlineSource.start();
-
-    const resampledBuffer = await offline.startRendering();
-
-    state.track.samples = resampledBuffer.getChannelData(0);
+    const decoded = await decodeAudio(arrayBuffer, audioContext);
+    state.track.audioBuffer = decoded.audioBuffer;
+    state.track.samples = decoded.samples;
     state.track.file = file;
 }
 

@@ -1,0 +1,84 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { detectBeats } from "../beat-detector.js";
+import { decodeAudioFile } from "./audio-decoder.js";
+import { benchmarkCases } from "./cases.js";
+import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
+
+const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
+const requestedId = process.argv[2];
+const selectedCases = requestedId
+    ? benchmarkCases.filter(({ id }) => id === requestedId)
+    : benchmarkCases;
+
+if (!selectedCases.length) throw new Error(`Unknown mapset ID: ${requestedId}`);
+
+function percentile(sortedValues, fraction) {
+    if (!sortedValues.length) return null;
+    return sortedValues[Math.ceil(sortedValues.length * fraction) - 1];
+}
+
+function calculateMetrics(detectedBeatsMs, referenceBeatsMs) {
+    const errorsMs = detectedBeatsMs.map((detectedMs) =>
+        detectedMs - nearestBeat(referenceBeatsMs, detectedMs)
+    );
+    const absoluteErrors = errorsMs.map(Math.abs).sort((a, b) => a - b);
+
+    return {
+        medianAbsoluteErrorMs: percentile(absoluteErrors, 0.5),
+        percentile95AbsoluteErrorMs: percentile(absoluteErrors, 0.95),
+        meanErrorMs: errorsMs.reduce((sum, error) => sum + error, 0) / errorsMs.length,
+        within5Ms: absoluteErrors.filter((error) => error <= 5).length / absoluteErrors.length,
+        within10Ms: absoluteErrors.filter((error) => error <= 10).length / absoluteErrors.length,
+        within20Ms: absoluteErrors.filter((error) => error <= 20).length / absoluteErrors.length,
+    };
+}
+
+async function runCase(benchmarkCase) {
+    const audioPath = fileURLToPath(new URL(benchmarkCase.audio, import.meta.url));
+    const osuPath = fileURLToPath(new URL(benchmarkCase.osu, import.meta.url));
+    const [decoded, osuText] = await Promise.all([
+        decodeAudioFile(audioPath),
+        readFile(osuPath, "utf8"),
+    ]);
+
+    const timingPoints = parseOsuTimingPoints(osuText);
+    const referenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs);
+    const detection = detectBeats(decoded.samples);
+    const detectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
+    const nearestReferenceErrorsMs = detectedBeatsMs.map((detectedMs) =>
+        detectedMs - nearestBeat(referenceBeatsMs, detectedMs)
+    );
+
+    return {
+        mapsetId: benchmarkCase.id,
+        name: benchmarkCase.name,
+        decoder: "audio-decode",
+        sourceSampleRate: decoded.sourceSampleRate,
+        essentiaSampleRate: 44100,
+        durationMs: decoded.durationMs,
+        confidence: detection.confidence,
+        timingPoints,
+        referenceBeatsMs,
+        detectedBeatsMs,
+        nearestReferenceErrorsMs,
+        metrics: calculateMetrics(detectedBeatsMs, referenceBeatsMs),
+    };
+}
+
+await mkdir(`${benchmarkDirectory}/results`, { recursive: true });
+
+for (const benchmarkCase of selectedCases) {
+    console.log(`Analyzing ${benchmarkCase.id}: ${benchmarkCase.name}`);
+    const result = await runCase(benchmarkCase);
+    const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
+    await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+
+    console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
+    console.log(`  Detected beats:  ${result.detectedBeatsMs.length}`);
+    console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);
+    console.log(`  95th percentile: ${result.metrics.percentile95AbsoluteErrorMs.toFixed(3)} ms`);
+    console.log(`  Result:           ${outputPath}`);
+}
