@@ -1,6 +1,10 @@
 {
   "type": "module",
   "scripts": {
+    "dev": "http-server -c-1 .",
     "test": "node --test"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
