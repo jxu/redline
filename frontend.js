@@ -7,6 +7,28 @@ import Chart from "chart.js/auto";
 import { detectBeats } from "./beat-detector.js";
 import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
 
+const MIN_PX_PER_SEC = 1;
+const MAX_PX_PER_SEC = 500;
+
+const state = {
+    bpmChart: null,
+    zoomPxPerSec: MIN_PX_PER_SEC,
+    playback: {
+        startTime: 0,
+        pausedAt: 0,
+        playing: false,
+        source: null,
+        mixedBuffer: null,
+    },
+    track: {
+        file: null,
+        audioBuffer: null,
+        samples: null, // 44.1 kHz mono Float32Array for Essentia
+        ticks: [],
+        confidence: 0,
+    },
+};
+
 // A BPM label pinned just right of a marker line. Styled inline because regions
 // render inside wavesurfer's shadow DOM, which external stylesheets can't reach.
 function makeBpmLabel(text) {
@@ -32,13 +54,9 @@ function clamp(x, min = -1, max = 1) {
 // Plot instantaneous BPM against time for the whole song: the raw per-beat BPM
 // (60 / each detected gap) as a faint line, with the smoothed series (what the
 // markers/osu export use) drawn on top so you can see what smoothing did.
-// One Chart.js instance is reused across recalcs: create it on first draw, then
-// just swap its data (destroying/recreating each time would leak canvases).
-let bpmChart = null;
-
 function drawBpmGraph(raw, smoothed) {
-    if (!bpmChart) {
-        bpmChart = new Chart(document.getElementById("bpmGraph"), {
+    if (!state.bpmChart) {
+        state.bpmChart = new Chart(document.getElementById("bpmGraph"), {
             type: "line",
             data: {
                 datasets: [
@@ -71,9 +89,9 @@ function drawBpmGraph(raw, smoothed) {
         return;
     }
 
-    bpmChart.data.datasets[0].data = raw;
-    bpmChart.data.datasets[1].data = smoothed;
-    bpmChart.update();
+    state.bpmChart.data.datasets[0].data = raw;
+    state.bpmChart.data.datasets[1].data = smoothed;
+    state.bpmChart.update();
 }
 
 // 1000Hz click with fade-out
@@ -145,25 +163,6 @@ const toleranceValue = document.getElementById("toleranceValue");
 
 const audioContext = new AudioContext();
 
-// Hidden WebAudio state
-let startTime = 0;
-let pausedAt = 0;
-let playing = false;
-let newSource = null;
-
-// Per-track state, set on each file load
-let mixedBuffer = null;
-
-// Decoded audio for the current file, reused across re-calculations so re-running
-// (or a ×2/÷2 octave fix) doesn't force another decode/resample.
-let currentFile = null;
-let currentAudioBuffer = null;
-let currentSamples = null; // 44.1 kHz mono Float32Array for essentia
-
-// Detection results kept so the ×2/÷2 buttons can reshape the beats in place
-let currentTicks = [];
-let currentConfidence = 0;
-
 // WaveSurfer
 const regions = Regions.create();
 
@@ -176,52 +175,52 @@ const wavesurfer = WaveSurfer.create({
 });
 
 function playMixed() {
-    if (playing || !mixedBuffer) return;
+    if (state.playback.playing || !state.playback.mixedBuffer) return;
 
     if (audioContext.state === "suspended") {
         audioContext.resume();
     }
 
-    newSource = audioContext.createBufferSource();
-    newSource.buffer = mixedBuffer;
-    newSource.connect(audioContext.destination);
+    state.playback.source = audioContext.createBufferSource();
+    state.playback.source.buffer = state.playback.mixedBuffer;
+    state.playback.source.connect(audioContext.destination);
 
-    startTime = audioContext.currentTime - pausedAt;
+    state.playback.startTime = audioContext.currentTime - state.playback.pausedAt;
 
-    newSource.start(
+    state.playback.source.start(
         0,
-        pausedAt
+        state.playback.pausedAt
     );
 
-    playing = true;
+    state.playback.playing = true;
 
     updateWaveSurferCursor();
 }
 
 function pauseMixed() {
-    if (!playing) return;
+    if (!state.playback.playing) return;
 
-    newSource.stop();
+    state.playback.source.stop();
 
-    pausedAt = audioContext.currentTime - startTime;
+    state.playback.pausedAt = audioContext.currentTime - state.playback.startTime;
 
-    playing = false;
-    newSource = null; // get rid of it
+    state.playback.playing = false;
+    state.playback.source = null;
 }
 
 function updateWaveSurferCursor() {
-    if (!playing) return;
+    if (!state.playback.playing) return;
 
     const current =
-        audioContext.currentTime - startTime;
+        audioContext.currentTime - state.playback.startTime;
 
     // stop advancing once the track finishes
-    if (current >= mixedBuffer.duration) {
-        wavesurfer.setTime(mixedBuffer.duration);
+    if (current >= state.playback.mixedBuffer.duration) {
+        wavesurfer.setTime(state.playback.mixedBuffer.duration);
 
-        newSource = null; // source stops itself at the end
-        playing = false;
-        pausedAt = 0; // next play restarts from the beginning
+        state.playback.source = null; // source stops itself at the end
+        state.playback.playing = false;
+        state.playback.pausedAt = 0; // next play restarts from the beginning
         return;
     }
 
@@ -241,15 +240,15 @@ document
 // zoom with the mouse wheel over the waveform. zoom() takes pixels-per-second,
 // so we scale it multiplicatively (each notch is a constant ratio, which feels
 // even across the range) and clamp between fully zoomed-out and a tight view.
-const MIN_PX_PER_SEC = 1;
-const MAX_PX_PER_SEC = 500;
-let pxPerSec = MIN_PX_PER_SEC;
-
 document.getElementById("waveform").addEventListener("wheel", (event) => {
     event.preventDefault(); // don't scroll the page while zooming
     const factor = Math.exp(-event.deltaY * 0.002); // up = in, down = out
-    pxPerSec = clamp(pxPerSec * factor, MIN_PX_PER_SEC, MAX_PX_PER_SEC);
-    wavesurfer.zoom(pxPerSec);
+    state.zoomPxPerSec = clamp(
+        state.zoomPxPerSec * factor,
+        MIN_PX_PER_SEC,
+        MAX_PX_PER_SEC
+    );
+    wavesurfer.zoom(state.zoomPxPerSec);
 }, { passive: false });
 
 // smoothing knobs update their readout and re-render the smoothing view live --
@@ -267,25 +266,25 @@ document.getElementById("calculate").onclick = analyze;
 
 // octave fixes: reshape the detected beats in place, no re-detection needed
 document.getElementById("doubleTempo").onclick = () => {
-    if (currentTicks.length < 2) return;
-    currentTicks = doubleTicks(currentTicks);
+    if (state.track.ticks.length < 2) return;
+    state.track.ticks = doubleTicks(state.track.ticks);
     renderTicks();
 };
 
 document.getElementById("halveTempo").onclick = () => {
-    if (currentTicks.length < 2) return;
-    currentTicks = halveTicks(currentTicks);
+    if (state.track.ticks.length < 2) return;
+    state.track.ticks = halveTicks(state.track.ticks);
     renderTicks();
 };
 
 // sync seeking (works whether paused or mid-playback)
 wavesurfer.on("interaction", (time) => {
-    const wasPlaying = playing;
+    const wasPlaying = state.playback.playing;
 
     // pause first so pauseMixed() can't overwrite the new position
     if (wasPlaying) pauseMixed();
 
-    pausedAt = time;
+    state.playback.pausedAt = time;
 
     if (wasPlaying) playMixed();
 });
@@ -293,32 +292,32 @@ wavesurfer.on("interaction", (time) => {
 // decode + resample once per file; store the results for reuse on re-calculation
 async function loadFile(file) {
     const arrayBuffer = await file.arrayBuffer();
-    currentAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    state.track.audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
     // IMPORTANT: Essentia expects 44.1 kHz mono, resample here
     const targetSampleRate = 44100;
 
     const offline = new OfflineAudioContext(
         1, // mono
-        Math.ceil(currentAudioBuffer.duration * targetSampleRate),
+        Math.ceil(state.track.audioBuffer.duration * targetSampleRate),
         targetSampleRate
     );
 
     // Copy the decoded audio into the offline context
     const offlineSource = offline.createBufferSource();
-    offlineSource.buffer = currentAudioBuffer;
+    offlineSource.buffer = state.track.audioBuffer;
     offlineSource.connect(offline.destination);
     offlineSource.start();
 
     const resampledBuffer = await offline.startRendering();
 
-    currentSamples = resampledBuffer.getChannelData(0); // Float32Array
-    currentFile = file;
+    state.track.samples = resampledBuffer.getChannelData(0);
+    state.track.file = file;
 }
 
 // run beat detection on the loaded file, then hand the ticks to renderTicks()
 async function analyze() {
-    if (!currentFile) return;
+    if (!state.track.file) return;
 
     resultsBox.textContent = "Analyzing...";
 
@@ -329,9 +328,9 @@ async function analyze() {
     );
 
     try {
-        const result = detectBeats(currentSamples);
-        currentTicks = result.ticks;
-        currentConfidence = result.confidence;
+        const result = detectBeats(state.track.samples);
+        state.track.ticks = result.ticks;
+        state.track.confidence = result.confidence;
     } catch (err) {
         resultsBox.textContent = `Analysis failed: ${err}`;
         return;
@@ -341,15 +340,15 @@ async function analyze() {
 }
 
 // rebuild everything downstream of the beats. Split in two: the audio mix +
-// readout depend only on currentTicks (analyze / ×2 / ÷2), while the smoothing
+// readout depend only on detected ticks (analyze / ×2 / ÷2), while the smoothing
 // view also depends on the sliders -- renderSmoothing() owns that part and is
 // cheap enough to re-run live as the sliders move.
 function renderTicks() {
     // reset playback before rebuilding the mixed audio
     pauseMixed();
-    pausedAt = 0;
+    state.playback.pausedAt = 0;
 
-    const timing = calculateTiming(currentTicks, {
+    const timing = calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
         windowSize: Number(smoothingSlider.value),
     });
@@ -357,19 +356,19 @@ function renderTicks() {
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
-        <p><strong>Confidence:</strong> ${currentConfidence.toFixed(1)}</p>
+        <p><strong>Confidence:</strong> ${state.track.confidence.toFixed(1)}</p>
     `;
 
-    // click track + mixed audio place clicks at currentTicks, so they're
+    // click track + mixed audio place clicks at detected ticks, so they're
     // unaffected by the smoothing sliders -- built here, not in renderSmoothing
     const clickBuffer = createMetronomeBuffer(
-        currentTicks,
-        currentAudioBuffer.duration,
-        currentAudioBuffer.sampleRate
+        state.track.ticks,
+        state.track.audioBuffer.duration,
+        state.track.audioBuffer.sampleRate
     );
 
-    mixedBuffer = mixBuffers(
-        currentAudioBuffer,
+    state.playback.mixedBuffer = mixBuffers(
+        state.track.audioBuffer,
         clickBuffer
     );
 
@@ -380,9 +379,9 @@ function renderTicks() {
 // export. No essentia and no full-buffer mixing, so the sliders can re-run this
 // live on every input without re-detecting beats or interrupting playback.
 function renderSmoothing(timing = null) {
-    if (!currentTicks.length) return;
+    if (!state.track.ticks.length) return;
 
-    timing ??= calculateTiming(currentTicks, {
+    timing ??= calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
         windowSize: Number(smoothingSlider.value),
     });
@@ -392,7 +391,7 @@ function renderSmoothing(timing = null) {
 
     // redraw markers from scratch against the new beat lengths
     regions.clearRegions();
-    currentTicks.forEach((beat, i) => {
+    state.track.ticks.forEach((beat, i) => {
         // red if it starts a new tempo (first tick or changed beatLength), else gray
         const isNewTempo =
             i === 0 ||
@@ -426,9 +425,9 @@ fileInput.addEventListener("change", async (event) => {
 
     // reset state from any previous track; detection waits for Calculate
     pauseMixed();
-    pausedAt = 0;
+    state.playback.pausedAt = 0;
     regions.clearRegions();
-    currentTicks = [];
+    state.track.ticks = [];
     resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
 
     // decode + show the waveform now; run beat detection only on Calculate
