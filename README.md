@@ -27,7 +27,9 @@ npm test
 ## Benchmark
 
 Place each exact audio and `.osu` pair under `benchmark/corpus/<mapset-id>/`,
-then run every configured corpus case from the command line:
+then add the case to `benchmark/manifest.json`. The `allowedTempoScales` field
+lists the BPM multiples the benchmark may try, such as `0.5`, `1`, and `2`.
+Run every configured corpus case from the command line:
 
 ```bash
 npm run benchmark
@@ -40,5 +42,7 @@ npm run benchmark -- 1670652
 ```
 
 Each run expands the ranked map's red timing points into a reference beat grid,
-generates Essentia's detected beat grid from the same audio, and writes detailed
-JSON results under `benchmark/results/`.
+generates Essentia's detected beat grid from the same audio, and tests the
+case's allowed tempo scales. It benchmarks the scale with the lowest symmetric
+nearest-grid error and writes every candidate score plus detailed results under
+`benchmark/results/`.

@@ -4,14 +4,15 @@ import { fileURLToPath } from "node:url";
 
 import { detectBeats } from "../beat-detector.js";
 import { decodeAudioFile } from "./audio-decoder.js";
-import { benchmarkCases } from "./cases.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
+import { evaluateTempoScales } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
+const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const requestedId = process.argv[2];
 const selectedCases = requestedId
-    ? benchmarkCases.filter(({ id }) => id === requestedId)
-    : benchmarkCases;
+    ? manifest.filter(({ id }) => id === requestedId)
+    : manifest;
 
 if (!selectedCases.length) throw new Error(`Unknown mapset ID: ${requestedId}`);
 
@@ -47,7 +48,14 @@ async function runCase(benchmarkCase) {
     const timingPoints = parseOsuTimingPoints(osuText);
     const referenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs);
     const detection = detectBeats(decoded.samples);
-    const detectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
+    const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
+    const scaleCandidates = evaluateTempoScales(
+        rawDetectedBeatsMs,
+        referenceBeatsMs,
+        benchmarkCase.allowedTempoScales
+    );
+    const selectedScale = scaleCandidates[0];
+    const detectedBeatsMs = selectedScale.beatsMs;
     const nearestReferenceErrorsMs = detectedBeatsMs.map((detectedMs) =>
         detectedMs - nearestBeat(referenceBeatsMs, detectedMs)
     );
@@ -60,8 +68,16 @@ async function runCase(benchmarkCase) {
         essentiaSampleRate: 44100,
         durationMs: decoded.durationMs,
         confidence: detection.confidence,
+        allowedTempoScales: benchmarkCase.allowedTempoScales,
+        selectedTempoScale: selectedScale.tempoScale,
+        selectedTempoPhase: selectedScale.phase,
+        tempoScaleCandidates: scaleCandidates.map(({ beatsMs, ...candidate }) => ({
+            ...candidate,
+            detectedBeatCount: beatsMs.length,
+        })),
         timingPoints,
         referenceBeatsMs,
+        rawDetectedBeatsMs,
         detectedBeatsMs,
         nearestReferenceErrorsMs,
         metrics: calculateMetrics(detectedBeatsMs, referenceBeatsMs),
@@ -77,7 +93,12 @@ for (const benchmarkCase of selectedCases) {
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
-    console.log(`  Detected beats:  ${result.detectedBeatsMs.length}`);
+    console.log(`  Raw detections:  ${result.rawDetectedBeatsMs.length}`);
+    console.log(
+        `  Selected scale:  ${result.selectedTempoScale}x` +
+        (result.selectedTempoPhase ? ` (phase ${result.selectedTempoPhase})` : "")
+    );
+    console.log(`  Scaled beats:    ${result.detectedBeatsMs.length}`);
     console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  95th percentile: ${result.metrics.percentile95AbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  Result:           ${outputPath}`);
