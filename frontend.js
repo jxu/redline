@@ -6,6 +6,7 @@ import Chart from "chart.js/auto";
 
 import { decodeAudio } from "./audio-decoder.js";
 import { detectBeats } from "./beat-detector.js";
+import { createMetronomeBuffer, mixBuffers } from "./metronome.js";
 import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
 
 const MIN_PX_PER_SEC = 1;
@@ -95,65 +96,6 @@ function drawBpmGraph(raw, smoothed) {
     state.bpmChart.data.datasets[0].data = raw;
     state.bpmChart.data.datasets[1].data = smoothed;
     state.bpmChart.update();
-}
-
-// 1000Hz click with fade-out
-function createClick(clickLength, sampleRate) {
-    return Array.from({ length: clickLength }, (_, i) => {
-        const t = i / sampleRate;
-        return Math.sin(2 * Math.PI * 1000 * t) * (1 - i / clickLength) * 0.4;
-    });
-}
-
-// Manually create metronome buffer
-function createMetronomeBuffer(ticks, duration, sampleRate) {
-    const length = Math.ceil(duration * sampleRate);
-    const clickLength = Math.floor(0.05 * sampleRate); // 50ms
-
-    const click = createClick(clickLength, sampleRate);
-
-    const buffer = audioContext.createBuffer(
-        1,
-        length,
-        sampleRate
-    );
-
-    const data = buffer.getChannelData(0);
-
-    ticks.forEach((tick) => {
-        const start = Math.floor(tick * sampleRate);
-
-        click.forEach((sample, i) => {
-            if (start + i < data.length) data[start + i] += sample;
-        });
-    });
-
-    return buffer;
-}
-
-function mixBuffers(original, clicks) {
-    const channels = original.numberOfChannels;
-
-    // click track is mono, shared across channels
-    const click = clicks.getChannelData(0);
-
-    const mixed = audioContext.createBuffer(
-        channels,
-        original.length,
-        original.sampleRate
-    );
-
-    Array.from({ length: channels }, (_, ch) => ch)
-    .forEach((ch) => {
-        const input = original.getChannelData(ch);
-
-        // prevent clipping
-        const output = input.map((sample, i) => clamp(sample + click[i]));
-
-        mixed.getChannelData(ch).set(output);
-    });
-
-    return mixed;
 }
 
 const fileInput = document.getElementById("audioFile");
@@ -352,12 +294,14 @@ function renderTicks() {
     // click track + mixed audio place clicks at detected ticks, so they're
     // unaffected by the smoothing sliders -- built here, not in renderSmoothing
     const clickBuffer = createMetronomeBuffer(
+        audioContext,
         state.track.ticks,
         state.track.audioBuffer.duration,
         state.track.audioBuffer.sampleRate
     );
 
     state.playback.mixedBuffer = mixBuffers(
+        audioContext,
         state.track.audioBuffer,
         clickBuffer
     );
