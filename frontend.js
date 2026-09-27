@@ -5,6 +5,7 @@ import Regions from "wavesurfer.js/regions";
 import Chart from "chart.js/auto";
 
 import { decodeAudio } from "./audio-decoder.js";
+import { interpolateBeatGaps } from "./beat-interpolation.js";
 import { detectBeats } from "./beat-detector.js";
 import { createMetronomeBuffer, mixBuffers } from "./metronome.js";
 import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
@@ -27,6 +28,7 @@ const state = {
         audioBuffer: null,
         samples: null, // 16 kHz mono Float32Array for SENet
         ticks: [],
+        interpolatedBeatCount: 0,
         confidence: 0,
         probabilities: null,
         smoothedProbabilities: null,
@@ -259,7 +261,10 @@ async function analyze() {
                 `;
             },
         });
-        state.track.ticks = result.ticks;
+        state.track.ticks = interpolateBeatGaps(result.ticks, {
+            endTime: state.track.audioBuffer.duration,
+        });
+        state.track.interpolatedBeatCount = state.track.ticks.length - result.ticks.length;
         state.track.confidence = result.confidence;
         state.track.probabilities = result.probabilities;
         state.track.smoothedProbabilities = result.smoothedProbabilities;
@@ -289,6 +294,7 @@ function renderTicks() {
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
         <p><strong>Mean peak probability:</strong> ${state.track.confidence.toFixed(3)}</p>
+        <p><strong>Interpolated beats:</strong> ${state.track.interpolatedBeatCount}</p>
     `;
 
     // click track + mixed audio place clicks at detected ticks, so they're
@@ -362,6 +368,7 @@ fileInput.addEventListener("change", async (event) => {
     state.playback.pausedAt = 0;
     regions.clearRegions();
     state.track.ticks = [];
+    state.track.interpolatedBeatCount = 0;
     state.track.probabilities = null;
     state.track.smoothedProbabilities = null;
     resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
