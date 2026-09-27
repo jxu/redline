@@ -1,5 +1,3 @@
-import FFT from "fft.js";
-
 export const MODEL_SAMPLE_RATE = 16000;
 export const MODEL_HOP_LENGTH = 160;
 export const MODEL_MEL_BANDS = 80;
@@ -51,15 +49,17 @@ function createMelFilters(fftSize) {
     });
 }
 
-const VIEWS = VIEW_CONFIGS.map((config) => ({
-    ...config,
-    fft: new FFT(config.fftSize),
-    window: Float64Array.from(
-        { length: config.windowLength },
-        (_, index) => 0.5 - 0.5 * Math.cos(2 * Math.PI * index / config.windowLength)
-    ),
-    filters: createMelFilters(config.fftSize),
-}));
+function createViews(FFT) {
+    return VIEW_CONFIGS.map((config) => ({
+        ...config,
+        fft: new FFT(config.fftSize),
+        window: Float64Array.from(
+            { length: config.windowLength },
+            (_, index) => 0.5 - 0.5 * Math.cos(2 * Math.PI * index / config.windowLength)
+        ),
+        filters: createMelFilters(config.fftSize),
+    }));
+}
 
 function reflectedSample(samples, index) {
     // torch.stft(center=true) uses reflect padding around the waveform.
@@ -130,11 +130,12 @@ async function calculateView(samples, view, onProgress) {
     return { values: mel, frameCount };
 }
 
-export async function createMultiViewSpectrogram(samples, onProgress) {
+export async function createMultiViewSpectrogram(samples, FFT, onProgress) {
+    const configurations = createViews(FFT);
     const views = [];
-    for (let index = 0; index < VIEWS.length; index++) {
-        views.push(await calculateView(samples, VIEWS[index], (fraction) =>
-            onProgress?.((index + fraction) / VIEWS.length)
+    for (let index = 0; index < configurations.length; index++) {
+        views.push(await calculateView(samples, configurations[index], (fraction) =>
+            onProgress?.((index + fraction) / configurations.length)
         ));
     }
     return views;
@@ -142,7 +143,7 @@ export async function createMultiViewSpectrogram(samples, onProgress) {
 
 export function packContextWindows(views, firstFrame, batchSize) {
     const packed = new Float32Array(
-        batchSize * VIEWS.length * MODEL_MEL_BANDS * MODEL_CONTEXT_FRAMES
+        batchSize * views.length * MODEL_MEL_BANDS * MODEL_CONTEXT_FRAMES
     );
     const radius = Math.floor(MODEL_CONTEXT_FRAMES / 2);
     let outputIndex = 0;

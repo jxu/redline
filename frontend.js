@@ -6,7 +6,7 @@ import Chart from "chart.js/auto";
 
 import { decodeAudio } from "./audio-decoder.js";
 import { interpolateBeatGaps } from "./beat-interpolation.js";
-import { detectBeats } from "./beat-detector.js";
+import { detectBeats } from "./analysis-worker-client.js";
 import { createMetronomeBuffer, mixBuffers } from "./metronome.js";
 import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
 

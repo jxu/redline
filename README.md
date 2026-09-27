@@ -6,7 +6,9 @@ an audio file. Its output is intended as a starting point for manual timing.
 Beat detection on the `senet` branch uses Jacob Lin's trained ResNet-SE beat
 model, exported to ONNX. In the browser, Redline recreates the model's three
 mel-spectrogram inputs and runs inference with ONNX Runtime Web. The model and
-all audio processing remain local to the browser.
+all audio processing remain local to the browser. Spectrogram generation and
+model inference run in a Web Worker so the page remains responsive; FFT.js and
+ONNX Runtime Web are loaded from pinned CDN URLs by the worker.
 
 ## Run locally
 

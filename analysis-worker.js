@@ -1,4 +1,5 @@
-import FFT from "fft.js";
+import FFT from "https://esm.sh/fft.js@4.0.4";
+import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.all.min.mjs";
 
 import {
     MODEL_CONTEXT_FRAMES,
@@ -14,32 +15,38 @@ import {
     smoothProbabilities,
 } from "./beat-postprocessing.js";
 
-export { DEFAULT_BEAT_THRESHOLD, pickBeatPeaks } from "./beat-postprocessing.js";
 const BATCH_SIZE = 128;
 const MODEL_URL = new URL("./models/senet.onnx", import.meta.url);
 let sessionPromise;
 
-async function loadSession() {
-    const ort = await import("onnxruntime-node");
-    const modelLocation = decodeURIComponent(MODEL_URL.pathname);
+ort.env.wasm.wasmPaths =
+    "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
+ort.env.wasm.numThreads = globalThis.crossOriginIsolated
+    ? Math.min(4, navigator.hardwareConcurrency || 1)
+    : 1;
 
-    const session = await ort.InferenceSession.create(modelLocation, {
-        executionProviders: ["cpu"],
+async function loadSession() {
+    const session = await ort.InferenceSession.create(MODEL_URL.href, {
+        executionProviders: ["wasm"],
         graphOptimizationLevel: "all",
     });
-    return { ort, session };
+    return session;
 }
 
-export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEAT_THRESHOLD } = {}) {
-    onProgress?.({ stage: "Preparing spectrogram", fraction: 0 });
+function reportProgress(id, stage, fraction) {
+    self.postMessage({ type: "progress", id, progress: { stage, fraction } });
+}
+
+async function detectBeats(samples, id, threshold = DEFAULT_BEAT_THRESHOLD) {
+    reportProgress(id, "Preparing spectrogram", 0);
     const views = await createMultiViewSpectrogram(samples, FFT, (fraction) =>
-        onProgress?.({ stage: "Preparing spectrogram", fraction: fraction * 0.45 })
+        reportProgress(id, "Preparing spectrogram", fraction * 0.45)
     );
     const frameCount = views[0].frameCount;
 
-    onProgress?.({ stage: "Loading SENet model", fraction: 0.45 });
+    reportProgress(id, "Loading SENet model", 0.45);
     sessionPromise ??= loadSession();
-    const { ort, session } = await sessionPromise;
+    const session = await sessionPromise;
     const probabilities = new Float32Array(frameCount);
 
     for (let firstFrame = 0; firstFrame < frameCount; firstFrame += BATCH_SIZE) {
@@ -52,10 +59,11 @@ export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEA
         );
         const output = await session.run({ spectrogram_windows: tensor });
         probabilities.set(output.beat_probability.data, firstFrame);
-        onProgress?.({
-            stage: "Detecting beats",
-            fraction: 0.45 + 0.55 * (firstFrame + batchSize) / frameCount,
-        });
+        reportProgress(
+            id,
+            "Detecting beats",
+            0.45 + 0.55 * (firstFrame + batchSize) / frameCount
+        );
     }
 
     const smoothedProbabilities = smoothProbabilities(probabilities);
@@ -71,3 +79,22 @@ export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEA
 
     return { ticks, confidence, probabilities, smoothedProbabilities };
 }
+
+self.onmessage = async ({ data: { id, samples, threshold } }) => {
+    try {
+        const result = await detectBeats(samples, id, threshold);
+        self.postMessage(
+            { type: "result", id, result },
+            [result.probabilities.buffer, result.smoothedProbabilities.buffer]
+        );
+    } catch (error) {
+        self.postMessage({
+            type: "error",
+            id,
+            error: {
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            },
+        });
+    }
+};

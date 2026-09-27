@@ -10,7 +10,6 @@
     "audio-decode": "^3.12.0",
     "fft.js": "^4.0.4",
     "http-server": "^14.1.1",
-    "onnxruntime-node": "^1.30.0",
-    "onnxruntime-web": "^1.30.0"
+    "onnxruntime-node": "^1.30.0"
   }
 }
