@@ -31,6 +31,22 @@ test("tries both phases when reducing a double-tempo grid", () => {
     assert.deepEqual(candidates[0].beatsMs, [500, 1500]);
 });
 
+test("penalizes an incorrect double-tempo grid for its extra beats", () => {
+    const candidates = evaluateTempoScales(
+        [0, 100, 200, 300, 1000, 1100],
+        [0, 500, 1000],
+        [1, 2]
+    );
+    const doubled = candidates.find(({ tempoScale }) => tempoScale === 2);
+
+    assert.ok(
+        doubled.symmetricMeanNearestErrorMs < candidates[0].symmetricMeanNearestErrorMs,
+        "the old nearest-distance objective would have preferred double tempo"
+    );
+    assert.equal(candidates[0].tempoScale, 1);
+    assert.ok(candidates[0].matchingF1 > doubled.matchingF1);
+});
+
 test("scores only beats inside the evaluation window", () => {
     const candidates = evaluateTempoScales(
         [0, 1000, 2000, 3000],

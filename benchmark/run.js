@@ -106,6 +106,7 @@ for (const benchmarkCase of selectedCases) {
     const result = await runCase(benchmarkCase);
     const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+    const selectedCandidate = result.tempoScaleCandidates[0];
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
     console.log(
@@ -116,6 +117,11 @@ for (const benchmarkCase of selectedCases) {
     console.log(
         `  Selected scale:  ${result.selectedTempoScale}x` +
         (result.selectedTempoPhase ? ` (phase ${result.selectedTempoPhase})` : "")
+    );
+    console.log(
+        `  Scale match F1:  ${selectedCandidate.matchingF1.toFixed(3)} ` +
+        `(${selectedCandidate.matchedBeatCount} matches within ` +
+        `${selectedCandidate.matchingToleranceMs.toFixed(1)} ms)`
     );
     console.log(`  Scaled beats:    ${result.detectedBeatsMs.length}`);
     console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);

@@ -50,10 +50,12 @@ npm run benchmark -- 1670652
 
 Each run expands the ranked map's red timing points into a reference beat grid,
 generates SENet's detected beat grid from the same audio, and tests the
-case's allowed tempo scales. It benchmarks the scale with the lowest symmetric
-nearest-grid error. Beats in the first and last five seconds of the audio are
-excluded from scale selection and metrics. The command writes every candidate
-score plus detailed results under `benchmark/results/`.
+case's allowed tempo scales. It selects the scale with the highest one-to-one
+beat-matching F1 score, using 17.5% of the median reference beat interval as the
+matching tolerance. Symmetric nearest-grid error breaks ties. Beats in the first
+and last five seconds of the audio are excluded from scale selection and metrics.
+The command writes every candidate score plus detailed results under
+`benchmark/results/`.
 
 Render the ranked and detected grids as click tracks mixed with the corpus audio:
 

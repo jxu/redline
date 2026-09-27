@@ -48,6 +48,48 @@ function symmetricMeanNearestError(detectedBeatsMs, referenceBeatsMs) {
     ) / 2;
 }
 
+function median(values) {
+    if (!values.length) return null;
+    const sorted = [...values].sort((left, right) => left - right);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function matchingTolerance(referenceBeatsMs) {
+    const intervals = referenceBeatsMs
+        .slice(1)
+        .map((beatMs, index) => beatMs - referenceBeatsMs[index])
+        .filter((intervalMs) => intervalMs > 0);
+    const medianIntervalMs = median(intervals);
+    return medianIntervalMs === null ? 70 : medianIntervalMs * 0.175;
+}
+
+function countMatchingBeats(detectedBeatsMs, referenceBeatsMs, toleranceMs) {
+    let detectedIndex = 0;
+    let referenceIndex = 0;
+    let matchedBeatCount = 0;
+
+    while (
+        detectedIndex < detectedBeatsMs.length &&
+        referenceIndex < referenceBeatsMs.length
+    ) {
+        const errorMs = detectedBeatsMs[detectedIndex] - referenceBeatsMs[referenceIndex];
+        if (Math.abs(errorMs) <= toleranceMs) {
+            matchedBeatCount++;
+            detectedIndex++;
+            referenceIndex++;
+        } else if (errorMs < 0) {
+            detectedIndex++;
+        } else {
+            referenceIndex++;
+        }
+    }
+
+    return matchedBeatCount;
+}
+
 export function evaluateTempoScales(
     detectedBeatsMs,
     referenceBeatsMs,
@@ -60,16 +102,26 @@ export function evaluateTempoScales(
     const evaluationReferenceBeatsMs = referenceBeatsMs.filter(
         (beatMs) => beatMs >= startMs && beatMs < endMs
     );
+    const matchingToleranceMs = matchingTolerance(evaluationReferenceBeatsMs);
 
     const candidates = allowedTempoScales.flatMap((tempoScale) => {
         const phaseCount = tempoScale < 1 ? subdivisionCount(tempoScale) : 1;
         return Array.from({ length: phaseCount }, (_, phase) => {
             const beatsMs = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)
                 .filter((beatMs) => beatMs >= startMs && beatMs < endMs);
+            const matchedBeatCount = countMatchingBeats(
+                beatsMs,
+                evaluationReferenceBeatsMs,
+                matchingToleranceMs
+            );
+            const totalBeatCount = beatsMs.length + evaluationReferenceBeatsMs.length;
             return {
                 tempoScale,
                 phase,
                 beatsMs,
+                matchedBeatCount,
+                matchingToleranceMs,
+                matchingF1: totalBeatCount ? 2 * matchedBeatCount / totalBeatCount : 0,
                 symmetricMeanNearestErrorMs: symmetricMeanNearestError(
                     beatsMs,
                     evaluationReferenceBeatsMs
@@ -79,6 +131,7 @@ export function evaluateTempoScales(
     });
 
     candidates.sort((left, right) =>
+        right.matchingF1 - left.matchingF1 ||
         left.symmetricMeanNearestErrorMs - right.symmetricMeanNearestErrorMs ||
         Math.abs(Math.log2(left.tempoScale)) - Math.abs(Math.log2(right.tempoScale)) ||
         left.phase - right.phase
