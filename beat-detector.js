@@ -9,7 +9,7 @@ import {
 
 export const DEFAULT_BEAT_THRESHOLD = 0.33;
 const BATCH_SIZE = 128;
-const MODEL_URL = new URL("./models/beatse.onnx", import.meta.url);
+const MODEL_URL = new URL("./models/senet.onnx", import.meta.url);
 let runtimePromise;
 let sessionPromise;
 
@@ -95,7 +95,7 @@ export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEA
     );
     const frameCount = views[0].frameCount;
 
-    onProgress?.({ stage: "Loading BeatSE model", fraction: 0.45 });
+    onProgress?.({ stage: "Loading SENet model", fraction: 0.45 });
     sessionPromise ??= loadSession();
     const { ort, session } = await sessionPromise;
     const probabilities = new Float32Array(frameCount);

@@ -24,7 +24,7 @@ const state = {
     track: {
         file: null,
         audioBuffer: null,
-        samples: null, // 16 kHz mono Float32Array for BeatSE
+        samples: null, // 16 kHz mono Float32Array for SENet
         ticks: [],
         confidence: 0,
         probabilities: null,

@@ -75,7 +75,7 @@ async function runCase(benchmarkCase) {
         name: benchmarkCase.name,
         decoder: "audio-decode",
         sourceSampleRate: decoded.sourceSampleRate,
-        detector: "beatse-onnx",
+        detector: "senet-onnx",
         modelSampleRate: 16000,
         durationMs: decoded.durationMs,
         evaluationMarginMs,
