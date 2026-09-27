@@ -24,9 +24,11 @@ const state = {
     track: {
         file: null,
         audioBuffer: null,
-        samples: null, // 44.1 kHz mono Float32Array for Essentia
+        samples: null, // 16 kHz mono Float32Array for BeatSE
         ticks: [],
         confidence: 0,
+        probabilities: null,
+        smoothedProbabilities: null,
     },
 };
 
@@ -305,16 +307,20 @@ async function analyze() {
 
     resultsBox.textContent = "Analyzing...";
 
-    // essentia runs synchronously and blocks the main thread, so let the browser
-    // actually paint "Analyzing..." (two frames) before we hand control to WASM
-    await new Promise((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolve))
-    );
-
     try {
-        const result = detectBeats(state.track.samples);
+        const result = await detectBeats(state.track.samples, {
+            onProgress: ({ stage, fraction }) => {
+                const percent = Math.round(fraction * 100);
+                resultsBox.innerHTML = `
+                    <p>${stage} (${percent}%)</p>
+                    <progress max="100" value="${percent}"></progress>
+                `;
+            },
+        });
         state.track.ticks = result.ticks;
         state.track.confidence = result.confidence;
+        state.track.probabilities = result.probabilities;
+        state.track.smoothedProbabilities = result.smoothedProbabilities;
     } catch (err) {
         resultsBox.textContent = `Analysis failed: ${err}`;
         return;
@@ -340,7 +346,7 @@ function renderTicks() {
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
-        <p><strong>Confidence:</strong> ${state.track.confidence.toFixed(1)}</p>
+        <p><strong>Mean peak probability:</strong> ${state.track.confidence.toFixed(3)}</p>
     `;
 
     // click track + mixed audio place clicks at detected ticks, so they're
@@ -360,7 +366,7 @@ function renderTicks() {
 }
 
 // smoothing-dependent view: beat lengths, BPM graph, waveform markers, osu
-// export. No essentia and no full-buffer mixing, so the sliders can re-run this
+// export. No model inference or full-buffer mixing, so the sliders can re-run this
 // live on every input without re-detecting beats or interrupting playback.
 function renderSmoothing(timing = null) {
     if (!state.track.ticks.length) return;
@@ -412,6 +418,8 @@ fileInput.addEventListener("change", async (event) => {
     state.playback.pausedAt = 0;
     regions.clearRegions();
     state.track.ticks = [];
+    state.track.probabilities = null;
+    state.track.smoothedProbabilities = null;
     resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
 
     // decode + show the waveform now; run beat detection only on Calculate

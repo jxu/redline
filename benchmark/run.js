@@ -56,7 +56,7 @@ async function runCase(benchmarkCase) {
     const referenceBeatsMs = fullReferenceBeatsMs.filter(
         (beatMs) => beatMs >= evaluationStartMs && beatMs < evaluationEndMs
     );
-    const detection = detectBeats(decoded.samples);
+    const detection = await detectBeats(decoded.samples);
     const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
     const scaleCandidates = evaluateTempoScales(
         rawDetectedBeatsMs,
@@ -75,7 +75,8 @@ async function runCase(benchmarkCase) {
         name: benchmarkCase.name,
         decoder: "audio-decode",
         sourceSampleRate: decoded.sourceSampleRate,
-        essentiaSampleRate: 44100,
+        detector: "beatse-onnx",
+        modelSampleRate: 16000,
         durationMs: decoded.durationMs,
         evaluationMarginMs,
         evaluationStartMs,

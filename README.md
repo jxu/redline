@@ -3,6 +3,11 @@
 redline is a browser-based prototype that generates a rough osu! timing map from
 an audio file. Its output is intended as a starting point for manual timing.
 
+Beat detection on the `senet` branch uses Jacob Lin's trained ResNet-SE beat
+model, exported to ONNX. In the browser, Redline recreates the model's three
+mel-spectrogram inputs and runs inference with ONNX Runtime Web. The model and
+all audio processing remain local to the browser.
+
 ## Run locally
 
 Install the development dependency and start the static server:
@@ -44,7 +49,7 @@ npm run benchmark -- 1670652
 ```
 
 Each run expands the ranked map's red timing points into a reference beat grid,
-generates Essentia's detected beat grid from the same audio, and tests the
+generates BeatSE's detected beat grid from the same audio, and tests the
 case's allowed tempo scales. It benchmarks the scale with the lowest symmetric
 nearest-grid error. Beats in the first and last five seconds of the audio are
 excluded from scale selection and metrics. The command writes every candidate

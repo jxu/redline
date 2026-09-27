@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<script type="importmap">
+{
+  "imports": {
+    "fft.js": "https://esm.sh/fft.js@4.0.4",
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.all.min.mjs"
+  }
+}
+</script>
+<pre id="result">running</pre>
+<script type="module">
+import { detectBeats } from "../beat-detector.js";
+import { decodeAudio } from "../audio-decoder.js";
+
+const result = document.getElementById("result");
+try {
+    const sampleRate = 16000;
+    const corpusSeconds = Number(new URLSearchParams(location.search).get("corpusSeconds"));
+    let samples;
+    if (corpusSeconds) {
+        const response = await fetch(
+            "../benchmark/corpus/13012/SO%20DEEP%20(PERFECT%20SPHERE%20REMIX).mp3"
+        );
+        const decoded = await decodeAudio(await response.arrayBuffer(), new AudioContext());
+        samples = decoded.samples.slice(0, corpusSeconds * sampleRate);
+    } else {
+        samples = Float32Array.from(
+            { length: sampleRate * 4 },
+            (_, index) => 0.3 * Math.sin(2 * Math.PI * 220 * index / sampleRate)
+        );
+    }
+    const started = performance.now();
+    const detection = await detectBeats(samples);
+    result.dataset.status = "passed";
+    result.textContent = JSON.stringify({
+        frames: detection.probabilities.length,
+        ticks: detection.ticks.length,
+        elapsedMs: performance.now() - started,
+    });
+} catch (error) {
+    result.dataset.status = "failed";
+    result.textContent = error.stack || String(error);
+}
+</script>

@@ -1,7 +1,7 @@
 import decode from "audio-decode";
 import { readFile } from "node:fs/promises";
 
-import { ESSENTIA_SAMPLE_RATE } from "../audio-decoder.js";
+import { MODEL_SAMPLE_RATE } from "../audio-decoder.js";
 
 export function removeLeadingId3Padding(encodedAudio) {
     if (
@@ -74,7 +74,7 @@ export async function decodeAudioFile(path) {
 
     return {
         durationMs: mono.length / audioBuffer.sampleRate * 1000,
-        samples: resampleLinear(mono, audioBuffer.sampleRate, ESSENTIA_SAMPLE_RATE),
+        samples: resampleLinear(mono, audioBuffer.sampleRate, MODEL_SAMPLE_RATE),
         sourceSampleRate: audioBuffer.sampleRate,
     };
 }

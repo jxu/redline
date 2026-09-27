@@ -8,8 +8,8 @@
 <script type="importmap">
 {
   "imports": {
-    "essentia.js": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.es.js",
-    "essentia.js/wasm": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.es.js",
+    "fft.js": "https://esm.sh/fft.js@4.0.4",
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.all.min.mjs",
     "wavesurfer.js": "https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js",
     "wavesurfer.js/regions": "https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js",
     "chart.js/auto": "https://esm.sh/chart.js@4/auto"
@@ -65,9 +65,8 @@
 <textarea id="osuTimingPoints" rows="10" cols="80"></textarea>
 
 <footer>
-    Built with
-    <a href="https://mtg.github.io/essentia.js/" target="_blank" rel="noopener">essentia.js</a>
-    and
+    Beat detection powered by BeatSE and ONNX Runtime Web.
+    Waveform powered by
     <a href="https://wavesurfer.xyz/" target="_blank" rel="noopener">wavesurfer.js</a>.
     <br>
     <a href="https://github.com/jxu/redline" target="_blank" rel="noopener">Source on GitHub</a>

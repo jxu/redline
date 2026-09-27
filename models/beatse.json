@@ -1,0 +1,25 @@
+{
+  "source": "https://huggingface.co/JacobLinCool/beat-tracking-alex-20260110",
+  "source_model": "outputs/baseline3_b2mode_full3/beats",
+  "onnx_sha256": "0072ee5a51e35dc93e88ba4498998d1b49476efa6875867ed694ecf8c5059641",
+  "input": {
+    "name": "spectrogram_windows",
+    "shape": [
+      "batch",
+      3,
+      80,
+      101
+    ],
+    "dtype": "float32"
+  },
+  "output": {
+    "name": "beat_probability",
+    "shape": [
+      "batch",
+      1
+    ],
+    "dtype": "float32"
+  },
+  "max_absolute_export_error": 8.940696716308594e-08,
+  "parameters": 405697
+}
