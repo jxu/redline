@@ -6,6 +6,7 @@ import { interpolateBeatGaps } from "../beat-interpolation.js";
 import { detectBeats } from "../beat-detector.js";
 import { decodeAudioFile } from "./audio-decoder.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
+import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
@@ -113,6 +114,7 @@ for (const benchmarkCase of selectedCases) {
     const result = await runCase(benchmarkCase);
     const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+    const plotPath = await writeResultPlot(result, benchmarkDirectory);
     const selectedCandidate = result.tempoScaleCandidates[0];
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
@@ -135,4 +137,5 @@ for (const benchmarkCase of selectedCases) {
     console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  95th percentile: ${result.metrics.percentile95AbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  Result:           ${outputPath}`);
+    console.log(`  Plot:             ${plotPath}`);
 }

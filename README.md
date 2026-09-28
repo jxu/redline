@@ -58,7 +58,12 @@ beat-matching F1 score, using 17.5% of the median reference beat interval as the
 matching tolerance. Symmetric nearest-grid error breaks ties. Beats in the first
 and last five seconds of the audio are excluded from scale selection and metrics.
 The command writes every candidate score plus detailed results under
-`benchmark/results/`.
+`benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
+Regenerate charts from the saved result files without rerunning inference with:
+
+```bash
+npm run benchmark:plot
+```
 
 Render the ranked and detected grids as click tracks mixed with the corpus audio:
 
