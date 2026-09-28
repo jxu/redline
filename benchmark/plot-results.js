@@ -96,6 +96,28 @@ function niceStep(range, targetTicks) {
     return factor * magnitude;
 }
 
+function visibleTempoPoints(points, startMs, endMs) {
+    const valid = points.filter(({ offsetMs, beatLengthMs }) =>
+        Number.isFinite(offsetMs) && Number.isFinite(beatLengthMs) && beatLengthMs > 0
+    );
+    const preceding = valid.filter(({ offsetMs }) => offsetMs <= startMs).at(-1);
+    const visible = valid.filter(({ offsetMs }) => offsetMs > startMs && offsetMs < endMs);
+    return [
+        ...(preceding ? [{ offsetMs: startMs, bpm: 60000 / preceding.beatLengthMs }] : []),
+        ...visible.map(({ offsetMs, beatLengthMs }) => ({ offsetMs, bpm: 60000 / beatLengthMs })),
+    ];
+}
+
+function bpmStepPath(points, endMs, x, y) {
+    if (!points.length) return "";
+    const [first, ...rest] = points;
+    let path = `M ${x(first.offsetMs)} ${y(first.bpm)}`;
+    for (const point of rest) {
+        path += ` H ${x(point.offsetMs)} V ${y(point.bpm)}`;
+    }
+    return `${path} H ${x(endMs)}`;
+}
+
 function marker(x, y, source) {
     if (source === "interpolated") {
         return `<path d="M ${x} ${y - 5} L ${x + 5} ${y} L ${x} ${y + 5} L ${x - 5} ${y} Z" fill="${COLORS.interpolated}"/>`;
@@ -117,7 +139,10 @@ function missingMarker(x, referenceY) {
 export function renderResultPlot(result) {
     const isExportGrid = result.evaluationGrid === "exported-timing-points";
     const width = 1600;
-    const height = isExportGrid ? 920 : 850;
+    const bpmTop = isExportGrid ? 925 : 855;
+    const bpmBottom = bpmTop + 230;
+    const height = bpmBottom + 85;
+    const rasterBottom = isExportGrid ? 850 : 780;
     const left = 105;
     const right = 35;
     const plotTop = 105;
@@ -136,6 +161,16 @@ export function renderResultPlot(result) {
     const yLimit = Math.max(100, Math.ceil(maxAbsoluteError / 50) * 50);
     const x = (timeMs) => left + (timeMs - startMs) / durationMs * plotWidth;
     const y = (errorMs) => plotTop + (yLimit - errorMs) / (2 * yLimit) * plotHeight;
+    const referenceBpm = visibleTempoPoints(result.timingPoints ?? [], startMs, endMs);
+    const exportedBpm = visibleTempoPoints(result.exportedTimingPoints ?? [], startMs, endMs);
+    const bpmValues = [...referenceBpm, ...exportedBpm].map(({ bpm }) => bpm);
+    const rawBpmMin = bpmValues.length ? Math.min(...bpmValues) : 60;
+    const rawBpmMax = bpmValues.length ? Math.max(...bpmValues) : 180;
+    const bpmRange = Math.max(10, rawBpmMax - rawBpmMin);
+    const bpmStep = niceStep(bpmRange * 1.2, 6);
+    const bpmMin = Math.max(0, Math.floor((rawBpmMin - bpmRange * 0.1) / bpmStep) * bpmStep);
+    const bpmMax = Math.ceil((rawBpmMax + bpmRange * 0.1) / bpmStep) * bpmStep;
+    const bpmY = (bpm) => bpmBottom - (bpm - bpmMin) / (bpmMax - bpmMin) * (bpmBottom - bpmTop);
     const retainedBeats = result.filteredDetectedBeatsMs ?? result.rawDetectedBeatsMs;
     const addedInterpolated = result.interpolatedDetectedBeatsMs.filter(
         (beatMs) => !containsBeat(retainedBeats, beatMs)
@@ -149,10 +184,10 @@ export function renderResultPlot(result) {
     svg.push(
         `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
         `<title>${escapeXml(result.name)} beat alignment</title>`,
-        `<desc>Benchmark residuals and beat positions for mapset ${escapeXml(result.mapsetId)}</desc>`,
+        `<desc>Benchmark residuals, beat positions, and reference versus exported BPM for mapset ${escapeXml(result.mapsetId)}</desc>`,
         `<rect width="100%" height="100%" fill="white"/>`,
         `<style>text{font-family:system-ui,sans-serif;fill:#2b2b2b}.grid{stroke:#d0d0d0;stroke-width:1}.axis{stroke:#555;stroke-width:1}.tick{font-size:16px}.legend{font-size:15px}</style>`,
-        `<defs><clipPath id="plot"><rect x="${left}" y="${plotTop}" width="${plotWidth}" height="${plotHeight}"/></clipPath></defs>`,
+        `<defs><clipPath id="plot"><rect x="${left}" y="${plotTop}" width="${plotWidth}" height="${plotHeight}"/></clipPath><clipPath id="bpm-plot"><rect x="${left}" y="${bpmTop}" width="${plotWidth}" height="${bpmBottom - bpmTop}"/></clipPath></defs>`,
         `<text x="${width / 2}" y="34" text-anchor="middle" font-size="24">${escapeXml(result.name)}</text>`,
         `<text x="${width / 2}" y="63" text-anchor="middle" font-size="22">${isExportGrid ? "Exported grid" : "Beat alignment"} residuals</text>`,
         `<rect x="${left}" y="${y(20)}" width="${plotWidth}" height="${y(-20) - y(20)}" fill="#2ca02c" fill-opacity="0.09"/>`,
@@ -170,7 +205,7 @@ export function renderResultPlot(result) {
     const firstXTick = Math.ceil(startMs / xStepMs) * xStepMs;
     for (let value = firstXTick; value < endMs; value += xStepMs) {
         svg.push(
-            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="${height - 70}"/>`,
+            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="${bpmBottom}"/>`,
             `<text class="tick" x="${x(value)}" y="${height - 40}" text-anchor="middle">${value / 1000}</text>`,
         );
     }
@@ -220,7 +255,7 @@ export function renderResultPlot(result) {
         `<line x1="${left + 215}" y1="615" x2="${left + 237}" y2="615" stroke="${COLORS.interpolated}" stroke-width="3"/><text class="legend" x="${left + 245}" y="620">interpolated beat</text>`,
         `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out peak</text>`,
         `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
-        `<rect x="${left}" y="640" width="${plotWidth}" height="${height - 710}" fill="none" class="axis"/>`,
+        `<rect x="${left}" y="640" width="${plotWidth}" height="${rasterBottom - 640}" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
         `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">SENet</text>`,
     );
@@ -247,6 +282,26 @@ export function renderResultPlot(result) {
             svg.push(`<line x1="${x(beatMs)}" y1="814" x2="${x(beatMs)}" y2="846" stroke="${COLORS.scaled}"/>`);
         }
     }
+
+    svg.push(
+        `<text x="${left}" y="${bpmTop - 30}" font-size="18">Tempo from red timing points</text>`,
+        `<line x1="${width - 385}" y1="${bpmTop - 36}" x2="${width - 355}" y2="${bpmTop - 36}" stroke="${COLORS.reference}" stroke-width="2.5"/><text class="legend" x="${width - 347}" y="${bpmTop - 30}">reference BPM</text>`,
+        `<line x1="${width - 210}" y1="${bpmTop - 36}" x2="${width - 180}" y2="${bpmTop - 36}" stroke="${COLORS.scaled}" stroke-width="2.5"/><text class="legend" x="${width - 172}" y="${bpmTop - 30}">exported BPM</text>`,
+    );
+    for (let value = bpmMin; value <= bpmMax + bpmStep * 1e-6; value += bpmStep) {
+        svg.push(
+            `<line class="grid" x1="${left}" y1="${bpmY(value)}" x2="${width - right}" y2="${bpmY(value)}"/>`,
+            `<text class="tick" x="${left - 12}" y="${bpmY(value) + 6}" text-anchor="end">${Number(value.toFixed(1))}</text>`,
+        );
+    }
+    svg.push(
+        `<rect x="${left}" y="${bpmTop}" width="${plotWidth}" height="${bpmBottom - bpmTop}" fill="none" class="axis"/>`,
+        `<text x="25" y="${(bpmTop + bpmBottom) / 2}" text-anchor="middle" font-size="18" transform="rotate(-90 25 ${(bpmTop + bpmBottom) / 2})">BPM</text>`,
+        `<g clip-path="url(#bpm-plot)">`,
+        `<path class="bpm-reference" d="${bpmStepPath(referenceBpm, endMs, x, bpmY)}" fill="none" stroke="${COLORS.reference}" stroke-width="2.5" stroke-linejoin="round"/>`,
+        `<path class="bpm-export" d="${bpmStepPath(exportedBpm, endMs, x, bpmY)}" fill="none" stroke="${COLORS.scaled}" stroke-width="2.5" stroke-linejoin="round"/>`,
+        `</g>`,
+    );
 
     svg.push(
         `<text x="${width / 2}" y="${height - 12}" text-anchor="middle" font-size="18">Song time (seconds)</text>`,

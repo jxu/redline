@@ -91,7 +91,8 @@ The command writes every candidate score plus detailed results under
 `benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
-alongside the reference and the intermediate SENet beats.
+alongside the reference and the intermediate SENet beats, plus reference and
+exported BPM as step lines over the same song-time axis.
 Regenerate charts from the saved result files without rerunning inference with:
 
 ```bash

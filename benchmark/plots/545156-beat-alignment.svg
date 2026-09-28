@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1240" viewBox="0 0 1600 1240">
 <title>Royal Blood - Loose Change [$] beat alignment</title>
-<desc>Benchmark residuals and beat positions for mapset 545156</desc>
+<desc>Benchmark residuals, beat positions, and reference versus exported BPM for mapset 545156</desc>
 <rect width="100%" height="100%" fill="white"/>
 <style>text{font-family:system-ui,sans-serif;fill:#2b2b2b}.grid{stroke:#d0d0d0;stroke-width:1}.axis{stroke:#555;stroke-width:1}.tick{font-size:16px}.legend{font-size:15px}</style>
-<defs><clipPath id="plot"><rect x="105" y="105" width="1460" height="480"/></clipPath></defs>
+<defs><clipPath id="plot"><rect x="105" y="105" width="1460" height="480"/></clipPath><clipPath id="bpm-plot"><rect x="105" y="925" width="1460" height="230"/></clipPath></defs>
 <text x="800" y="34" text-anchor="middle" font-size="24">Royal Blood - Loose Change [$]</text>
 <text x="800" y="63" text-anchor="middle" font-size="22">Exported grid residuals</text>
 <rect x="105" y="321" width="1460" height="48" fill="#2ca02c" fill-opacity="0.09"/>
@@ -25,20 +25,20 @@
 <text class="tick" x="93" y="171" text-anchor="end">150</text>
 <line class="grid" x1="105" y1="105" x2="1565" y2="105"/>
 <text class="tick" x="93" y="111" text-anchor="end">200</text>
-<line class="grid" x1="254.47405728453685" y1="105" x2="254.47405728453685" y2="850"/>
-<text class="tick" x="254.47405728453685" y="880" text-anchor="middle">20</text>
-<line class="grid" x1="453.772800330586" y1="105" x2="453.772800330586" y2="850"/>
-<text class="tick" x="453.772800330586" y="880" text-anchor="middle">40</text>
-<line class="grid" x1="653.0715433766352" y1="105" x2="653.0715433766352" y2="850"/>
-<text class="tick" x="653.0715433766352" y="880" text-anchor="middle">60</text>
-<line class="grid" x1="852.3702864226842" y1="105" x2="852.3702864226842" y2="850"/>
-<text class="tick" x="852.3702864226842" y="880" text-anchor="middle">80</text>
-<line class="grid" x1="1051.6690294687332" y1="105" x2="1051.6690294687332" y2="850"/>
-<text class="tick" x="1051.6690294687332" y="880" text-anchor="middle">100</text>
-<line class="grid" x1="1250.9677725147824" y1="105" x2="1250.9677725147824" y2="850"/>
-<text class="tick" x="1250.9677725147824" y="880" text-anchor="middle">120</text>
-<line class="grid" x1="1450.2665155608315" y1="105" x2="1450.2665155608315" y2="850"/>
-<text class="tick" x="1450.2665155608315" y="880" text-anchor="middle">140</text>
+<line class="grid" x1="254.47405728453685" y1="105" x2="254.47405728453685" y2="1155"/>
+<text class="tick" x="254.47405728453685" y="1200" text-anchor="middle">20</text>
+<line class="grid" x1="453.772800330586" y1="105" x2="453.772800330586" y2="1155"/>
+<text class="tick" x="453.772800330586" y="1200" text-anchor="middle">40</text>
+<line class="grid" x1="653.0715433766352" y1="105" x2="653.0715433766352" y2="1155"/>
+<text class="tick" x="653.0715433766352" y="1200" text-anchor="middle">60</text>
+<line class="grid" x1="852.3702864226842" y1="105" x2="852.3702864226842" y2="1155"/>
+<text class="tick" x="852.3702864226842" y="1200" text-anchor="middle">80</text>
+<line class="grid" x1="1051.6690294687332" y1="105" x2="1051.6690294687332" y2="1155"/>
+<text class="tick" x="1051.6690294687332" y="1200" text-anchor="middle">100</text>
+<line class="grid" x1="1250.9677725147824" y1="105" x2="1250.9677725147824" y2="1155"/>
+<text class="tick" x="1250.9677725147824" y="1200" text-anchor="middle">120</text>
+<line class="grid" x1="1450.2665155608315" y1="105" x2="1450.2665155608315" y2="1155"/>
+<text class="tick" x="1450.2665155608315" y="1200" text-anchor="middle">140</text>
 <line x1="105" y1="345" x2="1565" y2="345" stroke="#444"/>
 <line x1="105" y1="270.4437869822485" x2="1565" y2="270.4437869822485" stroke="#999" stroke-dasharray="6 4"/>
 <line x1="105" y1="419.55621301775153" x2="1565" y2="419.55621301775153" stroke="#999" stroke-dasharray="6 4"/>
@@ -1849,5 +1849,26 @@
 <line x1="1558.181802451691" y1="814" x2="1558.181802451691" y2="846" stroke="#2a9d8f"/>
 <line x1="1560.678019208343" y1="814" x2="1560.678019208343" y2="846" stroke="#2a9d8f"/>
 <line x1="1563.9996317093198" y1="814" x2="1563.9996317093198" y2="846" stroke="#2a9d8f"/>
-<text x="800" y="908" text-anchor="middle" font-size="18">Song time (seconds)</text>
+<text x="105" y="895" font-size="18">Tempo from red timing points</text>
+<line x1="1215" y1="889" x2="1245" y2="889" stroke="#333333" stroke-width="2.5"/><text class="legend" x="1253" y="895">reference BPM</text>
+<line x1="1390" y1="889" x2="1420" y2="889" stroke="#2a9d8f" stroke-width="2.5"/><text class="legend" x="1428" y="895">exported BPM</text>
+<line class="grid" x1="105" y1="1155" x2="1565" y2="1155"/>
+<text class="tick" x="93" y="1161" text-anchor="end">0</text>
+<line class="grid" x1="105" y1="1109" x2="1565" y2="1109"/>
+<text class="tick" x="93" y="1115" text-anchor="end">100</text>
+<line class="grid" x1="105" y1="1063" x2="1565" y2="1063"/>
+<text class="tick" x="93" y="1069" text-anchor="end">200</text>
+<line class="grid" x1="105" y1="1017" x2="1565" y2="1017"/>
+<text class="tick" x="93" y="1023" text-anchor="end">300</text>
+<line class="grid" x1="105" y1="971" x2="1565" y2="971"/>
+<text class="tick" x="93" y="977" text-anchor="end">400</text>
+<line class="grid" x1="105" y1="925" x2="1565" y2="925"/>
+<text class="tick" x="93" y="931" text-anchor="end">500</text>
+<rect x="105" y="925" width="1460" height="230" fill="none" class="axis"/>
+<text x="25" y="1040" text-anchor="middle" font-size="18" transform="rotate(-90 25 1040)">BPM</text>
+<g clip-path="url(#bpm-plot)">
+<path class="bpm-reference" d="M 105 1077.26 H 1006.7769875976109 V 1073.12 H 1020.2396176903713 V 1071.28 H 1322.4661965825526 V 1071.28 H 1338.888413009547 V 1071.28 H 1565" fill="none" stroke="#333333" stroke-width="2.5" stroke-linejoin="round"/>
+<path class="bpm-export" d="M 107.98948114569073 1104.3577981651376 H 118.85126264170042 V 1077.2338057535712 H 320.43197629562684 V 1077.3628691983122 H 398.36774976378433 V 1052.7777777777778 H 403.7488158260276 V 1046.764705882353 H 408.83093377370193 V 1077.6175456304147 H 440.8183820325928 V 1077.2535211267605 H 723.8225971579825 V 1076.142857142857 H 730.7980531645943 V 1077.2535211267605 H 886.4503714835587 V 1077.3257253820393 H 992.6666365899506 V 1120.4676258992806 H 1008.5906061593298 V 1087.9283110571082 H 1016.7917494356748 V 1071.9924812030076 H 1043.2984822607993 V 1071.3027656477439 H 1181.302896883036 V 1071.4901664145234 H 1187.889720340708 V 1071.3636363636363 H 1207.620295902267 V 987.7272727272727 H 1210.9087251625267 V 1071.1934837397139 H 1309.3523392901227 V 1071.3889730384733 H 1342.2465968298732 V 1071.3636363636363 H 1348.8234553503926 V 950.5555555555555 H 1351.5139883815143 V 1013.4615384615385 H 1355.4003138709122 V 1071.2494310423303 H 1499.891902579298 V 957.8571428571429 H 1502.6820849819426 V 1009.7368421052631 H 1506.4687610998176 V 1071.1934837397139 H 1555.6855856950394 V 1044.820359281437 H 1560.678019208343 V 1072.1991719917198 H 1565" fill="none" stroke="#2a9d8f" stroke-width="2.5" stroke-linejoin="round"/>
+</g>
+<text x="800" y="1228" text-anchor="middle" font-size="18">Song time (seconds)</text>
 </svg>
