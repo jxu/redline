@@ -1,14 +1,20 @@
 {
   "mapsetId": "13012",
   "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
+  "pipelineVersion": "0.1.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
+  "probabilityCache": {
+    "key": "7e8a95216df116f311834772e40aa65bd26458db9401628b15a6b0157b21d5be",
+    "hit": false
+  },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
     "toleranceMs": 5,
     "windowSize": 4,
+    "tempoSmoothness": 5,
     "tempoPattern": "fixed"
   },
   "osuTimingPoints": "[TimingPoints]\n1757,428.54643,4,2,0,100,1,0",
@@ -24,7 +30,7 @@
   "evaluationMarginMs": 5000,
   "evaluationStartMs": 5000,
   "evaluationEndMs": 89354.28571428571,
-  "confidence": 0.5335638379654943,
+  "confidence": 0.5335638513208919,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
     0.5,

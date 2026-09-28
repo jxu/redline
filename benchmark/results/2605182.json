@@ -6,6 +6,10 @@
   "sourceSampleRate": 48000,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
+  "probabilityCache": {
+    "key": "9aeb547f73a505ad29f1071729c910b41d888fd2f2840933cd8e1212e8381b0f",
+    "hit": false
+  },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
     "toleranceMs": 5,
