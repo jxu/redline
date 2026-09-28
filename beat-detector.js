@@ -15,7 +15,7 @@ import {
 } from "./beat-postprocessing.js";
 
 export { DEFAULT_BEAT_THRESHOLD, pickBeatPeaks } from "./beat-postprocessing.js";
-const BATCH_SIZE = 128;
+const BATCH_SIZE = 32;
 const MODEL_URL = new URL("./models/senet.onnx", import.meta.url);
 let sessionPromise;
 
