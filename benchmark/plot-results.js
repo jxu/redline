@@ -5,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const COLORS = Object.freeze({
     raw: "#277fbd",
     interpolated: "#f28e2b",
-    scaled: "#9467bd",
+    filtered: "#9467bd",
+    scaled: "#2a9d8f",
     reference: "#333333",
     error: "#d62728",
 });
@@ -101,6 +102,10 @@ function cross(x, y, size = 5) {
     return `<path d="M ${x - size} ${y - size} L ${x + size} ${y + size} M ${x - size} ${y + size} L ${x + size} ${y - size}" stroke="${COLORS.error}" stroke-width="2.2"/>`;
 }
 
+function missingMarker(x, referenceY) {
+    return `<path d="M ${x - 5} ${referenceY - 27} L ${x + 5} ${referenceY - 27} L ${x} ${referenceY - 18} Z" fill="${COLORS.error}"/>`;
+}
+
 export function renderResultPlot(result) {
     const width = 1600;
     const height = 850;
@@ -110,7 +115,7 @@ export function renderResultPlot(result) {
     const plotBottom = 585;
     const plotWidth = width - left - right;
     const plotHeight = plotBottom - plotTop;
-    const rasterRows = { reference: 675, raw: 730, interpolated: 785 };
+    const rasterRows = { reference: 690, senet: 760 };
     const startMs = result.evaluationStartMs;
     const endMs = result.evaluationEndMs;
     const durationMs = endMs - startMs;
@@ -122,8 +127,12 @@ export function renderResultPlot(result) {
     const yLimit = Math.max(100, Math.ceil(maxAbsoluteError / 50) * 50);
     const x = (timeMs) => left + (timeMs - startMs) / durationMs * plotWidth;
     const y = (errorMs) => plotTop + (yLimit - errorMs) / (2 * yLimit) * plotHeight;
+    const retainedBeats = result.filteredDetectedBeatsMs ?? result.rawDetectedBeatsMs;
     const addedInterpolated = result.interpolatedDetectedBeatsMs.filter(
-        (beatMs) => !containsBeat(result.rawDetectedBeatsMs, beatMs)
+        (beatMs) => !containsBeat(retainedBeats, beatMs)
+    );
+    const filteredBeats = result.rawDetectedBeatsMs.filter(
+        (beatMs) => !containsBeat(retainedBeats, beatMs)
     );
     const inside = (beatMs) => beatMs >= startMs && beatMs < endMs;
 
@@ -152,8 +161,8 @@ export function renderResultPlot(result) {
     const firstXTick = Math.ceil(startMs / xStepMs) * xStepMs;
     for (let value = firstXTick; value < endMs; value += xStepMs) {
         svg.push(
-            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="810"/>`,
-            `<text class="tick" x="${x(value)}" y="834" text-anchor="middle">${value / 1000}</text>`,
+            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="780"/>`,
+            `<text class="tick" x="${x(value)}" y="810" text-anchor="middle">${value / 1000}</text>`,
         );
     }
 
@@ -195,23 +204,29 @@ export function renderResultPlot(result) {
     });
 
     svg.push(
-        `<rect x="${left}" y="630" width="${plotWidth}" height="180" fill="none" class="axis"/>`,
+        `<line x1="${left + 10}" y1="615" x2="${left + 32}" y2="615" stroke="${COLORS.raw}" stroke-width="3"/><text class="legend" x="${left + 40}" y="620">retained SENet peak</text>`,
+        `<line x1="${left + 215}" y1="615" x2="${left + 237}" y2="615" stroke="${COLORS.interpolated}" stroke-width="3"/><text class="legend" x="${left + 245}" y="620">interpolated beat</text>`,
+        `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out peak</text>`,
+        `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
+        `<rect x="${left}" y="640" width="${plotWidth}" height="140" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
-        `<text x="${left - 12}" y="${rasterRows.raw + 6}" text-anchor="end" font-size="17">raw SENet</text>`,
-        `<text x="${left - 12}" y="${rasterRows.interpolated + 6}" text-anchor="end" font-size="17">interpolated</text>`,
+        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">SENet</text>`,
     );
 
     for (const beatMs of result.referenceBeatsMs) {
         svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.reference - 16}" x2="${x(beatMs)}" y2="${rasterRows.reference + 16}" stroke="${COLORS.reference}"/>`);
     }
-    for (const beatMs of result.rawDetectedBeatsMs.filter(inside)) {
-        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.raw - 16}" x2="${x(beatMs)}" y2="${rasterRows.raw + 16}" stroke="${COLORS.raw}"/>`);
+    for (const beatMs of retainedBeats.filter(inside)) {
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.raw}"/>`);
     }
     for (const beatMs of addedInterpolated.filter(inside)) {
-        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.interpolated - 16}" x2="${x(beatMs)}" y2="${rasterRows.interpolated + 16}" stroke="${COLORS.interpolated}" stroke-width="2"/>`);
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.interpolated}" stroke-width="2"/>`);
+    }
+    for (const beatMs of filteredBeats.filter(inside)) {
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.filtered}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="4 3"/>`);
     }
     for (const beatMs of alignment.missing) {
-        svg.push(cross(x(beatMs), rasterRows.reference, 5));
+        svg.push(missingMarker(x(beatMs), rasterRows.reference));
     }
 
     svg.push(
