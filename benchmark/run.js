@@ -12,7 +12,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.1.0";
+const pipelineVersion = "0.1.1";
 const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const requestedId = process.argv[2];
@@ -170,8 +170,9 @@ for (const benchmarkCase of selectedCases) {
     console.log(`  Exported beats:  ${result.detectedBeatsMs.length}`);
     console.log(`  Timing points:   ${result.exportedTimingPoints.length}`);
     console.log(
-        `  Smoothing:       window ${result.timingOptions.windowSize}, ` +
-        `tolerance ${result.timingOptions.toleranceMs} ms`
+        `  Fit settings:    window ${result.timingOptions.windowSize}, ` +
+        `tolerance ${result.timingOptions.toleranceMs} ms, ` +
+        `tempo smoothing ${result.timingOptions.tempoSmoothness}`
     );
     console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  95th percentile: ${result.metrics.percentile95AbsoluteErrorMs.toFixed(3)} ms`);

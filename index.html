@@ -33,12 +33,10 @@
             <option value="sections">Variable BPM with fixed sections</option>
         </select>
     </div>
-    <!-- Higher smoothing requires more beats before the fit changes tempo. -->
     <div class="control">
-        <label for="smoothing">Smoothing: <span id="smoothingValue">4</span></label>
-        <input type="range" id="smoothing" min="1" max="16" value="4">
+        <label for="tempoSmoothness">Tempo smoothing: <span id="tempoSmoothnessValue">5</span></label>
+        <input type="range" id="tempoSmoothness" min="0" max="10" value="5">
     </div>
-
     <!-- Higher tolerance allows longer fitted timing sections. -->
     <div class="control">
         <label for="tolerance">Tolerance (ms): <span id="toleranceValue">5</span></label>

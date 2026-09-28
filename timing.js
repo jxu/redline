@@ -1,6 +1,7 @@
 export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     toleranceMs: 5,
     windowSize: 4,
+    tempoSmoothness: 5,
 });
 
 export const TEMPO_PATTERNS = Object.freeze({
@@ -9,15 +10,68 @@ export const TEMPO_PATTERNS = Object.freeze({
     sections: "Variable BPM with fixed sections",
 });
 
-const MIN_EXPORT_BPM = 50;
-const MAX_EXPORT_BPM = 250;
+function medianPositiveInterval(ticks) {
+    const intervals = ticks.slice(1).map((tick, index) => tick - ticks[index])
+        .filter((interval) => interval > 0).sort((a, b) => a - b);
+    if (!intervals.length) return null;
+    return intervals[Math.floor(intervals.length / 2)];
+}
 
-function foldExportBeatLength(beatLengthMs) {
-    let length = Number(beatLengthMs);
-    if (!Number.isFinite(length) || length <= 0) return length;
-    while (length < 60000 / MAX_EXPORT_BPM) length *= 2;
-    while (length > 60000 / MIN_EXPORT_BPM) length /= 2;
-    return length;
+function selectPulse(gridTicks, observedTicks) {
+    const typicalInterval = medianPositiveInterval(observedTicks);
+    if (!typicalInterval || !gridTicks.length) return gridTicks;
+    const selected = [gridTicks[0]];
+    // Retained peaks establish the song's pulse; closer grid beats are likely
+    // subdivisions. This threshold is relative to the audio, not a BPM cap.
+    for (const tick of gridTicks.slice(1)) {
+        if (tick - selected.at(-1) >= typicalInterval * 0.65 - 1e-9) selected.push(tick);
+    }
+    return selected;
+}
+
+function fitTempoCurve(ticks, smoothness, boundaries = []) {
+    if (ticks.length < 3) return ticks;
+    const observed = ticks.map((tick) => tick * 1000);
+    const count = observed.length;
+    const penalties = Array(count).fill(smoothness);
+    for (let index = 1; index < count - 1; index++) {
+        if (boundaries.some((time) => ticks[index - 1] < time && time <= ticks[index + 1])) {
+            penalties[index] = 0;
+        }
+    }
+    const applySystem = (values) => {
+        const result = [...values];
+        for (let index = 1; index < count - 1; index++) {
+            const curvature = values[index - 1] - 2 * values[index] + values[index + 1];
+            result[index - 1] += penalties[index] * curvature;
+            result[index] -= 2 * penalties[index] * curvature;
+            result[index + 1] += penalties[index] * curvature;
+        }
+        return result;
+    };
+
+    // Minimize squared beat-time error plus squared changes in beat spacing.
+    // The latter penalizes abrupt tempo spikes without capping BPM or jumps.
+    let fitted = [...observed];
+    let product = applySystem(fitted);
+    let residual = observed.map((time, index) => time - product[index]);
+    let direction = [...residual];
+    let residualSize = residual.reduce((sum, value) => sum + value * value, 0);
+    for (let iteration = 0; iteration < Math.min(256, count) && residualSize > 1e-8; iteration++) {
+        product = applySystem(direction);
+        const denominator = direction.reduce((sum, value, index) =>
+            sum + value * product[index], 0);
+        const step = residualSize / denominator;
+        fitted = fitted.map((time, index) => time + step * direction[index]);
+        residual = residual.map((value, index) => value - step * product[index]);
+        const nextSize = residual.reduce((sum, value) => sum + value * value, 0);
+        const ratio = nextSize / residualSize;
+        direction = residual.map((value, index) => value + ratio * direction[index]);
+        residualSize = nextSize;
+    }
+    const curve = fitted.map((time) => time / 1000);
+    return curve.every((tick, index) => index === 0 || tick > curve[index - 1])
+        ? curve : ticks;
 }
 
 function averageBpm(ticks) {
@@ -214,18 +268,40 @@ function generateOsuTimingPoints(timingPoints) {
 }
 
 export function calculateTiming(ticks, options = {}) {
-    const fitted = fitTimingGrid(ticks, options);
-    const timingPoints = fitted.timingPoints.map((point) => ({
-        ...point,
-        beatLengthMs: foldExportBeatLength(point.beatLengthMs),
-    }));
-    const beatLengths = fitted.beatLengths.map((length) =>
-        foldExportBeatLength(length).toFixed(length.includes(".") ? length.split(".")[1].length : 2)
-    );
-    const { fitWarning = false } = fitted;
+    let fittedTicks = ticks;
+    let fitted = fitTimingGrid(ticks, options);
+    const initialFitWarning = fitted.fitWarning ?? false;
     const durationMs = options.endTime === undefined
-        ? (ticks.at(-1) ?? 0) * 1000 + (timingPoints.at(-1)?.beatLengthMs ?? 0)
+        ? (ticks.at(-1) ?? 0) * 1000 + (fitted.timingPoints.at(-1)?.beatLengthMs ?? 0)
         : options.endTime * 1000;
+
+    if (options.tempoPattern && fitted.timingPoints.length && ticks.length >= 3) {
+        const observedTicks = options.observedTicks?.length ? options.observedTicks : ticks;
+        const initialGrid = generateTimingGrid(fitted.timingPoints, durationMs);
+        const pulseGrid = options.tempoPattern === "continuous"
+            ? selectPulse(initialGrid, observedTicks) : initialGrid;
+        // In section mode, keep changes that persist on both sides of a red
+        // point while regularizing the brief excursions between them.
+        const boundaries = options.tempoPattern === "sections"
+            ? fitted.timingPoints.slice(1).flatMap((point, index) => {
+                const previous = fitted.timingPoints[index];
+                const nextOffset = fitted.timingPoints[index + 2]?.offsetMs ?? durationMs;
+                const previousBeats = (point.offsetMs - previous.offsetMs) / previous.beatLengthMs;
+                const followingBeats = (nextOffset - point.offsetMs) / point.beatLengthMs;
+                return previousBeats >= 3 && followingBeats >= 3
+                    ? [point.offsetMs / 1000] : [];
+            }) : [];
+        const smoothness = options.tempoSmoothness ?? DEFAULT_TIMING_OPTIONS.tempoSmoothness;
+        fittedTicks = fitTempoCurve(pulseGrid,
+            options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
+            boundaries);
+        fitted = fitTimingGrid(fittedTicks, {
+            ...options,
+            observedTicks: options.tempoPattern === "fixed" ? observedTicks : fittedTicks,
+        });
+    }
+    const { timingPoints, beatLengths } = fitted;
+    const fitWarning = initialFitWarning || (fitted.fitWarning ?? false);
 
     return {
         averageBpm: averageBpm(ticks),
@@ -238,7 +314,7 @@ export function calculateTiming(ticks, options = {}) {
             x: time,
             y: 60 / (ticks[index + 1] - time),
         })),
-        smoothedBpmSeries: ticks.slice(0, -1).map((time, index) => ({
+        smoothedBpmSeries: fittedTicks.slice(0, -1).map((time, index) => ({
             x: time,
             y: 60000 / Number(beatLengths[index]),
         })),

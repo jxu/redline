@@ -125,7 +125,7 @@ export function evaluateTempoScales(
     const candidates = allowedTempoScales.flatMap((tempoScale) => {
         const phaseCount = tempoScale < 1 ? subdivisionCount(tempoScale) : 1;
         return Array.from({ length: phaseCount }, (_, phase) => {
-            // Match the UI: tempo correction precedes smoothing and export.
+            // Match the UI: tempo correction precedes fitting and export.
             // Round-trip the serialized text so offset and beat-length rounding,
             // collapsed timing points, and section resets all affect the score.
             const ticks = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)

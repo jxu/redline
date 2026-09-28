@@ -73,8 +73,15 @@ the grid, but sustained drift prompts a new section. Every new section starts on
 a beat of the previous section, so a tempo change cannot produce a duplicate beat
 at the boundary. The waveform markers and click track follow the exported grid.
 Scores measure that grid after osu! offset and beat-length rounding.
+The fitter regularizes beat times before creating the final timing points.
+Continuously variable tracks use retained detections to choose the pulse and a
+stronger penalty on abrupt tempo changes. Fixed-section tracks use a lighter
+penalty that preserves sustained section boundaries. Fixed tracks still produce
+a single precise grid. The Tempo smoothing slider adjusts the regression penalty
+without rerunning beat detection; its default is 5.
 
-Fit settings match the app: `windowSize: 4` and `toleranceMs: 5`. The minimum
+Default fit settings match the app: `windowSize: 4`, `toleranceMs: 5`, and
+`tempoSmoothness: 5`. The minimum
 section length is `max(2, floor(windowSize / 2))` beats. The maximum isolated
 interior residual is `20 + 2 * toleranceMs` milliseconds; the average signed
 residual over eight beats must stay within `5 + toleranceMs` milliseconds. A case

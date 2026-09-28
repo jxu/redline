@@ -63,9 +63,8 @@ function clamp(x, min = -1, max = 1) {
     return Math.max(min, Math.min(max, x));
 }
 
-// Plot instantaneous BPM against time for the whole song: the raw per-beat BPM
-// (60 / each detected gap) as a faint line, with the smoothed series (what the
-// markers/osu export use) drawn on top so you can see what smoothing did.
+// Plot instantaneous BPM against time for the whole song: raw detected gaps
+// as a faint line, with the fitted export tempo drawn on top.
 function drawBpmGraph(raw, smoothed) {
     if (!state.bpmChart) {
         state.bpmChart = new Chart(document.getElementById("bpmGraph"), {
@@ -80,7 +79,7 @@ function drawBpmGraph(raw, smoothed) {
                         pointRadius: 0,
                     },
                     {
-                        label: "smoothed",
+                        label: "fitted export",
                         data: smoothed,
                         borderColor: "#4F4A85",
                         borderWidth: 1.5,
@@ -109,10 +108,10 @@ function drawBpmGraph(raw, smoothed) {
 const fileInput = document.getElementById("audioFile");
 const resultsBox = document.getElementById("results");
 
-const smoothingSlider = document.getElementById("smoothing");
 const tempoPatternSelect = document.getElementById("tempoPattern");
+const tempoSmoothnessSlider = document.getElementById("tempoSmoothness");
+const tempoSmoothnessValue = document.getElementById("tempoSmoothnessValue");
 const toleranceSlider = document.getElementById("tolerance");
-const smoothingValue = document.getElementById("smoothingValue");
 const toleranceValue = document.getElementById("toleranceValue");
 
 const audioContext = new AudioContext();
@@ -207,13 +206,13 @@ document.getElementById("waveform").addEventListener("wheel", (event) => {
 }, { passive: false });
 
 // These controls refit the grid without running the beat detector again.
-smoothingSlider.oninput = () => {
-    smoothingValue.textContent = smoothingSlider.value;
-    renderSmoothing();
+tempoSmoothnessSlider.oninput = () => {
+    tempoSmoothnessValue.textContent = tempoSmoothnessSlider.value;
+    renderTimingGrid();
 };
 toleranceSlider.oninput = () => {
     toleranceValue.textContent = toleranceSlider.value;
-    renderSmoothing();
+    renderTimingGrid();
 };
 tempoPatternSelect.onchange = () => {
     if (state.track.ticks.length) renderTicks();
@@ -310,7 +309,7 @@ function renderTicks() {
 
     const timing = calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
-        windowSize: Number(smoothingSlider.value),
+        tempoSmoothness: Number(tempoSmoothnessSlider.value),
         endTime: state.track.audioBuffer.duration,
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
@@ -330,16 +329,16 @@ function renderTicks() {
         <p><strong>Interpolated beats:</strong> ${state.track.interpolatedBeatCount}</p>
     `;
 
-    renderSmoothing(timing);
+    renderTimingGrid(timing);
 }
 
 // The fitted export grid drives the waveform markers and audible click track.
-function renderSmoothing(timing = null) {
+function renderTimingGrid(timing = null) {
     if (!state.track.ticks.length) return;
 
     timing ??= calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
-        windowSize: Number(smoothingSlider.value),
+        tempoSmoothness: Number(tempoSmoothnessSlider.value),
         endTime: state.track.audioBuffer.duration,
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
@@ -408,7 +407,7 @@ fileInput.addEventListener("change", async (event) => {
     state.track.probabilities = null;
     state.track.smoothedProbabilities = null;
     document.getElementById("osuTimingPoints").value = "";
-    resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
+    resultsBox.textContent = "Press Calculate after the waveform updates.";
 
     // decode + show the waveform now; run beat detection only on Calculate
     await loadFile(file);
