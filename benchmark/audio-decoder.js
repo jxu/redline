@@ -21,6 +21,22 @@ export function removeLeadingId3Padding(encodedAudio) {
     const footerSize = encodedAudio[5] & 0x10 ? 10 : 0;
     let audioStart = 10 + tagSize + footerSize;
 
+    // Some older MP3s count the 10-byte ID3 header in the encoded tag size.
+    // If a valid MPEG frame begins exactly there, use it instead of cutting
+    // ten bytes into the first frame.
+    const earlierStart = audioStart - 10;
+    const isMpegFrame = (index) =>
+        index >= 0 && encodedAudio[index] === 0xff &&
+        (encodedAudio[index + 1] & 0xe0) === 0xe0 &&
+        ((encodedAudio[index + 1] >> 3) & 3) !== 1 &&
+        ((encodedAudio[index + 1] >> 1) & 3) !== 0 &&
+        ((encodedAudio[index + 2] >> 4) & 15) !== 0 &&
+        ((encodedAudio[index + 2] >> 4) & 15) !== 15 &&
+        ((encodedAudio[index + 2] >> 2) & 3) !== 3;
+    if (!isMpegFrame(audioStart) && isMpegFrame(earlierStart)) {
+        audioStart = earlierStart;
+    }
+
     while (encodedAudio[audioStart] === 0) audioStart++;
     return audioStart === 10 + tagSize + footerSize
         ? encodedAudio

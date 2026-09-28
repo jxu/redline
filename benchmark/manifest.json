@@ -58,5 +58,55 @@
     "osu": "./corpus/30485/Inspector K - Disconnected Hardkore (CanBlaster Remix) (7odoa) [Insane].osu",
     "onlineOffsetMs": 0,
     "allowedTempoScales": [0.5, 1, 2]
+  },
+  {
+    "id": "2302704",
+    "name": "The Who - Won't Get Fooled Again [Nothing Ever Happens]",
+    "tempoPattern": "continuous",
+    "tempoScale": 1,
+    "audio": "./corpus/2302704/audio.ogg",
+    "osu": "./corpus/2302704/The Who - Won't Get Fooled Again (Blue Dragon) [Nothing Ever Happens].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "65923",
+    "name": "Junichi Masuda - Battle! Roaming Legendary Pokemon [Irre's Landorus]",
+    "tempoPattern": "sections",
+    "tempoScale": 1,
+    "audio": "./corpus/65923/131 - Battle! Roaming Legendary Pokemon.mp3",
+    "osu": "./corpus/65923/Junichi Masuda - Battle! Roaming Legendary Pokemon (DakeDekaane) [Irre's Landorus].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "2521355",
+    "name": "Bring Me The Horizon - Anthem [nihil's orvtoris]",
+    "tempoPattern": "sections",
+    "tempoScale": 1,
+    "audio": "./corpus/2521355/audio.mp3",
+    "osu": "./corpus/2521355/Bring Me The Horizon - Anthem (324c) [nihil's orvtoris].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "2605182",
+    "name": "Guns N' Roses - Welcome To The Jungle [Appetite For Destruction]",
+    "tempoPattern": "continuous",
+    "tempoScale": 1,
+    "audio": "./corpus/2605182/audio.ogg",
+    "osu": "./corpus/2605182/Guns N' Roses - Welcome To The Jungle (1103) [Appetite For Destruction].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "545156",
+    "name": "Royal Blood - Loose Change [$]",
+    "tempoPattern": "sections",
+    "tempoScale": 1,
+    "audio": "./corpus/545156/audio.mp3",
+    "osu": "./corpus/545156/Royal Blood - Loose Change (BOUYAAA) [$].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
   }
 ]
