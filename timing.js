@@ -9,6 +9,17 @@ export const TEMPO_PATTERNS = Object.freeze({
     sections: "Variable BPM with fixed sections",
 });
 
+const MIN_EXPORT_BPM = 50;
+const MAX_EXPORT_BPM = 250;
+
+function foldExportBeatLength(beatLengthMs) {
+    let length = Number(beatLengthMs);
+    if (!Number.isFinite(length) || length <= 0) return length;
+    while (length < 60000 / MAX_EXPORT_BPM) length *= 2;
+    while (length > 60000 / MIN_EXPORT_BPM) length /= 2;
+    return length;
+}
+
 function averageBpm(ticks) {
     if (ticks.length < 2) return 0;
     const secondsPerBeat = (ticks[ticks.length - 1] - ticks[0]) / (ticks.length - 1);
@@ -203,7 +214,15 @@ function generateOsuTimingPoints(timingPoints) {
 }
 
 export function calculateTiming(ticks, options = {}) {
-    const { timingPoints, beatLengths, fitWarning = false } = fitTimingGrid(ticks, options);
+    const fitted = fitTimingGrid(ticks, options);
+    const timingPoints = fitted.timingPoints.map((point) => ({
+        ...point,
+        beatLengthMs: foldExportBeatLength(point.beatLengthMs),
+    }));
+    const beatLengths = fitted.beatLengths.map((length) =>
+        foldExportBeatLength(length).toFixed(length.includes(".") ? length.split(".")[1].length : 2)
+    );
+    const { fitWarning = false } = fitted;
     const durationMs = options.endTime === undefined
         ? (ticks.at(-1) ?? 0) * 1000 + (timingPoints.at(-1)?.beatLengthMs ?? 0)
         : options.endTime * 1000;
