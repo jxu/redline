@@ -129,6 +129,29 @@ The command writes every candidate score plus detailed results under
 detections remain in separate fields for diagnosis. Charts show the export grid
 alongside the reference and the intermediate SENet beats, plus reference and
 exported BPM as step lines over the same song-time axis.
+
+On the `beat-this-small-benchmark` branch, the experimental Beat This! runner
+replaces SENet detections with the official `small0` checkpoint's beats. It uses
+Beat This! 1.1.0 with its minimal postprocessor (no DBN), then applies the same
+Redline filtering, interpolation, mapper-selected tempo scale and pattern,
+timing regression, export, and scoring as above. Install Python 3.10, FFmpeg,
+and a CPU PyTorch environment, then run:
+
+```bash
+python3.10 -m venv .venv-beat-this
+.venv-beat-this/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch==2.11.0+cpu torchaudio==2.11.0+cpu
+.venv-beat-this/bin/pip install beat-this==1.1.0
+BEAT_THIS_PYTHON=.venv-beat-this/bin/python npm run benchmark:beat-this
+```
+
+Beat This! downloads `small0` on first use. Set `BEAT_THIS_CHECKPOINT` to a
+local copy of `small0.ckpt` to use a specific file; the comparison used SHA-256
+`6074be2c4d490c5f6101fcc374a1ec72ae93456e23bb6019783b849f5dc7d47b`.
+An optional mapset ID follows `--`. Results and plots go under
+`benchmark/beat-this-small/`, preserving the SENet baseline. The comparison
+reuses the baseline's reference grid and evaluation window; no `.osu` data
+enters Beat This! inference or chooses the reported tempo scale.
+
 Regenerate charts from the saved result files without rerunning inference with:
 
 ```bash

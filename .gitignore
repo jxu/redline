@@ -2,3 +2,5 @@
 node_modules/
 benchmark/listening/
 benchmark/cache/
+.venv-beat-this/
+__pycache__/

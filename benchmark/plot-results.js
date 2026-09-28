@@ -138,6 +138,9 @@ function missingMarker(x, referenceY) {
 
 export function renderResultPlot(result) {
     const isExportGrid = result.evaluationGrid === "exported-timing-points";
+    const beatThis = result.detector?.startsWith("beat-this");
+    const detectorLabel = beatThis ? "Beat This!" : "SENet";
+    const rawLabel = beatThis ? "beat" : "peak";
     const width = 1600;
     const bpmTop = isExportGrid ? 925 : 855;
     const bpmBottom = bpmTop + 230;
@@ -235,7 +238,7 @@ export function renderResultPlot(result) {
         [COLORS.scaled, "triangle", "matched exported beat"],
         [COLORS.error, "cross", "extra exported beat"],
     ] : [
-        [COLORS.raw, "circle", "matched SENet peak"],
+        [COLORS.raw, "circle", `matched ${detectorLabel} ${rawLabel}`],
         [COLORS.interpolated, "diamond", "matched interpolated beat"],
         [COLORS.scaled, "triangle", "matched tempo-scaled beat"],
         [COLORS.error, "cross", "extra detection"],
@@ -251,13 +254,13 @@ export function renderResultPlot(result) {
     });
 
     svg.push(
-        `<line x1="${left + 10}" y1="615" x2="${left + 32}" y2="615" stroke="${COLORS.raw}" stroke-width="3"/><text class="legend" x="${left + 40}" y="620">retained SENet peak</text>`,
+        `<line x1="${left + 10}" y1="615" x2="${left + 32}" y2="615" stroke="${COLORS.raw}" stroke-width="3"/><text class="legend" x="${left + 40}" y="620">retained ${detectorLabel} ${rawLabel}</text>`,
         `<line x1="${left + 215}" y1="615" x2="${left + 237}" y2="615" stroke="${COLORS.interpolated}" stroke-width="3"/><text class="legend" x="${left + 245}" y="620">interpolated beat</text>`,
-        `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out peak</text>`,
+        `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out ${rawLabel}</text>`,
         `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
         `<rect x="${left}" y="640" width="${plotWidth}" height="${rasterBottom - 640}" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
-        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">SENet</text>`,
+        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">${detectorLabel}</text>`,
     );
 
     for (const beatMs of result.referenceBeatsMs) {
