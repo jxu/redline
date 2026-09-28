@@ -32,6 +32,8 @@ const state = {
         filteredBeatCount: 0,
         interpolatedBeatCount: 0,
         confidence: 0,
+        inferenceBackend: null,
+        inferenceTimings: null,
         probabilities: null,
         smoothedProbabilities: null,
     },
@@ -270,6 +272,8 @@ async function analyze() {
         state.track.filteredBeatCount = result.ticks.length - filteredTicks.length;
         state.track.interpolatedBeatCount = state.track.ticks.length - filteredTicks.length;
         state.track.confidence = result.confidence;
+        state.track.inferenceBackend = result.backend;
+        state.track.inferenceTimings = result.timings;
         state.track.probabilities = result.probabilities;
         state.track.smoothedProbabilities = result.smoothedProbabilities;
     } catch (err) {
@@ -298,6 +302,10 @@ function renderTicks() {
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
         <p><strong>Mean peak probability:</strong> ${state.track.confidence.toFixed(3)}</p>
+        <p><strong>Inference backend:</strong> ${state.track.inferenceBackend === "webgpu" ? "WebGPU" : "WASM"}</p>
+        <p><strong>Analysis time:</strong> ${(state.track.inferenceTimings.totalMs / 1000).toFixed(1)} seconds
+            (${(state.track.inferenceTimings.spectrogramMs / 1000).toFixed(1)} spectrogram,
+            ${(state.track.inferenceTimings.inferenceMs / 1000).toFixed(1)} inference)</p>
         <p><strong>Filtered extra beats:</strong> ${state.track.filteredBeatCount}</p>
         <p><strong>Interpolated beats:</strong> ${state.track.interpolatedBeatCount}</p>
     `;
@@ -375,6 +383,8 @@ fileInput.addEventListener("change", async (event) => {
     state.track.ticks = [];
     state.track.filteredBeatCount = 0;
     state.track.interpolatedBeatCount = 0;
+    state.track.inferenceBackend = null;
+    state.track.inferenceTimings = null;
     state.track.probabilities = null;
     state.track.smoothedProbabilities = null;
     resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";

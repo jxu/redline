@@ -8,7 +8,8 @@ model, exported to ONNX. In the browser, Redline recreates the model's three
 mel-spectrogram inputs and runs inference with ONNX Runtime Web. The model and
 all audio processing remain local to the browser. Spectrogram generation and
 model inference run in a Web Worker so the page remains responsive; FFT.js and
-ONNX Runtime Web are loaded from pinned CDN URLs by the worker.
+ONNX Runtime Web are loaded from pinned CDN URLs by the worker. Inference uses
+WebGPU when the browser and model support it, with automatic WASM fallback.
 
 ## Run locally
 

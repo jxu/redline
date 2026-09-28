@@ -32,7 +32,7 @@ async function loadSession() {
 
 export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEAT_THRESHOLD } = {}) {
     onProgress?.({ stage: "Preparing spectrogram", fraction: 0 });
-    const views = await createMultiViewSpectrogram(samples, FFT, (fraction) =>
+    const views = createMultiViewSpectrogram(samples, FFT, (fraction) =>
         onProgress?.({ stage: "Preparing spectrogram", fraction: fraction * 0.45 })
     );
     const frameCount = views[0].frameCount;

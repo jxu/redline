@@ -49,8 +49,13 @@ function createMelFilters(fftSize) {
     });
 }
 
-function createViews(FFT) {
-    return VIEW_CONFIGS.map((config) => ({
+let cachedFFT;
+let cachedViews;
+
+function getViews(FFT) {
+    if (FFT === cachedFFT) return cachedViews;
+    cachedFFT = FFT;
+    cachedViews = VIEW_CONFIGS.map((config) => ({
         ...config,
         fft: new FFT(config.fftSize),
         window: Float64Array.from(
@@ -59,6 +64,7 @@ function createViews(FFT) {
         ),
         filters: createMelFilters(config.fftSize),
     }));
+    return cachedViews;
 }
 
 function reflectedSample(samples, index) {
@@ -70,14 +76,7 @@ function reflectedSample(samples, index) {
     return samples[index];
 }
 
-function yieldToHost() {
-    if (typeof requestAnimationFrame === "function") {
-        return new Promise((resolve) => requestAnimationFrame(resolve));
-    }
-    return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
-async function calculateView(samples, view, onProgress) {
+function calculateView(samples, view, onProgress) {
     const frameCount = Math.floor(samples.length / MODEL_HOP_LENGTH) + 1;
     const mel = new Float32Array(MODEL_MEL_BANDS * frameCount);
     const fftInput = new Float64Array(view.fftSize);
@@ -111,7 +110,6 @@ async function calculateView(samples, view, onProgress) {
 
         if (frame % 128 === 127) {
             onProgress?.((frame + 1) / frameCount);
-            await yieldToHost();
         }
     }
 
@@ -130,11 +128,11 @@ async function calculateView(samples, view, onProgress) {
     return { values: mel, frameCount };
 }
 
-export async function createMultiViewSpectrogram(samples, FFT, onProgress) {
-    const configurations = createViews(FFT);
+export function createMultiViewSpectrogram(samples, FFT, onProgress) {
+    const configurations = getViews(FFT);
     const views = [];
     for (let index = 0; index < configurations.length; index++) {
-        views.push(await calculateView(samples, configurations[index], (fraction) =>
+        views.push(calculateView(samples, configurations[index], (fraction) =>
             onProgress?.((index + fraction) / configurations.length)
         ));
     }

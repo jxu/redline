@@ -1,5 +1,5 @@
 import FFT from "https://esm.sh/fft.js@4.0.4";
-import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.all.min.mjs";
+import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.webgpu.min.mjs";
 
 import {
     MODEL_CONTEXT_FRAMES,
@@ -26,11 +26,23 @@ ort.env.wasm.numThreads = globalThis.crossOriginIsolated
     : 1;
 
 async function loadSession() {
+    if (navigator.gpu) {
+        try {
+            const session = await ort.InferenceSession.create(MODEL_URL.href, {
+                executionProviders: ["webgpu"],
+                graphOptimizationLevel: "all",
+            });
+            return { session, backend: "webgpu" };
+        } catch (error) {
+            console.warn("SENet WebGPU initialization failed; using WASM", error);
+        }
+    }
+
     const session = await ort.InferenceSession.create(MODEL_URL.href, {
         executionProviders: ["wasm"],
         graphOptimizationLevel: "all",
     });
-    return session;
+    return { session, backend: "wasm" };
 }
 
 function reportProgress(id, stage, fraction) {
@@ -38,15 +50,18 @@ function reportProgress(id, stage, fraction) {
 }
 
 async function detectBeats(samples, id, threshold = DEFAULT_BEAT_THRESHOLD) {
+    const startedAt = performance.now();
     reportProgress(id, "Preparing spectrogram", 0);
-    const views = await createMultiViewSpectrogram(samples, FFT, (fraction) =>
+    const views = createMultiViewSpectrogram(samples, FFT, (fraction) =>
         reportProgress(id, "Preparing spectrogram", fraction * 0.45)
     );
     const frameCount = views[0].frameCount;
+    const spectrogramFinishedAt = performance.now();
 
     reportProgress(id, "Loading SENet model", 0.45);
     sessionPromise ??= loadSession();
-    const session = await sessionPromise;
+    const { session, backend } = await sessionPromise;
+    const modelLoadedAt = performance.now();
     const probabilities = new Float32Array(frameCount);
 
     for (let firstFrame = 0; firstFrame < frameCount; firstFrame += BATCH_SIZE) {
@@ -61,11 +76,12 @@ async function detectBeats(samples, id, threshold = DEFAULT_BEAT_THRESHOLD) {
         probabilities.set(output.beat_probability.data, firstFrame);
         reportProgress(
             id,
-            "Detecting beats",
+            `Detecting beats (${backend === "webgpu" ? "WebGPU" : "WASM"})`,
             0.45 + 0.55 * (firstFrame + batchSize) / frameCount
         );
     }
 
+    const inferenceFinishedAt = performance.now();
     const smoothedProbabilities = smoothProbabilities(probabilities);
     const ticks = pickBeatPeaks(smoothedProbabilities, threshold);
     const confidence = ticks.length
@@ -76,8 +92,22 @@ async function detectBeats(samples, id, threshold = DEFAULT_BEAT_THRESHOLD) {
             0
         ) / ticks.length
         : 0;
+    const finishedAt = performance.now();
 
-    return { ticks, confidence, probabilities, smoothedProbabilities };
+    return {
+        ticks,
+        confidence,
+        probabilities,
+        smoothedProbabilities,
+        backend,
+        timings: {
+            spectrogramMs: spectrogramFinishedAt - startedAt,
+            modelLoadMs: modelLoadedAt - spectrogramFinishedAt,
+            inferenceMs: inferenceFinishedAt - modelLoadedAt,
+            postprocessingMs: finishedAt - inferenceFinishedAt,
+            totalMs: finishedAt - startedAt,
+        },
+    };
 }
 
 self.onmessage = async ({ data: { id, samples, threshold } }) => {

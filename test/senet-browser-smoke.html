@@ -28,6 +28,8 @@ try {
     result.textContent = JSON.stringify({
         frames: detection.probabilities.length,
         ticks: detection.ticks.length,
+        backend: detection.backend,
+        timings: detection.timings,
         elapsedMs: performance.now() - started,
     });
 } catch (error) {
