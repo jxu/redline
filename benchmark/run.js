@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { filterSpuriousBeats } from "../beat-filter.js";
 import { interpolateBeatGaps } from "../beat-interpolation.js";
 import { detectBeats } from "../beat-detector.js";
 import { decodeAudioFile } from "./audio-decoder.js";
@@ -60,7 +61,9 @@ async function runCase(benchmarkCase) {
     );
     const detection = await detectBeats(decoded.samples);
     const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
-    const interpolatedBeats = interpolateBeatGaps(detection.ticks, {
+    const filteredBeats = filterSpuriousBeats(detection.ticks);
+    const filteredDetectedBeatsMs = filteredBeats.map((seconds) => seconds * 1000);
+    const interpolatedBeats = interpolateBeatGaps(filteredBeats, {
         endTime: decoded.durationMs / 1000,
     });
     const interpolatedDetectedBeatsMs = interpolatedBeats.map((seconds) => seconds * 1000);
@@ -99,8 +102,10 @@ async function runCase(benchmarkCase) {
         timingPoints,
         referenceBeatsMs,
         rawDetectedBeatsMs,
+        filteredDetectedBeatsMs,
+        filteredBeatCount: detection.ticks.length - filteredBeats.length,
         interpolatedDetectedBeatsMs,
-        interpolatedBeatCount: interpolatedBeats.length - detection.ticks.length,
+        interpolatedBeatCount: interpolatedBeats.length - filteredBeats.length,
         detectedBeatsMs,
         nearestReferenceErrorsMs,
         metrics: calculateMetrics(detectedBeatsMs, referenceBeatsMs),
@@ -123,6 +128,7 @@ for (const benchmarkCase of selectedCases) {
     );
     console.log(`  Online offset:   ${result.onlineOffsetMs} ms`);
     console.log(`  Raw detections:  ${result.rawDetectedBeatsMs.length}`);
+    console.log(`  Filtered:        ${result.filteredBeatCount}`);
     console.log(`  Interpolated:    ${result.interpolatedBeatCount}`);
     console.log(
         `  Selected scale:  ${result.selectedTempoScale}x` +

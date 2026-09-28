@@ -163,7 +163,7 @@ export function renderResultPlot(result) {
         `<line x1="${left}" y1="${y(-toleranceMs)}" x2="${width - right}" y2="${y(-toleranceMs)}" stroke="#999" stroke-dasharray="6 4"/>`,
         `<rect x="${left}" y="${plotTop}" width="${plotWidth}" height="${plotHeight}" fill="none" class="axis"/>`,
         `<text x="25" y="${(plotTop + plotBottom) / 2}" text-anchor="middle" font-size="18" transform="rotate(-90 25 ${(plotTop + plotBottom) / 2})">Detected − reference (ms)</text>`,
-        `<text x="${left + 12}" y="${plotTop + 25}" font-size="17">F1 ${candidate.matchingF1.toFixed(3)}  |  median |error| ${result.metrics.medianAbsoluteErrorMs.toFixed(1)} ms  |  ${alignment.matched.length} matched, ${alignment.extra.length} extra, ${alignment.missing.length} missing</text>`,
+        `<text x="${left + 12}" y="${plotTop + 25}" font-size="17">F1 ${candidate.matchingF1.toFixed(3)}  |  median |error| ${result.metrics.medianAbsoluteErrorMs.toFixed(1)} ms  |  ${alignment.matched.length} matched, ${alignment.extra.length} extra, ${alignment.missing.length} missing  |  ${result.filteredBeatCount ?? 0} filtered</text>`,
         `<g clip-path="url(#plot)">`,
     );
 
