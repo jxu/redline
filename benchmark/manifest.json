@@ -2,6 +2,8 @@
   {
     "id": "1670652",
     "name": "The Beatles - It Won't Be Long [Yeah]",
+    "tempoPattern": "continuous",
+    "tempoScale": 1,
     "audio": "./corpus/1670652/audio.mp3",
     "osu": "./corpus/1670652/The Beatles - It Won't Be Long (Apo11o) [Yeah].osu",
     "onlineOffsetMs": 0,
@@ -10,6 +12,8 @@
   {
     "id": "236292",
     "name": "Agressor Bunx - Tornado (Original Mix) [Insane]",
+    "tempoPattern": "fixed",
+    "tempoScale": 1,
     "audio": "./corpus/236292/audio.mp3",
     "osu": "./corpus/236292/Agressor Bunx - Tornado (Original Mix) (Shadren) [Insane].osu",
     "onlineOffsetMs": 5,
@@ -18,6 +22,8 @@
   {
     "id": "13012",
     "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
+    "tempoPattern": "fixed",
+    "tempoScale": 1,
     "audio": "./corpus/13012/SO DEEP (PERFECT SPHERE REMIX).mp3",
     "osu": "./corpus/13012/Silvertear - So Deep (Perfect Sphere Remix) (yeahyeahyeahhh) [Heavy].osu",
     "onlineOffsetMs": 0,
@@ -26,6 +32,8 @@
   {
     "id": "1371996",
     "name": "umu. - Ai no Sukima [Howling]",
+    "tempoPattern": "fixed",
+    "tempoScale": 1,
     "audio": "./corpus/1371996/audio.mp3",
     "osu": "./corpus/1371996/umu. - Ai no Sukima (Half) [Howling].osu",
     "onlineOffsetMs": 0,
@@ -34,6 +42,8 @@
   {
     "id": "2470141",
     "name": "Beach Bunny - Prom Queen [I love you however you are]",
+    "tempoPattern": "continuous",
+    "tempoScale": 1,
     "audio": "./corpus/2470141/audio.mp3",
     "osu": "./corpus/2470141/Beach Bunny - Prom Queen (Mita) [I love you however you are].osu",
     "onlineOffsetMs": 0,
@@ -42,6 +52,8 @@
   {
     "id": "30485",
     "name": "Inspector K - Disconnected Hardkore (CanBlaster Remix) [Insane]",
+    "tempoPattern": "sections",
+    "tempoScale": 1,
     "audio": "./corpus/30485/Disconnected_Hardkore.mp3",
     "osu": "./corpus/30485/Inspector K - Disconnected Hardkore (CanBlaster Remix) (7odoa) [Insane].osu",
     "onlineOffsetMs": 0,

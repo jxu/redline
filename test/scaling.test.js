@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { evaluateTempoScales, scaleBeatGrid } from "../benchmark/scaling.js";
+import { evaluateTempoScales, scaleBeatGrid, selectTempoCandidate } from "../benchmark/scaling.js";
+
+test("reports the mapper's scale even when another candidate scores better", () => {
+    const candidates = [
+        { tempoScale: 2, phase: 0, matchingF1: 1 },
+        { tempoScale: 1, phase: 0, matchingF1: 0.8 },
+    ];
+    assert.equal(selectTempoCandidate(candidates, 1).matchingF1, 0.8);
+    assert.throws(() => selectTempoCandidate(candidates, 0.5), /not evaluated/);
+});
 
 test("scales a beat grid to half or double tempo", () => {
     assert.deepEqual(scaleBeatGrid([0, 1000, 2000], 2), [0, 500, 1000, 1500, 2000]);
@@ -59,7 +68,7 @@ test("scores only beats inside the evaluation window", () => {
     assert.deepEqual(candidates[0].beatsMs, [500, 1000, 1500, 2000]);
 });
 
-test("scores the smoothed export grid instead of the input detections", () => {
+test("scores the fitted export grid instead of jittered input detections", () => {
     const [candidate] = evaluateTempoScales(
         [0, 400, 1000, 1400, 2000],
         [0, 500, 1000, 1500, 2000],
@@ -67,50 +76,56 @@ test("scores the smoothed export grid instead of the input detections", () => {
         { durationMs: 2400, timingOptions: { windowSize: 2, toleranceMs: 101 } }
     );
 
-    // Smoothing gives [500, 500, 500, 600]; tolerance collapses it to 525 ms.
-    assert.equal(candidate.osuTimingPoints, "[TimingPoints]\n0,525.00,4,2,0,100,1,0");
-    assert.deepEqual(candidate.beatsMs, [0, 525, 1050, 1575, 2100]);
-    assert.equal(candidate.matchedBeatCount, 4);
-    assert.equal(candidate.matchingF1, 0.8);
+    assert.equal(candidate.osuTimingPoints, "[TimingPoints]\n0,500.00,4,2,0,100,1,0");
+    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500, 2000]);
+    assert.equal(candidate.matchedBeatCount, 5);
+    assert.equal(candidate.matchingF1, 1);
 });
 
-test("uses the app's default smoothing when no timing options are supplied", () => {
+test("uses the app's default fit tolerance when no timing options are supplied", () => {
+    const detected = [0, 500, 1000, 1500, 2100];
+    const reference = [0, 500, 1000, 1500, 2100];
     const [candidate] = evaluateTempoScales(
-        [0, 400, 1000, 1400, 2000],
-        [0, 500, 1000, 1500, 2000],
+        detected,
+        reference,
         [1],
-        { durationMs: 2400 }
+        { durationMs: 2500 }
+    );
+    const [loose] = evaluateTempoScales(
+        detected, reference, [1],
+        { durationMs: 2500, timingOptions: { windowSize: 4, toleranceMs: 101 } }
     );
 
-    assert.deepEqual(candidate.beatsMs, [0, 400, 900, 1000, 1400, 1900]);
+    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500, 2100]);
     assert.deepEqual(candidate.exportedTimingPoints.map((point) => point.beatLengthMs),
-        [466.67, 500, 533.33, 500]);
+        [500, 600]);
+    assert.notDeepEqual(loose.beatsMs, candidate.beatsMs);
 });
 
 test("export rounding, section resets, and final tempo continuation affect the grid", () => {
     const [candidate] = evaluateTempoScales(
-        [0.49, 500.496, 1100.499],
-        [0, 500, 1100, 1700],
+        [0.49, 500.496, 1100.499, 1700.499, 2300.499],
+        [0, 550.25, 1100, 1700.25, 2300.5, 2900.75],
         [1],
-        { durationMs: 2300, timingOptions: { windowSize: 1, toleranceMs: 0 } }
+        { durationMs: 3500, timingOptions: { windowSize: 1, toleranceMs: 0 } }
     );
 
     assert.equal(candidate.osuTimingPoints,
-        "[TimingPoints]\n0,500.01,4,2,0,100,1,0\n500,600.00,4,2,0,100,1,0");
-    assert.deepEqual(candidate.beatsMs, [0, 500, 1100, 1700]);
+        "[TimingPoints]\n0,550.25,4,2,0,100,1,0\n1100,600.25,4,2,0,100,1,0");
+    assert.deepEqual(candidate.beatsMs, [0, 550.25, 1100, 1700.25, 2300.5, 2900.75]);
     assert.equal(candidate.matchingF1, 1);
 });
 
 test("exports the full track before trimming the evaluation window", () => {
     const [candidate] = evaluateTempoScales(
         [0, 400, 1000, 1400, 2000],
-        [525, 1050, 1575],
+        [500, 1000, 1500],
         [1],
         { durationMs: 2400, startMs: 500, endMs: 2000,
             timingOptions: { windowSize: 2, toleranceMs: 101 } }
     );
 
-    assert.deepEqual(candidate.beatsMs, [525, 1050, 1575]);
+    assert.deepEqual(candidate.beatsMs, [500, 1000, 1500]);
     assert.equal(candidate.exportedTimingPoints[0].offsetMs, 0);
     assert.equal(candidate.matchingF1, 1);
 });

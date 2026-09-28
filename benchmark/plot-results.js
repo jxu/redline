@@ -49,7 +49,7 @@ function classifyBeat(result, beatMs) {
 }
 
 export function matchResultBeats(result) {
-    const toleranceMs = result.tempoScaleCandidates[0].matchingToleranceMs;
+    const toleranceMs = selectedCandidate(result).matchingToleranceMs;
     const detected = result.detectedBeatsMs;
     const reference = result.referenceBeatsMs;
     const matched = [];
@@ -79,6 +79,13 @@ export function matchResultBeats(result) {
     extra.push(...detected.slice(detectedIndex));
     missing.push(...reference.slice(referenceIndex));
     return { matched, extra, missing };
+}
+
+function selectedCandidate(result) {
+    return result.tempoScaleCandidates.find((candidate) =>
+        candidate.tempoScale === result.selectedTempoScale &&
+        candidate.phase === result.selectedTempoPhase
+    ) ?? result.tempoScaleCandidates[0];
 }
 
 function niceStep(range, targetTicks) {
@@ -121,7 +128,7 @@ export function renderResultPlot(result) {
     const startMs = result.evaluationStartMs;
     const endMs = result.evaluationEndMs;
     const durationMs = endMs - startMs;
-    const candidate = result.tempoScaleCandidates[0];
+    const candidate = selectedCandidate(result);
     const toleranceMs = candidate.matchingToleranceMs;
     const alignment = matchResultBeats(result);
     const allErrors = result.nearestReferenceErrorsMs;

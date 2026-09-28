@@ -24,15 +24,22 @@
 <input type="file" id="audioFile" accept="audio/*">
 
 <div id="controls">
-    <!-- smoothing: moving-average window (beats) that removes jitter;
-         keep small to preserve real tempo drift on live recordings -->
+    <div class="control">
+        <label for="tempoPattern">Tempo pattern</label>
+        <select id="tempoPattern" required>
+            <option value="" selected disabled>Choose tempo pattern</option>
+            <option value="fixed">Fixed BPM</option>
+            <option value="continuous">Continuously variable BPM</option>
+            <option value="sections">Variable BPM with fixed sections</option>
+        </select>
+    </div>
+    <!-- Higher smoothing requires more beats before the fit changes tempo. -->
     <div class="control">
         <label for="smoothing">Smoothing: <span id="smoothingValue">4</span></label>
         <input type="range" id="smoothing" min="1" max="16" value="4">
     </div>
 
-    <!-- tolerance: collapse near-equal beats into one red line;
-         low = faithful to drift, high = treat the song as fixed tempo -->
+    <!-- Higher tolerance allows longer fitted timing sections. -->
     <div class="control">
         <label for="tolerance">Tolerance (ms): <span id="toleranceValue">5</span></label>
         <input type="range" id="tolerance" min="0" max="20" value="5">

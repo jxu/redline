@@ -9,7 +9,7 @@ import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
 import { decodeAudioFile } from "./audio-decoder.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
-import { evaluateTempoScales } from "./scaling.js";
+import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
 const evaluationMarginMs = 5000;
@@ -68,19 +68,26 @@ async function runCase(benchmarkCase) {
         endTime: decoded.durationMs / 1000,
     });
     const interpolatedDetectedBeatsMs = interpolatedBeats.map((seconds) => seconds * 1000);
-    const timingOptions = { ...DEFAULT_TIMING_OPTIONS, ...benchmarkCase.timingOptions };
+    const timingOptions = {
+        ...DEFAULT_TIMING_OPTIONS,
+        ...benchmarkCase.timingOptions,
+        tempoPattern: benchmarkCase.tempoPattern,
+    };
     const scaleCandidates = evaluateTempoScales(
         interpolatedDetectedBeatsMs,
         fullReferenceBeatsMs,
         benchmarkCase.allowedTempoScales,
         {
             durationMs: decoded.durationMs,
+            observedBeatsMs: filteredDetectedBeatsMs,
             timingOptions,
             startMs: evaluationStartMs,
             endMs: evaluationEndMs,
         }
     );
-    const selectedScale = scaleCandidates[0];
+    const selectedScale = selectTempoCandidate(
+        scaleCandidates, benchmarkCase.tempoScale, benchmarkCase.tempoPhase ?? 0
+    );
     const detectedBeatsMs = selectedScale.beatsMs;
     const nearestReferenceErrorsMs = detectedBeatsMs.map((detectedMs) =>
         detectedMs - nearestBeat(referenceBeatsMs, detectedMs)
@@ -106,6 +113,8 @@ async function runCase(benchmarkCase) {
         allowedTempoScales: benchmarkCase.allowedTempoScales,
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
+        tempoScaleSource: "manifest",
+        selectedTempoPattern: selectedScale.tempoPattern,
         tempoScaleCandidates: scaleCandidates.map(({
             beatsMs, osuTimingPoints, exportedTimingPoints, ...candidate
         }) => ({
@@ -134,7 +143,10 @@ for (const benchmarkCase of selectedCases) {
     const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
     const plotPath = await writeResultPlot(result, benchmarkDirectory);
-    const selectedCandidate = result.tempoScaleCandidates[0];
+    const selectedCandidate = result.tempoScaleCandidates.find((candidate) =>
+        candidate.tempoScale === result.selectedTempoScale &&
+        candidate.phase === result.selectedTempoPhase
+    );
 
     console.log(`  Reference beats: ${result.referenceBeatsMs.length}`);
     console.log(

@@ -23,6 +23,12 @@ npm run dev
 Open <http://localhost:8080> in a browser. The development command disables
 caching so changes are visible after a refresh. A local HTTP server is required
 because the app loads JavaScript modules and WebAssembly in the browser.
+Choose the song's tempo pattern before Calculate. Fixed BPM fits one global grid;
+continuously variable BPM follows changes in sections of at most 16 beats;
+variable BPM with fixed sections extends steady sections as long as the beat
+evidence supports them. A warning appears if detected beats do not consistently
+support a requested fixed BPM. Changing the selection after calculation refits
+the export without rerunning beat detection.
 
 ## Test
 
@@ -35,8 +41,12 @@ npm test
 ## Benchmark
 
 Place each exact audio and `.osu` pair under `benchmark/corpus/<mapset-id>/`,
-then add the case to `benchmark/manifest.json`. The `allowedTempoScales` field
-lists the BPM multiples the benchmark may try, such as `0.5`, `1`, and `2`.
+then add the case to `benchmark/manifest.json`, including a `tempoPattern` of
+`fixed`, `continuous`, or `sections`. This is the mapper-supplied choice; the
+reference `.osu` file is used only to score the resulting export. Set
+`tempoScale` to the mapper's octave choice (`0.5`, `1`, or `2`) and, when
+halving, `tempoPhase` to `0` or `1`. `allowedTempoScales` lists alternatives
+to score for diagnosis, but the reference never selects the reported export.
 Record any osu! online offset in `onlineOffsetMs`; positive values move the
 reference grid later, matching osu!'s gameplay convention.
 Run every configured corpus case from the command line:
@@ -54,21 +64,29 @@ npm run benchmark -- 1670652
 Each run expands the ranked map's red timing points into a reference beat grid,
 detects beats from the same audio, filters spurious subdivisions, and fills plausible
 gaps. For each allowed tempo scale (including both phases when halving tempo), it
-then runs the same smoothing and `[TimingPoints]` export used by the app, parses
+then runs the same timing-grid fit and `[TimingPoints]` export used by the app, parses
 that exported text, and reconstructs the beat grid through the end of the audio.
-This includes rounded offsets and beat lengths, collapsed timing points, and
-grid resets at new timing sections. All scores measure this final exported grid.
+For fixed BPM, the fitter estimates one tempo and offset from observed detections;
+interpolated or extrapolated beats do not influence the global fit. Other choices
+fit successive sections. Isolated noisy detections can deviate from
+the grid, but sustained drift prompts a new section. Every new section starts on
+a beat of the previous section, so a tempo change cannot produce a duplicate beat
+at the boundary. The waveform markers and click track follow the exported grid.
+Scores measure that grid after osu! offset and beat-length rounding.
 
-Smoothing defaults match the app: `windowSize: 4` and `toleranceMs: 5`. A case can
-override these with `"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
+Fit settings match the app: `windowSize: 4` and `toleranceMs: 5`. The minimum
+section length is `max(2, floor(windowSize / 2))` beats. The maximum isolated
+interior residual is `20 + 2 * toleranceMs` milliseconds; the average signed
+residual over eight beats must stay within `5 + toleranceMs` milliseconds. A case
+can override these settings with
+`"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
 the manifest. The settings and selected export text are saved in each result.
 
-The benchmark selects the scale with the highest one-to-one
-beat-matching F1 score, using 17.5% of the median reference beat interval as the
-matching tolerance. Symmetric nearest-grid error breaks ties. Beats in the first
-and last five seconds of the audio are excluded from scale selection and metrics.
-Tempo selection uses the reference grid, so scores assume that tempo correction
-has been chosen correctly; the app still exposes this as a manual control.
+The benchmark reports the manifest's scale and phase. It scores that export with
+one-to-one beat-matching F1, using 17.5% of the median reference beat interval
+as the matching tolerance. It also ranks alternative scales for diagnosis, but
+does not use that ranking to choose the reported export. Beats in the first and
+last five seconds of the audio are excluded from metrics.
 The command writes every candidate score plus detailed results under
 `benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated

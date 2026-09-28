@@ -3,65 +3,11 @@ export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     windowSize: 4,
 });
 
-function mean(values) {
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-// Centered moving average; the window shrinks near either end.
-function movingAverage(values, windowSize) {
-    const half = Math.floor((windowSize - 1) / 2);
-    return values.map((_, index) =>
-        mean(values.slice(Math.max(0, index - half), index - half + windowSize))
-    );
-}
-
-// Replace each maximal run whose spread stays within tolerance with its mean.
-function averageSteadyRuns(values, tolerance) {
-    const result = values.slice();
-
-    let start = 0;
-    while (start < values.length) {
-        let end = start;
-        let min = values[start];
-        let max = values[start];
-
-        while (end + 1 < values.length) {
-            const nextMin = Math.min(min, values[end + 1]);
-            const nextMax = Math.max(max, values[end + 1]);
-            if (nextMax - nextMin > tolerance) break;
-            min = nextMin;
-            max = nextMax;
-            end++;
-        }
-
-        const average = mean(values.slice(start, end + 1));
-        for (let index = start; index <= end; index++) result[index] = average;
-
-        start = end + 1;
-    }
-
-    return result;
-}
-
-function beatLengthsMs(ticks, toleranceMs, windowSize) {
-    const intervals = ticks
-        .slice(0, -1)
-        .map((tick, index) => (ticks[index + 1] - tick) * 1000);
-    const smoothed = movingAverage(intervals, windowSize);
-    return averageSteadyRuns(smoothed, toleranceMs).map((ms) => ms.toFixed(2));
-}
-
-function generateOsuTimingPoints(ticks, beatLengths) {
-    const lines = beatLengths
-        .map((beatLength, index) => ({
-            timeMs: Math.round(ticks[index] * 1000),
-            beatLength,
-        }))
-        .filter((point, index) => index === 0 || point.beatLength !== beatLengths[index - 1])
-        .map((point) => `${point.timeMs},${point.beatLength},4,2,0,100,1,0`);
-
-    return `[TimingPoints]\n${lines.join("\n")}`;
-}
+export const TEMPO_PATTERNS = Object.freeze({
+    fixed: "Fixed BPM",
+    continuous: "Continuously variable BPM",
+    sections: "Variable BPM with fixed sections",
+});
 
 function averageBpm(ticks) {
     if (ticks.length < 2) return 0;
@@ -69,16 +15,206 @@ function averageBpm(ticks) {
     return 60 / secondsPerBeat;
 }
 
+function fitSteadyTempo(observedBeatsMs, candidatePoints, toleranceMs, firstBeatMs, beatCount, requireSupport = true) {
+    if (observedBeatsMs.length < (requireSupport ? 64 : 2)) return null;
+
+    const inlierToleranceMs = 20 + 2 * toleranceMs;
+    let best = null;
+    for (const point of candidatePoints) {
+        let offsetMs = point.offsetMs;
+        let beatLengthMs = point.beatLengthMs;
+        if (beatLengthMs < 150 || beatLengthMs > 1500) continue;
+
+        // Refine both tempo and phase using beats close to this candidate
+        // grid. Other beats may be detector extras or missed subdivisions.
+        for (let pass = 0; pass < 5; pass++) {
+            let count = 0;
+            let sumIndex = 0;
+            let sumTime = 0;
+            let sumIndexSquared = 0;
+            let sumIndexTime = 0;
+            for (const timeMs of observedBeatsMs) {
+                const index = Math.round((timeMs - offsetMs) / beatLengthMs);
+                if (Math.abs(timeMs - offsetMs - index * beatLengthMs) > inlierToleranceMs + 5) {
+                    continue;
+                }
+                count++;
+                sumIndex += index;
+                sumTime += timeMs;
+                sumIndexSquared += index * index;
+                sumIndexTime += index * timeMs;
+            }
+            if (count < 16) break;
+            const denominator = count * sumIndexSquared - sumIndex * sumIndex;
+            if (!denominator) break;
+            const fittedLength = (count * sumIndexTime - sumIndex * sumTime) / denominator;
+            if (fittedLength < 150 || fittedLength > 1500) break;
+            beatLengthMs = fittedLength;
+            offsetMs = (sumTime - beatLengthMs * sumIndex) / count;
+        }
+
+        const assigned = new Set();
+        const quarterCounts = [0, 0, 0, 0];
+        const quarterTotals = [0, 0, 0, 0];
+        const edgeCounts = [0, 0];
+        const edgeTotals = [0, 0];
+        let inliers = 0;
+        observedBeatsMs.forEach((timeMs, position) => {
+            const quarter = Math.min(3, Math.floor(4 * position / observedBeatsMs.length));
+            quarterTotals[quarter]++;
+            if (position < 32) edgeTotals[0]++;
+            if (position >= observedBeatsMs.length - 32) edgeTotals[1]++;
+            const index = Math.round((timeMs - offsetMs) / beatLengthMs);
+            if (Math.abs(timeMs - offsetMs - index * beatLengthMs) <= inlierToleranceMs) {
+                inliers++;
+                quarterCounts[quarter]++;
+                if (position < 32) edgeCounts[0]++;
+                if (position >= observedBeatsMs.length - 32) edgeCounts[1]++;
+                assigned.add(index);
+            }
+        });
+        const expectedBeats = Math.round(
+            (observedBeatsMs.at(-1) - observedBeatsMs[0]) / beatLengthMs
+        ) + 1;
+        const precision = inliers / observedBeatsMs.length;
+        const coverage = assigned.size / expectedBeats;
+        const score = 2 * precision * coverage / (precision + coverage);
+        const supported = precision >= 0.9 && coverage >= 0.9 &&
+            quarterCounts.every((count, quarter) => count / quarterTotals[quarter] >= 0.8) &&
+            edgeCounts.every((count, edge) => count / edgeTotals[edge] >= 0.65);
+        if (requireSupport && !supported) continue;
+        if (!best || score > best.score) {
+            best = { offsetMs, beatLengthMs, score, supported };
+        }
+    }
+
+    if (!best) return null;
+    const beatLengthMs = Number(best.beatLengthMs.toFixed(5));
+    const firstIndex = Math.round((firstBeatMs - best.offsetMs) / best.beatLengthMs);
+    const offsetMs = Math.round(best.offsetMs + firstIndex * best.beatLengthMs);
+    return {
+        timingPoints: [{ offsetMs, beatLengthMs }],
+        beatLengths: Array(beatCount - 1).fill(beatLengthMs.toFixed(5)),
+        fitWarning: !best.supported,
+    };
+}
+
+// Fit each section to the longest run that stays near a straight beat grid.
+// A section starts on the beat predicted by the previous one, so changing
+// tempo cannot create a second beat just before the new timing point.
+export function fitTimingGrid(ticks, {
+    toleranceMs = 5, windowSize = 4, observedTicks = ticks, tempoPattern = null,
+} = {}) {
+    if (ticks.length < 2) return { timingPoints: [], beatLengths: [] };
+    if (!observedTicks.length) observedTicks = ticks;
+
+    const beatsMs = ticks.map((tick) => tick * 1000);
+    const minBeats = Math.max(2, Math.floor(windowSize / 2));
+    const maxResidualMs = 20 + 2 * toleranceMs;
+    const maxDriftMs = 5 + toleranceMs;
+    const timingPoints = [];
+    const beatLengths = [];
+    let lastTimingStart = 0;
+    let offsetMs = Math.round(beatsMs[0]);
+
+    for (let start = 0; start < beatsMs.length - 1;) {
+        const limit = Math.min(
+            beatsMs.length - 1,
+            tempoPattern === "continuous" ? start + 16 : Infinity
+        );
+        let end = Math.min(limit, start + minBeats);
+
+        // The endpoint sets the tempo. Check every interior beat before
+        // extending the section, including inserted beats and tempo drift.
+        for (let candidate = end + 1; candidate <= limit; candidate++) {
+            const beatLengthMs = (beatsMs[candidate] - offsetMs) / (candidate - start);
+            let largestResidualMs = 0;
+            let rollingResidualMs = 0;
+            let largestDriftMs = 0;
+            const residuals = [];
+            for (let index = start + 1; index < candidate; index++) {
+                const predicted = offsetMs + (index - start) * beatLengthMs;
+                const residual = beatsMs[index] - predicted;
+                largestResidualMs = Math.max(largestResidualMs, Math.abs(residual));
+                residuals.push(residual);
+                rollingResidualMs += residual;
+                if (residuals.length > 8) rollingResidualMs -= residuals[residuals.length - 9];
+                if (residuals.length >= 8) {
+                    largestDriftMs = Math.max(largestDriftMs, Math.abs(rollingResidualMs / 8));
+                }
+            }
+            if (largestResidualMs > maxResidualMs || largestDriftMs > maxDriftMs) break;
+            end = candidate;
+        }
+
+        const beatLengthMs = Number(((beatsMs[end] - offsetMs) / (end - start)).toFixed(2));
+        const previous = timingPoints.at(-1);
+        if (
+            !previous ||
+            previous.beatLengthMs !== beatLengthMs ||
+            Math.abs(offsetMs - (
+                previous.offsetMs + (start - lastTimingStart) * previous.beatLengthMs
+            )) > 1e-6
+        ) {
+            timingPoints.push({ offsetMs, beatLengthMs });
+            lastTimingStart = start;
+        }
+        for (let index = start; index < end; index++) {
+            beatLengths.push(beatLengthMs.toFixed(2));
+        }
+
+        // Integer osu! offsets must be at or before the prior section's
+        // next beat; rounding up could make that beat appear twice.
+        offsetMs = Math.floor(offsetMs + (end - start) * beatLengthMs + 1e-7);
+        start = end;
+    }
+
+    const observedBeatsMs = observedTicks.map((tick) => tick * 1000);
+    if (tempoPattern === "fixed" || tempoPattern === null) {
+        return fitSteadyTempo(
+            observedBeatsMs, timingPoints, toleranceMs, beatsMs[0], beatsMs.length,
+            tempoPattern === null
+        ) ?? { timingPoints, beatLengths, fitWarning: tempoPattern === "fixed" };
+    }
+    return { timingPoints, beatLengths };
+}
+
+export function generateTimingGrid(timingPoints, durationMs) {
+    const beats = [];
+    timingPoints.forEach((point, index) => {
+        const sectionEnd = Math.min(timingPoints[index + 1]?.offsetMs ?? durationMs, durationMs);
+        for (let beatIndex = 0;
+            point.offsetMs + beatIndex * point.beatLengthMs < sectionEnd;
+            beatIndex++
+        ) {
+            const beatMs = point.offsetMs + beatIndex * point.beatLengthMs;
+            if (beatMs >= 0) beats.push(beatMs / 1000);
+        }
+    });
+    return beats;
+}
+
+function generateOsuTimingPoints(timingPoints) {
+    const lines = timingPoints.map(({ offsetMs, beatLengthMs }) => {
+        const decimals = beatLengthMs === Number(beatLengthMs.toFixed(2)) ? 2 : 5;
+        return `${offsetMs},${beatLengthMs.toFixed(decimals)},4,2,0,100,1,0`;
+    });
+    return `[TimingPoints]\n${lines.join("\n")}`;
+}
+
 export function calculateTiming(ticks, options = {}) {
-    const {
-        toleranceMs = DEFAULT_TIMING_OPTIONS.toleranceMs,
-        windowSize = DEFAULT_TIMING_OPTIONS.windowSize,
-    } = options;
-    const beatLengths = beatLengthsMs(ticks, toleranceMs, windowSize);
+    const { timingPoints, beatLengths, fitWarning = false } = fitTimingGrid(ticks, options);
+    const durationMs = options.endTime === undefined
+        ? (ticks.at(-1) ?? 0) * 1000 + (timingPoints.at(-1)?.beatLengthMs ?? 0)
+        : options.endTime * 1000;
 
     return {
         averageBpm: averageBpm(ticks),
         beatLengths,
+        timingPoints,
+        tempoPattern: options.tempoPattern ? TEMPO_PATTERNS[options.tempoPattern] : null,
+        fitWarning,
+        gridTicks: generateTimingGrid(timingPoints, durationMs),
         rawBpmSeries: ticks.slice(0, -1).map((time, index) => ({
             x: time,
             y: 60 / (ticks[index + 1] - time),
@@ -87,7 +223,7 @@ export function calculateTiming(ticks, options = {}) {
             x: time,
             y: 60000 / Number(beatLengths[index]),
         })),
-        osuTimingPoints: generateOsuTimingPoints(ticks, beatLengths),
+        osuTimingPoints: generateOsuTimingPoints(timingPoints),
     };
 }
 

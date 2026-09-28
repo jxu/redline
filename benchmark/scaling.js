@@ -34,6 +34,14 @@ export function scaleBeatGrid(beatsMs, tempoScale, phase = 0) {
     });
 }
 
+export function selectTempoCandidate(candidates, tempoScale, phase = 0) {
+    const selected = candidates.find((candidate) =>
+        candidate.tempoScale === tempoScale && candidate.phase === phase
+    );
+    if (!selected) throw new Error(`Tempo scale ${tempoScale} phase ${phase} was not evaluated`);
+    return selected;
+}
+
 function meanNearestError(sourceBeatsMs, targetBeatsMs) {
     if (!sourceBeatsMs.length || !targetBeatsMs.length) return Infinity;
     return sourceBeatsMs.reduce(
@@ -97,6 +105,7 @@ export function evaluateTempoScales(
     allowedTempoScales,
     {
         durationMs,
+        observedBeatsMs = detectedBeatsMs,
         timingOptions = DEFAULT_TIMING_OPTIONS,
         startMs = 0,
         endMs = durationMs,
@@ -121,7 +130,18 @@ export function evaluateTempoScales(
             // collapsed timing points, and section resets all affect the score.
             const ticks = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)
                 .map((beatMs) => beatMs / 1000);
-            const { osuTimingPoints } = calculateTiming(ticks, timingOptions);
+            const scaledObservedBeatsMs = tempoScale >= 1
+                ? scaleBeatGrid(observedBeatsMs, tempoScale)
+                : observedBeatsMs;
+            const scaledTickTimes = new Set(ticks.map((tick) => Math.round(tick * 1e6)));
+            const observedTicks = scaledObservedBeatsMs
+                .filter((beatMs) => scaledTickTimes.has(Math.round(beatMs * 1000)))
+                .map((beatMs) => beatMs / 1000);
+            const { osuTimingPoints, tempoPattern } = calculateTiming(ticks, {
+                ...timingOptions,
+                endTime: durationMs / 1000,
+                observedTicks,
+            });
             const exportedTimingPoints = parseOsuTimingPoints(osuTimingPoints);
             const beatsMs = generateBeatGrid(exportedTimingPoints, durationMs)
                 .filter((beatMs) => beatMs >= startMs && beatMs < endMs);
@@ -136,6 +156,7 @@ export function evaluateTempoScales(
                 phase,
                 beatsMs,
                 osuTimingPoints,
+                tempoPattern,
                 exportedTimingPoints,
                 matchedBeatCount,
                 matchingToleranceMs,

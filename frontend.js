@@ -23,12 +23,14 @@ const state = {
         playing: false,
         source: null,
         mixedBuffer: null,
+        cursorGeneration: 0,
     },
     track: {
         file: null,
         audioBuffer: null,
         samples: null, // 16 kHz mono Float32Array for SENet
         ticks: [],
+        observedTicks: [],
         filteredBeatCount: 0,
         interpolatedBeatCount: 0,
         confidence: 0,
@@ -108,6 +110,7 @@ const fileInput = document.getElementById("audioFile");
 const resultsBox = document.getElementById("results");
 
 const smoothingSlider = document.getElementById("smoothing");
+const tempoPatternSelect = document.getElementById("tempoPattern");
 const toleranceSlider = document.getElementById("tolerance");
 const smoothingValue = document.getElementById("smoothingValue");
 const toleranceValue = document.getElementById("toleranceValue");
@@ -145,12 +148,13 @@ function playMixed() {
 
     state.playback.playing = true;
 
-    updateWaveSurferCursor();
+    updateWaveSurferCursor(++state.playback.cursorGeneration);
 }
 
 function pauseMixed() {
     if (!state.playback.playing) return;
 
+    state.playback.cursorGeneration++;
     state.playback.source.stop();
 
     state.playback.pausedAt = audioContext.currentTime - state.playback.startTime;
@@ -159,8 +163,8 @@ function pauseMixed() {
     state.playback.source = null;
 }
 
-function updateWaveSurferCursor() {
-    if (!state.playback.playing) return;
+function updateWaveSurferCursor(generation) {
+    if (!state.playback.playing || generation !== state.playback.cursorGeneration) return;
 
     const current =
         audioContext.currentTime - state.playback.startTime;
@@ -177,7 +181,7 @@ function updateWaveSurferCursor() {
 
     wavesurfer.setTime(current);
 
-    requestAnimationFrame(updateWaveSurferCursor);
+    requestAnimationFrame(() => updateWaveSurferCursor(generation));
 }
 
 document
@@ -202,8 +206,7 @@ document.getElementById("waveform").addEventListener("wheel", (event) => {
     wavesurfer.zoom(state.zoomPxPerSec);
 }, { passive: false });
 
-// smoothing knobs update their readout and re-render the smoothing view live --
-// re-detection isn't needed and renderSmoothing() is cheap (see its comment).
+// These controls refit the grid without running the beat detector again.
 smoothingSlider.oninput = () => {
     smoothingValue.textContent = smoothingSlider.value;
     renderSmoothing();
@@ -212,6 +215,9 @@ toleranceSlider.oninput = () => {
     toleranceValue.textContent = toleranceSlider.value;
     renderSmoothing();
 };
+tempoPatternSelect.onchange = () => {
+    if (state.track.ticks.length) renderTicks();
+};
 
 document.getElementById("calculate").onclick = analyze;
 
@@ -219,12 +225,17 @@ document.getElementById("calculate").onclick = analyze;
 document.getElementById("doubleTempo").onclick = () => {
     if (state.track.ticks.length < 2) return;
     state.track.ticks = doubleTicks(state.track.ticks);
+    state.track.observedTicks = doubleTicks(state.track.observedTicks);
     renderTicks();
 };
 
 document.getElementById("halveTempo").onclick = () => {
     if (state.track.ticks.length < 2) return;
     state.track.ticks = halveTicks(state.track.ticks);
+    const gridTimes = new Set(state.track.ticks.map((tick) => Math.round(tick * 1e6)));
+    state.track.observedTicks = state.track.observedTicks.filter(
+        (tick) => gridTimes.has(Math.round(tick * 1e6))
+    );
     renderTicks();
 };
 
@@ -252,6 +263,11 @@ async function loadFile(file) {
 // run beat detection on the loaded file, then hand the ticks to renderTicks()
 async function analyze() {
     if (!state.track.file) return;
+    if (!tempoPatternSelect.value) {
+        resultsBox.textContent = "Choose the song's tempo pattern before calculating.";
+        tempoPatternSelect.focus();
+        return;
+    }
 
     resultsBox.textContent = "Analyzing...";
 
@@ -266,6 +282,7 @@ async function analyze() {
             },
         });
         const filteredTicks = filterSpuriousBeats(result.ticks);
+        state.track.observedTicks = filteredTicks;
         state.track.ticks = interpolateBeatGaps(filteredTicks, {
             endTime: state.track.audioBuffer.duration,
         });
@@ -284,23 +301,26 @@ async function analyze() {
     renderTicks();
 }
 
-// rebuild everything downstream of the beats. Split in two: the audio mix +
-// readout depend only on detected ticks (analyze / ×2 / ÷2), while the smoothing
-// view also depends on the sliders -- renderSmoothing() owns that part and is
-// cheap enough to re-run live as the sliders move.
+// Update the analysis readout, then fit the visible and audible timing grid.
 function renderTicks() {
-    // reset playback before rebuilding the mixed audio
+    // A new detection starts playback from the beginning.
     pauseMixed();
     state.playback.pausedAt = 0;
+    state.playback.mixedBuffer = null;
 
     const timing = calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
         windowSize: Number(smoothingSlider.value),
+        endTime: state.track.audioBuffer.duration,
+        observedTicks: state.track.observedTicks,
+        tempoPattern: tempoPatternSelect.value,
     });
 
     resultsBox.innerHTML = `
         <h3>Rhythm Analysis</h3>
         <p><strong>Average BPM:</strong> ${timing.averageBpm.toFixed(1)}</p>
+        <p><strong>Tempo pattern:</strong> ${timing.tempoPattern}</p>
+        <p id="fitWarning" hidden>Detected beats do not consistently support one BPM; inspect the click track.</p>
         <p><strong>Mean peak probability:</strong> ${state.track.confidence.toFixed(3)}</p>
         <p><strong>Inference backend:</strong> ${state.track.inferenceBackend === "webgpu" ? "WebGPU" : "WASM"}</p>
         <p><strong>Analysis time:</strong> ${(state.track.inferenceTimings.totalMs / 1000).toFixed(1)} seconds
@@ -310,52 +330,50 @@ function renderTicks() {
         <p><strong>Interpolated beats:</strong> ${state.track.interpolatedBeatCount}</p>
     `;
 
-    // click track + mixed audio place clicks at detected ticks, so they're
-    // unaffected by the smoothing sliders -- built here, not in renderSmoothing
-    const clickBuffer = createMetronomeBuffer(
-        audioContext,
-        state.track.ticks,
-        state.track.audioBuffer.duration,
-        state.track.audioBuffer.sampleRate
-    );
-
-    state.playback.mixedBuffer = mixBuffers(
-        audioContext,
-        state.track.audioBuffer,
-        clickBuffer
-    );
-
     renderSmoothing(timing);
 }
 
-// smoothing-dependent view: beat lengths, BPM graph, waveform markers, osu
-// export. No model inference or full-buffer mixing, so the sliders can re-run this
-// live on every input without re-detecting beats or interrupting playback.
+// The fitted export grid drives the waveform markers and audible click track.
 function renderSmoothing(timing = null) {
     if (!state.track.ticks.length) return;
 
     timing ??= calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
         windowSize: Number(smoothingSlider.value),
+        endTime: state.track.audioBuffer.duration,
+        observedTicks: state.track.observedTicks,
+        tempoPattern: tempoPatternSelect.value,
     });
-    const { beatLengths } = timing;
+
+    document.getElementById("fitWarning").hidden = !timing.fitWarning;
+
+    const wasPlaying = state.playback.playing;
+    if (wasPlaying) pauseMixed();
+    const clickBuffer = createMetronomeBuffer(
+        audioContext,
+        timing.gridTicks,
+        state.track.audioBuffer.duration,
+        state.track.audioBuffer.sampleRate
+    );
+    state.playback.mixedBuffer = mixBuffers(
+        audioContext,
+        state.track.audioBuffer,
+        clickBuffer
+    );
+    if (wasPlaying) playMixed();
 
     drawBpmGraph(timing.rawBpmSeries, timing.smoothedBpmSeries);
 
-    // redraw markers from scratch against the new beat lengths
+    // Red markers are exported timing points; gray markers are their grid beats.
     regions.clearRegions();
-    state.track.ticks.forEach((beat, i) => {
-        // red if it starts a new tempo (first tick or changed beatLength), else gray
-        const isNewTempo =
-            i === 0 ||
-            (i < beatLengths.length && beatLengths[i] !== beatLengths[i - 1]);
-
-        // only red (new-tempo) lines get a BPM label; gray ones would just repeat it.
-        // beatLength is ms-per-beat, so BPM = 60000 / beatLength.
-        const showLabel = isNewTempo && i < beatLengths.length;
-        const bpmText = showLabel
-            ? `${(60000 / Number(beatLengths[i])).toFixed(1)} BPM`
+    let pointIndex = 0;
+    timing.gridTicks.forEach((beat) => {
+        const point = timing.timingPoints[pointIndex];
+        const isNewTempo = point && Math.abs(beat * 1000 - point.offsetMs) < 1e-6;
+        const bpmText = isNewTempo
+            ? `${(60000 / point.beatLengthMs).toFixed(1)} BPM`
             : "";
+        if (isNewTempo) pointIndex++;
 
         // no `end` => a marker (fixed-width vertical line, see ::part(region) in CSS).
         // regions live in wavesurfer's shadow DOM, so external CSS can't reach the
@@ -379,14 +397,17 @@ fileInput.addEventListener("change", async (event) => {
     // reset state from any previous track; detection waits for Calculate
     pauseMixed();
     state.playback.pausedAt = 0;
+    state.playback.mixedBuffer = null;
     regions.clearRegions();
     state.track.ticks = [];
+    state.track.observedTicks = [];
     state.track.filteredBeatCount = 0;
     state.track.interpolatedBeatCount = 0;
     state.track.inferenceBackend = null;
     state.track.inferenceTimings = null;
     state.track.probabilities = null;
     state.track.smoothedProbabilities = null;
+    document.getElementById("osuTimingPoints").value = "";
     resultsBox.textContent = "Press Calculate after the waveform updates, then adjust smoothing if needed.";
 
     // decode + show the waveform now; run beat detection only on Calculate
