@@ -12,6 +12,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
+const pipelineVersion = "0.1.0";
 const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const requestedId = process.argv[2];
@@ -96,6 +97,7 @@ async function runCase(benchmarkCase) {
     return {
         mapsetId: benchmarkCase.id,
         name: benchmarkCase.name,
+        pipelineVersion,
         decoder: "audio-decode",
         sourceSampleRate: decoded.sourceSampleRate,
         detector: "senet-onnx",
