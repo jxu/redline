@@ -2,6 +2,8 @@
   "type": "module",
   "scripts": {
     "benchmark": "node benchmark/run.js",
+    "benchmark:cache": "node benchmark/run.js --cache-only",
+    "benchmark:regression": "node benchmark/run.js --regression-only",
     "benchmark:plot": "node benchmark/plot-results.js",
     "benchmark:listen": "node benchmark/render-comparison.js",
     "dev": "http-server -c-1 .",

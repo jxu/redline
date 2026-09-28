@@ -2,6 +2,21 @@ import { MODEL_HOP_LENGTH, MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
 
 export const DEFAULT_BEAT_THRESHOLD = 0.33;
 
+export function beatsFromProbabilities(probabilities, { threshold = DEFAULT_BEAT_THRESHOLD } = {}) {
+    const smoothedProbabilities = smoothProbabilities(probabilities);
+    const ticks = pickBeatPeaks(smoothedProbabilities, threshold);
+    const confidence = ticks.length
+        ? ticks.reduce(
+            (sum, tick) => sum + smoothedProbabilities[Math.round(
+                tick * MODEL_SAMPLE_RATE / MODEL_HOP_LENGTH
+            )],
+            0
+        ) / ticks.length
+        : 0;
+
+    return { ticks, confidence, probabilities, smoothedProbabilities };
+}
+
 export function smoothProbabilities(probabilities) {
     // Equivalent to numpy.hamming(5), normalized, followed by convolution in
     // "same" mode in the Python evaluation code.

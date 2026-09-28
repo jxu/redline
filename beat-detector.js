@@ -2,17 +2,11 @@ import FFT from "fft.js";
 
 import {
     MODEL_CONTEXT_FRAMES,
-    MODEL_HOP_LENGTH,
     MODEL_MEL_BANDS,
-    MODEL_SAMPLE_RATE,
     createMultiViewSpectrogram,
     packContextWindows,
 } from "./mel-spectrogram.js";
-import {
-    DEFAULT_BEAT_THRESHOLD,
-    pickBeatPeaks,
-    smoothProbabilities,
-} from "./beat-postprocessing.js";
+import { beatsFromProbabilities } from "./beat-postprocessing.js";
 
 export { DEFAULT_BEAT_THRESHOLD, pickBeatPeaks } from "./beat-postprocessing.js";
 const BATCH_SIZE = 32;
@@ -30,7 +24,7 @@ async function loadSession() {
     return { ort, session };
 }
 
-export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEAT_THRESHOLD } = {}) {
+export async function inferBeatProbabilities(samples, { onProgress } = {}) {
     onProgress?.({ stage: "Preparing spectrogram", fraction: 0 });
     const views = createMultiViewSpectrogram(samples, FFT, (fraction) =>
         onProgress?.({ stage: "Preparing spectrogram", fraction: fraction * 0.45 })
@@ -58,16 +52,10 @@ export async function detectBeats(samples, { onProgress, threshold = DEFAULT_BEA
         });
     }
 
-    const smoothedProbabilities = smoothProbabilities(probabilities);
-    const ticks = pickBeatPeaks(smoothedProbabilities, threshold);
-    const confidence = ticks.length
-        ? ticks.reduce(
-            (sum, tick) => sum + smoothedProbabilities[Math.round(
-                tick * MODEL_SAMPLE_RATE / MODEL_HOP_LENGTH
-            )],
-            0
-        ) / ticks.length
-        : 0;
+    return probabilities;
+}
 
-    return { ticks, confidence, probabilities, smoothedProbabilities };
+export async function detectBeats(samples, options = {}) {
+    const probabilities = await inferBeatProbabilities(samples, options);
+    return beatsFromProbabilities(probabilities, options);
 }

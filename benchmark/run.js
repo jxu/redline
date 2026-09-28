@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { filterSpuriousBeats } from "../beat-filter.js";
 import { interpolateBeatGaps } from "../beat-interpolation.js";
-import { detectBeats } from "../beat-detector.js";
+import { beatsFromProbabilities } from "../beat-postprocessing.js";
 import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
-import { decodeAudioFile } from "./audio-decoder.js";
+import { createProbabilityCache } from "./probability-cache.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
@@ -15,7 +15,23 @@ const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
 const pipelineVersion = "0.1.1";
 const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
-const requestedId = process.argv[2];
+const args = process.argv.slice(2);
+const flags = new Set(args.filter((arg) => arg.startsWith("--")));
+for (const flag of flags) {
+    if (!["--cache-only", "--regression-only", "--refresh-probabilities"].includes(flag)) {
+        throw new Error(`Unknown option: ${flag}`);
+    }
+}
+const ids = args.filter((arg) => !arg.startsWith("--"));
+if (ids.length > 1) throw new Error("Specify at most one mapset ID");
+const requestedId = ids[0];
+const cacheOnly = flags.has("--cache-only");
+const requireCached = flags.has("--regression-only");
+const refresh = flags.has("--refresh-probabilities");
+if (requireCached && (cacheOnly || refresh)) {
+    throw new Error("--regression-only cannot be combined with --cache-only or --refresh-probabilities");
+}
+const getProbabilities = createProbabilityCache();
 const selectedCases = requestedId
     ? manifest.filter(({ id }) => id === requestedId)
     : manifest;
@@ -45,11 +61,11 @@ function calculateMetrics(detectedBeatsMs, referenceBeatsMs) {
 
 async function runCase(benchmarkCase) {
     const audioPath = fileURLToPath(new URL(benchmarkCase.audio, import.meta.url));
+    const decoded = await getProbabilities(audioPath, { refresh, requireCached });
+    console.log(`  Probabilities:   ${decoded.cache.hit ? "cached" : "computed and cached"} (${decoded.frameCount} frames)`);
+    if (cacheOnly) return;
     const osuPath = fileURLToPath(new URL(benchmarkCase.osu, import.meta.url));
-    const [decoded, osuText] = await Promise.all([
-        decodeAudioFile(audioPath),
-        readFile(osuPath, "utf8"),
-    ]);
+    const osuText = await readFile(osuPath, "utf8");
 
     const timingPoints = parseOsuTimingPoints(osuText);
     const onlineOffsetMs = benchmarkCase.onlineOffsetMs ?? 0;
@@ -61,7 +77,7 @@ async function runCase(benchmarkCase) {
     const referenceBeatsMs = fullReferenceBeatsMs.filter(
         (beatMs) => beatMs >= evaluationStartMs && beatMs < evaluationEndMs
     );
-    const detection = await detectBeats(decoded.samples);
+    const detection = beatsFromProbabilities(decoded.probabilities);
     const rawDetectedBeatsMs = detection.ticks.map((seconds) => seconds * 1000);
     const filteredBeats = filterSpuriousBeats(detection.ticks);
     const filteredDetectedBeatsMs = filteredBeats.map((seconds) => seconds * 1000);
@@ -102,6 +118,7 @@ async function runCase(benchmarkCase) {
         sourceSampleRate: decoded.sourceSampleRate,
         detector: "senet-onnx",
         modelSampleRate: 16000,
+        probabilityCache: decoded.cache,
         evaluationGrid: "exported-timing-points",
         timingOptions,
         osuTimingPoints: selectedScale.osuTimingPoints,
@@ -137,11 +154,12 @@ async function runCase(benchmarkCase) {
     };
 }
 
-await mkdir(`${benchmarkDirectory}/results`, { recursive: true });
+if (!cacheOnly) await mkdir(`${benchmarkDirectory}/results`, { recursive: true });
 
 for (const benchmarkCase of selectedCases) {
     console.log(`Analyzing ${benchmarkCase.id}: ${benchmarkCase.name}`);
     const result = await runCase(benchmarkCase);
+    if (cacheOnly) continue;
     const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
     const plotPath = await writeResultPlot(result, benchmarkDirectory);

@@ -61,6 +61,35 @@ To run one mapset:
 npm run benchmark -- 1670652
 ```
 
+Raw SENet probabilities are saved in `benchmark/cache/probabilities/` on the first
+run. Later runs reuse them, skipping audio decoding, spectrogram generation, and
+model inference. Smoothing, peak picking, filtering, and timing regression still
+run with the current code and settings. The cache stores the full probability
+curve at 10 ms frame spacing plus the audio duration and source sample rate;
+it does not freeze the detected beats or regression output.
+
+To prepare probabilities first, then run regression without any inference:
+
+```bash
+npm run benchmark:cache
+npm run benchmark:regression
+```
+
+Both commands accept a single mapset ID, for example
+`npm run benchmark:regression -- 1670652`. Regression-only mode fails if a cache
+is missing or invalid, rather than silently starting inference. Cache-only mode
+does not generate scores or plots. A normal `npm run benchmark` reuses valid
+caches and computes missing ones automatically.
+
+Cache keys include the exact audio bytes, model, inference/preprocessing source,
+dependency lockfile, and Node runtime/platform. Changes to these inputs create a
+new cache; changes to timing settings, peak thresholds, reference maps, or online
+offsets reuse the probabilities. To explicitly regenerate probabilities, run
+`npm run benchmark:cache -- --refresh-probabilities` (optionally with a mapset ID).
+Cache files are local and ignored by Git; each benchmark result records its cache
+key and whether it was reused. Older result files contain only detected beats,
+so the first cached run must compute the full curve once.
+
 Each run expands the ranked map's red timing points into a reference beat grid,
 detects beats from the same audio, filters spurious subdivisions, and fills plausible
 gaps. For each allowed tempo scale (including both phases when halving tempo), it
