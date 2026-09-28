@@ -52,22 +52,35 @@ npm run benchmark -- 1670652
 ```
 
 Each run expands the ranked map's red timing points into a reference beat grid,
-generates SENet's detected beat grid from the same audio, removes faster-than-240 BPM
-subdivisions when skipping them restores the recent tempo, fills gaps that are
-plausible integer multiples of that tempo, and tests the case's allowed tempo
-scales. It selects the scale with the highest one-to-one
+detects beats from the same audio, filters spurious subdivisions, and fills plausible
+gaps. For each allowed tempo scale (including both phases when halving tempo), it
+then runs the same smoothing and `[TimingPoints]` export used by the app, parses
+that exported text, and reconstructs the beat grid through the end of the audio.
+This includes rounded offsets and beat lengths, collapsed timing points, and
+grid resets at new timing sections. All scores measure this final exported grid.
+
+Smoothing defaults match the app: `windowSize: 4` and `toleranceMs: 5`. A case can
+override these with `"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
+the manifest. The settings and selected export text are saved in each result.
+
+The benchmark selects the scale with the highest one-to-one
 beat-matching F1 score, using 17.5% of the median reference beat interval as the
 matching tolerance. Symmetric nearest-grid error breaks ties. Beats in the first
 and last five seconds of the audio are excluded from scale selection and metrics.
+Tempo selection uses the reference grid, so scores assume that tempo correction
+has been chosen correctly; the app still exposes this as a manual control.
 The command writes every candidate score plus detailed results under
 `benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
+`detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
+detections remain in separate fields for diagnosis. Charts show the export grid
+alongside the reference and the intermediate SENet beats.
 Regenerate charts from the saved result files without rerunning inference with:
 
 ```bash
 npm run benchmark:plot
 ```
 
-Render the ranked and detected grids as click tracks mixed with the corpus audio:
+Render the ranked and final exported grids as click tracks mixed with the corpus audio:
 
 ```bash
 npm run benchmark:listen -- 236292

@@ -42,6 +42,7 @@ function containsBeat(sortedValues, target) {
 }
 
 function classifyBeat(result, beatMs) {
+    if (result.evaluationGrid === "exported-timing-points") return "scaled";
     if (containsBeat(result.rawDetectedBeatsMs, beatMs)) return "raw";
     if (containsBeat(result.interpolatedDetectedBeatsMs, beatMs)) return "interpolated";
     return "scaled";
@@ -107,8 +108,9 @@ function missingMarker(x, referenceY) {
 }
 
 export function renderResultPlot(result) {
+    const isExportGrid = result.evaluationGrid === "exported-timing-points";
     const width = 1600;
-    const height = 850;
+    const height = isExportGrid ? 920 : 850;
     const left = 105;
     const right = 35;
     const plotTop = 105;
@@ -145,7 +147,7 @@ export function renderResultPlot(result) {
         `<style>text{font-family:system-ui,sans-serif;fill:#2b2b2b}.grid{stroke:#d0d0d0;stroke-width:1}.axis{stroke:#555;stroke-width:1}.tick{font-size:16px}.legend{font-size:15px}</style>`,
         `<defs><clipPath id="plot"><rect x="${left}" y="${plotTop}" width="${plotWidth}" height="${plotHeight}"/></clipPath></defs>`,
         `<text x="${width / 2}" y="34" text-anchor="middle" font-size="24">${escapeXml(result.name)}</text>`,
-        `<text x="${width / 2}" y="63" text-anchor="middle" font-size="22">Beat alignment residuals</text>`,
+        `<text x="${width / 2}" y="63" text-anchor="middle" font-size="22">${isExportGrid ? "Exported grid" : "Beat alignment"} residuals</text>`,
         `<rect x="${left}" y="${y(20)}" width="${plotWidth}" height="${y(-20) - y(20)}" fill="#2ca02c" fill-opacity="0.09"/>`,
     );
 
@@ -161,8 +163,8 @@ export function renderResultPlot(result) {
     const firstXTick = Math.ceil(startMs / xStepMs) * xStepMs;
     for (let value = firstXTick; value < endMs; value += xStepMs) {
         svg.push(
-            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="780"/>`,
-            `<text class="tick" x="${x(value)}" y="810" text-anchor="middle">${value / 1000}</text>`,
+            `<line class="grid" x1="${x(value)}" y1="${plotTop}" x2="${x(value)}" y2="${height - 70}"/>`,
+            `<text class="tick" x="${x(value)}" y="${height - 40}" text-anchor="middle">${value / 1000}</text>`,
         );
     }
 
@@ -171,7 +173,7 @@ export function renderResultPlot(result) {
         `<line x1="${left}" y1="${y(toleranceMs)}" x2="${width - right}" y2="${y(toleranceMs)}" stroke="#999" stroke-dasharray="6 4"/>`,
         `<line x1="${left}" y1="${y(-toleranceMs)}" x2="${width - right}" y2="${y(-toleranceMs)}" stroke="#999" stroke-dasharray="6 4"/>`,
         `<rect x="${left}" y="${plotTop}" width="${plotWidth}" height="${plotHeight}" fill="none" class="axis"/>`,
-        `<text x="25" y="${(plotTop + plotBottom) / 2}" text-anchor="middle" font-size="18" transform="rotate(-90 25 ${(plotTop + plotBottom) / 2})">Detected − reference (ms)</text>`,
+        `<text x="25" y="${(plotTop + plotBottom) / 2}" text-anchor="middle" font-size="18" transform="rotate(-90 25 ${(plotTop + plotBottom) / 2})">${isExportGrid ? "Exported" : "Detected"} − reference (ms)</text>`,
         `<text x="${left + 12}" y="${plotTop + 25}" font-size="17">F1 ${candidate.matchingF1.toFixed(3)}  |  median |error| ${result.metrics.medianAbsoluteErrorMs.toFixed(1)} ms  |  ${alignment.matched.length} matched, ${alignment.extra.length} extra, ${alignment.missing.length} missing  |  ${result.filteredBeatCount ?? 0} filtered</text>`,
         `<g clip-path="url(#plot)">`,
     );
@@ -187,7 +189,10 @@ export function renderResultPlot(result) {
     }
     svg.push(`</g>`);
 
-    const legend = [
+    const legend = isExportGrid ? [
+        [COLORS.scaled, "triangle", "matched exported beat"],
+        [COLORS.error, "cross", "extra exported beat"],
+    ] : [
         [COLORS.raw, "circle", "matched SENet peak"],
         [COLORS.interpolated, "diamond", "matched interpolated beat"],
         [COLORS.scaled, "triangle", "matched tempo-scaled beat"],
@@ -208,7 +213,7 @@ export function renderResultPlot(result) {
         `<line x1="${left + 215}" y1="615" x2="${left + 237}" y2="615" stroke="${COLORS.interpolated}" stroke-width="3"/><text class="legend" x="${left + 245}" y="620">interpolated beat</text>`,
         `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out peak</text>`,
         `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
-        `<rect x="${left}" y="640" width="${plotWidth}" height="140" fill="none" class="axis"/>`,
+        `<rect x="${left}" y="640" width="${plotWidth}" height="${height - 710}" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
         `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">SENet</text>`,
     );
@@ -229,8 +234,15 @@ export function renderResultPlot(result) {
         svg.push(missingMarker(x(beatMs), rasterRows.reference));
     }
 
+    if (isExportGrid) {
+        svg.push(`<text x="${left - 12}" y="836" text-anchor="end" font-size="17">export</text>`);
+        for (const beatMs of result.detectedBeatsMs) {
+            svg.push(`<line x1="${x(beatMs)}" y1="814" x2="${x(beatMs)}" y2="846" stroke="${COLORS.scaled}"/>`);
+        }
+    }
+
     svg.push(
-        `<text x="${width / 2}" y="838" text-anchor="middle" font-size="18">Song time (seconds)</text>`,
+        `<text x="${width / 2}" y="${height - 12}" text-anchor="middle" font-size="18">Song time (seconds)</text>`,
         `</svg>`,
     );
     return `${svg.join("\n")}\n`;

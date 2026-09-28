@@ -1,4 +1,5 @@
-import { nearestBeat } from "./osu-timing.js";
+import { calculateTiming, DEFAULT_TIMING_OPTIONS } from "../timing.js";
+import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 
 function subdivisionCount(tempoScale) {
     if (!Number.isFinite(tempoScale) || tempoScale <= 0) {
@@ -94,8 +95,16 @@ export function evaluateTempoScales(
     detectedBeatsMs,
     referenceBeatsMs,
     allowedTempoScales,
-    { startMs = -Infinity, endMs = Infinity } = {}
+    {
+        durationMs,
+        timingOptions = DEFAULT_TIMING_OPTIONS,
+        startMs = 0,
+        endMs = durationMs,
+    } = {}
 ) {
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+        throw new Error("Audio duration must be a positive finite number");
+    }
     if (!allowedTempoScales?.length) throw new Error("At least one tempo scale is required");
     if (startMs >= endMs) throw new Error("Evaluation start must be before its end");
 
@@ -107,7 +116,14 @@ export function evaluateTempoScales(
     const candidates = allowedTempoScales.flatMap((tempoScale) => {
         const phaseCount = tempoScale < 1 ? subdivisionCount(tempoScale) : 1;
         return Array.from({ length: phaseCount }, (_, phase) => {
-            const beatsMs = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)
+            // Match the UI: tempo correction precedes smoothing and export.
+            // Round-trip the serialized text so offset and beat-length rounding,
+            // collapsed timing points, and section resets all affect the score.
+            const ticks = scaleBeatGrid(detectedBeatsMs, tempoScale, phase)
+                .map((beatMs) => beatMs / 1000);
+            const { osuTimingPoints } = calculateTiming(ticks, timingOptions);
+            const exportedTimingPoints = parseOsuTimingPoints(osuTimingPoints);
+            const beatsMs = generateBeatGrid(exportedTimingPoints, durationMs)
                 .filter((beatMs) => beatMs >= startMs && beatMs < endMs);
             const matchedBeatCount = countMatchingBeats(
                 beatsMs,
@@ -119,6 +135,8 @@ export function evaluateTempoScales(
                 tempoScale,
                 phase,
                 beatsMs,
+                osuTimingPoints,
+                exportedTimingPoints,
                 matchedBeatCount,
                 matchingToleranceMs,
                 matchingF1: totalBeatCount ? 2 * matchedBeatCount / totalBeatCount : 0,

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { filterSpuriousBeats } from "../beat-filter.js";
 import { interpolateBeatGaps } from "../beat-interpolation.js";
 import { detectBeats } from "../beat-detector.js";
+import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
 import { decodeAudioFile } from "./audio-decoder.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
@@ -67,11 +68,17 @@ async function runCase(benchmarkCase) {
         endTime: decoded.durationMs / 1000,
     });
     const interpolatedDetectedBeatsMs = interpolatedBeats.map((seconds) => seconds * 1000);
+    const timingOptions = { ...DEFAULT_TIMING_OPTIONS, ...benchmarkCase.timingOptions };
     const scaleCandidates = evaluateTempoScales(
         interpolatedDetectedBeatsMs,
         fullReferenceBeatsMs,
         benchmarkCase.allowedTempoScales,
-        { startMs: evaluationStartMs, endMs: evaluationEndMs }
+        {
+            durationMs: decoded.durationMs,
+            timingOptions,
+            startMs: evaluationStartMs,
+            endMs: evaluationEndMs,
+        }
     );
     const selectedScale = scaleCandidates[0];
     const detectedBeatsMs = selectedScale.beatsMs;
@@ -86,6 +93,10 @@ async function runCase(benchmarkCase) {
         sourceSampleRate: decoded.sourceSampleRate,
         detector: "senet-onnx",
         modelSampleRate: 16000,
+        evaluationGrid: "exported-timing-points",
+        timingOptions,
+        osuTimingPoints: selectedScale.osuTimingPoints,
+        exportedTimingPoints: selectedScale.exportedTimingPoints,
         durationMs: decoded.durationMs,
         evaluationMarginMs,
         evaluationStartMs,
@@ -95,9 +106,12 @@ async function runCase(benchmarkCase) {
         allowedTempoScales: benchmarkCase.allowedTempoScales,
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
-        tempoScaleCandidates: scaleCandidates.map(({ beatsMs, ...candidate }) => ({
+        tempoScaleCandidates: scaleCandidates.map(({
+            beatsMs, osuTimingPoints, exportedTimingPoints, ...candidate
+        }) => ({
             ...candidate,
             detectedBeatCount: beatsMs.length,
+            timingPointCount: exportedTimingPoints.length,
         })),
         timingPoints,
         referenceBeatsMs,
@@ -135,11 +149,16 @@ for (const benchmarkCase of selectedCases) {
         (result.selectedTempoPhase ? ` (phase ${result.selectedTempoPhase})` : "")
     );
     console.log(
-        `  Scale match F1:  ${selectedCandidate.matchingF1.toFixed(3)} ` +
+        `  Export grid F1:  ${selectedCandidate.matchingF1.toFixed(3)} ` +
         `(${selectedCandidate.matchedBeatCount} matches within ` +
         `${selectedCandidate.matchingToleranceMs.toFixed(1)} ms)`
     );
-    console.log(`  Scaled beats:    ${result.detectedBeatsMs.length}`);
+    console.log(`  Exported beats:  ${result.detectedBeatsMs.length}`);
+    console.log(`  Timing points:   ${result.exportedTimingPoints.length}`);
+    console.log(
+        `  Smoothing:       window ${result.timingOptions.windowSize}, ` +
+        `tolerance ${result.timingOptions.toleranceMs} ms`
+    );
     console.log(`  Median error:    ${result.metrics.medianAbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  95th percentile: ${result.metrics.percentile95AbsoluteErrorMs.toFixed(3)} ms`);
     console.log(`  Result:           ${outputPath}`);
