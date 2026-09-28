@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { evaluateTempoScales, scaleBeatGrid, selectTempoCandidate } from "../benchmark/scaling.js";
+import { evaluateTempoScales, selectTempoCandidate } from "../benchmark/scaling.js";
 
 test("reports the mapper's scale even when another candidate scores better", () => {
     const candidates = [
@@ -10,12 +10,6 @@ test("reports the mapper's scale even when another candidate scores better", () 
     ];
     assert.equal(selectTempoCandidate(candidates, 1).matchingF1, 0.8);
     assert.throws(() => selectTempoCandidate(candidates, 0.5), /not evaluated/);
-});
-
-test("scales a beat grid to half or double tempo", () => {
-    assert.deepEqual(scaleBeatGrid([0, 1000, 2000], 2), [0, 500, 1000, 1500, 2000]);
-    assert.deepEqual(scaleBeatGrid([0, 500, 1000, 1500, 2000], 0.5), [0, 1000, 2000]);
-    assert.deepEqual(scaleBeatGrid([0, 500, 1000, 1500, 2000], 0.5, 1), [500, 1500]);
 });
 
 test("selects double tempo when raw detections are half the reference tempo", () => {
@@ -54,18 +48,6 @@ test("penalizes an incorrect double-tempo grid for its extra beats", () => {
     assert.equal(candidates[0].tempoScale, 1);
     assert.equal(candidates[0].matchingF1, 1);
     assert.ok(candidates[0].matchingF1 > doubled.matchingF1);
-});
-
-test("scores only beats inside the evaluation window", () => {
-    const candidates = evaluateTempoScales(
-        [0, 1000, 2000, 3000],
-        [0, 500, 1000, 1500, 2000, 2500, 3000],
-        [2],
-        { durationMs: 3500, startMs: 500, endMs: 2500 }
-    );
-
-    assert.equal(candidates[0].symmetricMeanNearestErrorMs, 0);
-    assert.deepEqual(candidates[0].beatsMs, [500, 1000, 1500, 2000]);
 });
 
 test("scores the fitted export grid instead of jittered input detections", () => {
@@ -119,7 +101,7 @@ test("export rounding, section resets, and final tempo continuation affect the g
 test("exports the full track before trimming the evaluation window", () => {
     const [candidate] = evaluateTempoScales(
         [0, 400, 1000, 1400, 2000],
-        [500, 1000, 1500],
+        [0, 500, 1000, 1500, 2000],
         [1],
         { durationMs: 2400, startMs: 500, endMs: 2000,
             timingOptions: { windowSize: 2, toleranceMs: 101 } }

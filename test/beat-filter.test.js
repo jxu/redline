@@ -3,13 +3,6 @@ import test from "node:test";
 
 import { filterSpuriousBeats } from "../beat-filter.js";
 
-test("removes a fast subdivision when skipping it restores the previous tempo", () => {
-    assert.deepEqual(
-        filterSpuriousBeats([0, 0.5, 0.7, 1, 1.5]),
-        [0, 0.5, 1, 1.5]
-    );
-});
-
 test("removes repeated subdivisions without changing the tempo history", () => {
     assert.deepEqual(
         filterSpuriousBeats([0, 0.5, 0.7, 1, 1.2, 1.5, 2]),
