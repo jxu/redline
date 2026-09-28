@@ -1,4 +1,4 @@
-"""Run Beat This! small0 with its native minimal beat postprocessor."""
+"""Run a Beat This! checkpoint with its native minimal beat postprocessor."""
 
 import hashlib
 import json
@@ -33,8 +33,10 @@ def main(audio_path):
     beats, downbeats = tracker(samples, 22050)
     checkpoint_sha256 = None
     checkpoint_file = Path(checkpoint)
-    if not checkpoint_file.is_file() and checkpoint == "small0":
-        checkpoint_file = Path(torch.hub.get_dir()) / "checkpoints" / "beat_this-small0.ckpt"
+    if not checkpoint_file.is_file() and checkpoint in ("small0", "final0"):
+        checkpoint_file = (
+            Path(torch.hub.get_dir()) / "checkpoints" / f"beat_this-{checkpoint}.ckpt"
+        )
     if checkpoint_file.is_file():
         digest = hashlib.sha256()
         with checkpoint_file.open("rb") as file:

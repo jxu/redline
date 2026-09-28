@@ -5,6 +5,7 @@
     "benchmark:cache": "node benchmark/run.js --cache-only",
     "benchmark:regression": "node benchmark/run.js --regression-only",
     "benchmark:beat-this": "node benchmark/run-beat-this.js",
+    "benchmark:beat-this-full": "node benchmark/run-beat-this.js --model final0",
     "benchmark:plot": "node benchmark/plot-results.js",
     "benchmark:listen": "node benchmark/render-comparison.js",
     "dev": "http-server -c-1 .",

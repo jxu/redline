@@ -13,11 +13,21 @@ import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const run = promisify(execFile);
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const outputDirectory = resolve(benchmarkDirectory, "beat-this-small");
+const args = process.argv.slice(2);
+const modelFlagIndex = args.indexOf("--model");
+const modelName = modelFlagIndex < 0 ? "small0" : args[modelFlagIndex + 1];
+if (!["small0", "final0"].includes(modelName)) {
+    throw new Error(`Unknown Beat This! model: ${modelName}`);
+}
+if (modelFlagIndex >= 0) args.splice(modelFlagIndex, 2);
+if (args.length > 1) throw new Error("Specify at most one mapset ID");
+const outputDirectory = resolve(
+    benchmarkDirectory, modelName === "small0" ? "beat-this-small" : "beat-this-full"
+);
 const python = process.env.BEAT_THIS_PYTHON ?? "python3";
 const detectorScript = resolve(benchmarkDirectory, "beat-this-detect.py");
 const manifest = JSON.parse(await readFile(resolve(benchmarkDirectory, "manifest.json"), "utf8"));
-const requestedId = process.argv[2];
+const requestedId = args[0];
 const selectedCases = requestedId ? manifest.filter(({ id }) => id === requestedId) : manifest;
 if (!selectedCases.length) throw new Error(`Unknown mapset ID: ${requestedId}`);
 
@@ -46,6 +56,7 @@ async function runCase(benchmarkCase) {
     ));
     const { stdout } = await run(python, [detectorScript, audioPath], {
         maxBuffer: 4 * 1024 * 1024,
+        env: { ...process.env, BEAT_THIS_CHECKPOINT: process.env.BEAT_THIS_CHECKPOINT ?? modelName },
     });
     const detection = JSON.parse(stdout);
     const rawTicks = detection.ticks.filter((tick) =>
@@ -86,7 +97,8 @@ async function runCase(benchmarkCase) {
         pipelineVersion: baseline.pipelineVersion,
         decoder: "ffmpeg",
         sourceSampleRate: baseline.sourceSampleRate,
-        detector: "beat-this-small0-minimal",
+        detector: `beat-this-${modelName}-minimal`,
+        modelName,
         beatThisVersion: detection.beatThisVersion,
         torchVersion: detection.torchVersion,
         checkpoint: detection.checkpoint,
