@@ -3,6 +3,24 @@ import { readFile } from "node:fs/promises";
 
 import { MODEL_SAMPLE_RATE } from "../audio-decoder.js";
 
+function mp3FrameLength(bytes, index) {
+    if (index < 0 || index + 4 > bytes.length || bytes[index] !== 0xff ||
+        (bytes[index + 1] & 0xe0) !== 0xe0) return 0;
+    const version = (bytes[index + 1] >> 3) & 3;
+    const layer = (bytes[index + 1] >> 1) & 3;
+    const bitrateIndex = (bytes[index + 2] >> 4) & 15;
+    const rateIndex = (bytes[index + 2] >> 2) & 3;
+    if (version === 1 || layer !== 1 || bitrateIndex === 0 ||
+        bitrateIndex === 15 || rateIndex === 3) return 0;
+    const bitrate = (version === 3
+        ? [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
+        : [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160])[bitrateIndex];
+    const sampleRate = [44100, 48000, 32000][rateIndex] /
+        (version === 3 ? 1 : version === 2 ? 2 : 4);
+    const padding = (bytes[index + 2] >> 1) & 1;
+    return Math.floor((version === 3 ? 144000 : 72000) * bitrate / sampleRate) + padding;
+}
+
 export function removeLeadingId3Padding(encodedAudio) {
     if (
         encodedAudio.length < 10 ||
@@ -22,19 +40,16 @@ export function removeLeadingId3Padding(encodedAudio) {
     let audioStart = 10 + tagSize + footerSize;
 
     // Some older MP3s count the 10-byte ID3 header in the encoded tag size.
-    // If a valid MPEG frame begins exactly there, use it instead of cutting
-    // ten bytes into the first frame.
+    // Chrome and osu!-configured BASS skip the frame overlapped by the declared
+    // tag. Restoring it would delay the benchmark audio by one MP3 frame.
+    // Use the frame length to find the next boundary: compressed payload can
+    // contain false sync words, so scanning for the next header is unsafe.
     const earlierStart = audioStart - 10;
-    const isMpegFrame = (index) =>
-        index >= 0 && encodedAudio[index] === 0xff &&
-        (encodedAudio[index + 1] & 0xe0) === 0xe0 &&
-        ((encodedAudio[index + 1] >> 3) & 3) !== 1 &&
-        ((encodedAudio[index + 1] >> 1) & 3) !== 0 &&
-        ((encodedAudio[index + 2] >> 4) & 15) !== 0 &&
-        ((encodedAudio[index + 2] >> 4) & 15) !== 15 &&
-        ((encodedAudio[index + 2] >> 2) & 3) !== 3;
-    if (!isMpegFrame(audioStart) && isMpegFrame(earlierStart)) {
-        audioStart = earlierStart;
+    const earlierFrameLength = mp3FrameLength(encodedAudio, earlierStart);
+    if (!mp3FrameLength(encodedAudio, audioStart) && earlierFrameLength) {
+        const nextFrame = earlierStart + earlierFrameLength;
+        if (!mp3FrameLength(encodedAudio, nextFrame)) return encodedAudio;
+        audioStart = nextFrame;
     }
 
     while (encodedAudio[audioStart] === 0) audioStart++;
