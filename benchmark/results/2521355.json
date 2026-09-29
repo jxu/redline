@@ -1,14 +1,14 @@
 {
   "mapsetId": "2521355",
   "name": "Bring Me The Horizon - Anthem [nihil's orvtoris]",
-  "pipelineVersion": "0.6.0",
+  "pipelineVersion": "0.6.3",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
-    "key": "3bafbee0de1ecced4d4a6bafd9e4fab9692cedfe0acf92647f9cd4f16b195469",
-    "hit": true
+    "key": "f8c9f5d2cf29e59521034d338c217809e63888a121f6874d1692ebea834a70aa",
+    "hit": false
   },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
@@ -48,7 +48,7 @@
   "evaluationWindow": "first-to-last-hit-object",
   "evaluationStartMs": 66,
   "evaluationEndMs": 232561,
-  "confidence": 0.4643194266895125,
+  "confidence": 0.4643194357410443,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
     1

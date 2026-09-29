@@ -1,14 +1,14 @@
 {
   "mapsetId": "30485",
   "name": "Inspector K - Disconnected Hardkore (CanBlaster Remix) [Insane]",
-  "pipelineVersion": "0.6.2",
+  "pipelineVersion": "0.6.4",
   "decoder": "audio-decode",
   "sourceSampleRate": 48000,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
     "key": "6b61b359810b9ac743074365ae338df9edd053b31da0ecf0ab6da18821c5cc9d",
-    "hit": false
+    "hit": true
   },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
@@ -323,6 +323,70 @@
       "timingPointCount": 37
     },
     {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Variable BPM with fixed sections",
+      "matchedBeatCount": 227,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.5696361355081556,
+      "weightedF1": 0.25320021208103755,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.04767879548306148
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.10037641154328733
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.15809284818067754
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.4215809284818068
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.5445420326223338
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.5646173149309912
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.5746549560853199
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.589711417816813
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.5972396486825596
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6047678795483061
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 41.15914744595655,
+      "detectedBeatCount": 405,
+      "timingPointCount": 35
+    },
+    {
       "tempoScale": 0.5,
       "phase": 0,
       "tempoPattern": "Variable BPM with fixed sections",
@@ -449,70 +513,6 @@
       "symmetricMeanNearestErrorMs": 93.49291559111735,
       "detectedBeatCount": 201,
       "timingPointCount": 38
-    },
-    {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Variable BPM with fixed sections",
-      "matchedBeatCount": 117,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.2465753424657534,
-      "weightedF1": 0.09187917200901298,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0.008429926238145416
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0.0273972602739726
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0.05690200210748156
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.12644889357218125
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.17070600632244468
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.2107481559536354
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.24868282402528977
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.25500526870389884
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.273972602739726
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.2929399367755532
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 61.11978607651453,
-      "detectedBeatCount": 557,
-      "timingPointCount": 23
     }
   ],
   "timingPoints": [

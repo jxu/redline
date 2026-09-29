@@ -9,7 +9,9 @@ import { filterSpuriousBeats } from "./beat-filter.js";
 import { interpolateBeatGaps } from "./beat-interpolation.js";
 import { detectBeats } from "./analysis-worker-client.js";
 import { createMetronomeBuffer, mixBuffers } from "./metronome.js";
-import { calculateTiming, doubleTicks, halveTicks } from "./timing.js";
+import {
+    calculateTiming, defaultTempoSmoothness, defaultToleranceMs, doubleTicks, halveTicks,
+} from "./timing.js";
 
 const MIN_PX_PER_SEC = 1;
 const MAX_PX_PER_SEC = 500;
@@ -113,6 +115,8 @@ const tempoSmoothnessSlider = document.getElementById("tempoSmoothness");
 const tempoSmoothnessValue = document.getElementById("tempoSmoothnessValue");
 const toleranceSlider = document.getElementById("tolerance");
 const toleranceValue = document.getElementById("toleranceValue");
+let smoothnessTouched = false;
+let toleranceTouched = false;
 
 const audioContext = new AudioContext();
 
@@ -207,14 +211,24 @@ document.getElementById("waveform").addEventListener("wheel", (event) => {
 
 // These controls refit the grid without running the beat detector again.
 tempoSmoothnessSlider.oninput = () => {
+    smoothnessTouched = true;
     tempoSmoothnessValue.textContent = tempoSmoothnessSlider.value;
     renderTimingGrid();
 };
 toleranceSlider.oninput = () => {
+    toleranceTouched = true;
     toleranceValue.textContent = toleranceSlider.value;
     renderTimingGrid();
 };
 tempoPatternSelect.onchange = () => {
+    if (!smoothnessTouched) {
+        tempoSmoothnessSlider.value = defaultTempoSmoothness(tempoPatternSelect.value);
+        tempoSmoothnessValue.textContent = tempoSmoothnessSlider.value;
+    }
+    if (!toleranceTouched) {
+        toleranceSlider.value = defaultToleranceMs(tempoPatternSelect.value);
+        toleranceValue.textContent = toleranceSlider.value;
+    }
     if (state.track.ticks.length) renderTicks();
 };
 

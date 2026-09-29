@@ -1,13 +1,13 @@
 {
   "mapsetId": "1052267",
   "name": "ORDEN OGAN - Come With Me To The Other Side (feat. Liv Kristine) [Eternal Light]",
-  "pipelineVersion": "0.6.0",
+  "pipelineVersion": "0.6.3",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
-    "key": "c5c83968eda6d309c28d1e5f6d1ad5e2d97a19bef3c834b7679406cefb8f83b7",
+    "key": "8e4ef8eacce3f1ebacae61163b6a7161c90e6cf951f8045a2cb3e775a0ae5bca",
     "hit": true
   },
   "evaluationGrid": "exported-timing-points",

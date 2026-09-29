@@ -3,6 +3,7 @@ import { chooseStableSections } from "./fixed-sections.js";
 
 export const MAX_EXPORT_BPM = 300;
 const MIN_EXPORT_BEAT_LENGTH_MS = 60000 / MAX_EXPORT_BPM;
+const MODEL_FRAME_MS = 1000 * MODEL_HOP_LENGTH / MODEL_SAMPLE_RATE;
 
 export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     toleranceMs: 5,
@@ -10,11 +11,23 @@ export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     tempoSmoothness: 5,
 });
 
+export function defaultToleranceMs(tempoPattern) {
+    return tempoPattern === "continuous" ? 6 : DEFAULT_TIMING_OPTIONS.toleranceMs;
+}
+
+export function defaultTempoSmoothness(tempoPattern) {
+    return tempoPattern === "continuous" ? 0 : DEFAULT_TIMING_OPTIONS.tempoSmoothness;
+}
+
 export const TEMPO_PATTERNS = Object.freeze({
     fixed: "Fixed BPM",
     continuous: "Continuously variable BPM",
     sections: "Variable BPM with fixed sections",
 });
+
+function clamp(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, value));
+}
 
 function medianPositiveInterval(ticks) {
     const intervals = ticks.slice(1).map((tick, index) => tick - ticks[index])
@@ -36,7 +49,6 @@ function selectPulse(gridTicks, observedTicks) {
 }
 
 function probabilityObservations(ticks, estimates, probabilities) {
-    const frameMs = 1000 * MODEL_HOP_LENGTH / MODEL_SAMPLE_RATE;
     return estimates.map((estimate, index) => {
         const originalMs = ticks[index] * 1000;
         const estimateMs = estimate * 1000;
@@ -45,14 +57,14 @@ function probabilityObservations(ticks, estimates, probabilities) {
             ? (ticks[index + 1] - ticks[index]) * 1000 : Infinity;
         // A local search avoids stealing a neighboring beat or subdivision.
         const radiusMs = Math.min(80, 0.2 * Math.min(previousGap, nextGap));
-        const first = Math.max(0, Math.ceil((estimateMs - radiusMs) / frameMs));
+        const first = Math.max(0, Math.ceil((estimateMs - radiusMs) / MODEL_FRAME_MS));
         const last = Math.min(probabilities.length - 1,
-            Math.floor((estimateMs + radiusMs) / frameMs));
+            Math.floor((estimateMs + radiusMs) / MODEL_FRAME_MS));
         let mass = 0;
         let moment = 0;
         let kernelTotal = 0;
         for (let frame = first; frame <= last; frame++) {
-            const timeMs = frame * frameMs;
+            const timeMs = frame * MODEL_FRAME_MS;
             const distance = timeMs - estimateMs;
             const kernel = Math.exp(-0.5 * (distance / 25) ** 2);
             const evidence = probabilities[frame] ** 2 * kernel;
@@ -275,6 +287,9 @@ function provisionalTimingGrid(ticks, { toleranceMs, windowSize, tempoPattern })
 const TEMPO_MOVEMENT_MEMORY_MS = 4000;
 const TEMPO_MOVEMENT_ALLOWANCE_BPM = 20;
 const TEMPO_MOVEMENT_SCALE_BPM = 30;
+// Avoid switching pulses or moving red points for a marginal support increase.
+const PULSE_HYPOTHESIS_MARGIN = 0.05;
+const POINT_REFINEMENT_MIN_GAIN = 0.005;
 
 export function scoreTempoChange(previousBeatLengthMs, beatLengthMs,
     recentBpmMovement, elapsedMs, jumpPenalty) {
@@ -325,7 +340,8 @@ function gridResidualCost(beatsMs, start, end, offsetMs, beatLengthMs, beatCount
 // for the size of its BPM change. This lets a later beat influence an earlier
 // boundary instead of committing to the first locally acceptable section.
 export function fitTimingGrid(ticks, {
-    toleranceMs = 5, windowSize = 4, observedTicks = ticks, tempoPattern = null,
+    tempoPattern = null, toleranceMs = defaultToleranceMs(tempoPattern),
+    windowSize = 4, observedTicks = ticks,
 } = {}) {
     if (ticks.length < 2) return { timingPoints: [], beatLengths: [] };
     if (!observedTicks.length) observedTicks = ticks;
@@ -337,7 +353,8 @@ export function fitTimingGrid(ticks, {
     const toleranceScale = Math.max(1, toleranceMs / 5) ** 2;
     const unmatchedCost = 100 ** 2 * toleranceScale;
     const sectionPenalty = (tempoPattern === "continuous" ? 1500 : 1800) * toleranceScale;
-    const jumpPenalty = (tempoPattern === "continuous" ? 250000 : 100000) * toleranceScale;
+    // Prefer small live tempo drift to a few unsupported large jumps.
+    const jumpPenalty = (tempoPattern === "continuous" ? 4_000_000 : 100_000) * toleranceScale;
     const states = Array.from({ length: beatsMs.length }, () => []);
     states[0].push({
         cost: 0, previous: null, start: 0, end: 0,
@@ -466,11 +483,166 @@ function generateOsuTimingPoints(timingPoints) {
     return `[TimingPoints]\n${lines.join("\n")}`;
 }
 
+function beatLengthsAtTicks(ticks, timingPoints) {
+    let pointIndex = 0;
+    return ticks.slice(0, -1).map((tick) => {
+        while (pointIndex + 1 < timingPoints.length &&
+            timingPoints[pointIndex + 1].offsetMs <= tick * 1000) pointIndex++;
+        return timingPoints[pointIndex].beatLengthMs.toFixed(2);
+    });
+}
+
+function competingPulseHypotheses(gridTicks, observedTicks, tempoPattern) {
+    if (tempoPattern === "fixed") return [gridTicks];
+    const primary = tempoPattern === "continuous"
+        ? selectPulse(gridTicks, observedTicks) : gridTicks;
+    const hypotheses = [primary, gridTicks];
+    for (const phase of [0, 1]) {
+        hypotheses.push(gridTicks.filter((_, index) => index % 2 === phase));
+    }
+    hypotheses.push(doubleTicks(gridTicks));
+
+    const seen = new Set();
+    return hypotheses.filter((ticks) => {
+        if (ticks.length < 2) return false;
+        const key = ticks.map((tick) => Math.round(tick * 1e6)).join(",");
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function scorePulseHypothesis(timingPoints, observedTicks, probabilities, durationMs) {
+    const gridMs = generateTimingGrid(timingPoints, durationMs).map((tick) => tick * 1000);
+    if (!gridMs.length) return -Infinity;
+    const observedMs = observedTicks.map((tick) => tick * 1000);
+    const typicalInterval = medianPositiveInterval(observedTicks) * 1000;
+    const matchTolerance = Math.min(80, typicalInterval * 0.2);
+    let detectedIndex = 0;
+    let gridIndex = 0;
+    let matches = 0;
+    while (detectedIndex < observedMs.length && gridIndex < gridMs.length) {
+        const difference = observedMs[detectedIndex] - gridMs[gridIndex];
+        if (Math.abs(difference) <= matchTolerance) {
+            matches++;
+            detectedIndex++;
+            gridIndex++;
+        } else if (difference < 0) detectedIndex++;
+        else gridIndex++;
+    }
+    const total = observedMs.length + gridMs.length;
+    const detectionF1 = total ? 2 * matches / total : 0;
+    if (!probabilities?.length) return detectionF1;
+
+    const radius = Math.max(1, Math.round(Math.min(30, typicalInterval * 0.1) / MODEL_FRAME_MS));
+    let probabilitySupport = 0;
+    for (const timeMs of gridMs) {
+        const center = Math.round(timeMs / MODEL_FRAME_MS);
+        let peak = 0;
+        for (let frame = Math.max(0, center - radius);
+            frame <= Math.min(probabilities.length - 1, center + radius); frame++) {
+            peak = Math.max(peak, probabilities[frame]);
+        }
+        probabilitySupport += peak;
+    }
+    return 0.7 * probabilitySupport / gridMs.length + 0.3 * detectionF1;
+}
+
+function fitWeightedTempoLine(observations, weights) {
+    let sumWeight = 0;
+    let sumBeat = 0;
+    let sumTime = 0;
+    let sumBeatSquared = 0;
+    let sumBeatTime = 0;
+    observations.forEach(({ beat, timeMs }, index) => {
+        const weight = weights[index];
+        sumWeight += weight;
+        sumBeat += weight * beat;
+        sumTime += weight * timeMs;
+        sumBeatSquared += weight * beat ** 2;
+        sumBeatTime += weight * beat * timeMs;
+    });
+    const denominator = sumWeight * sumBeatSquared - sumBeat ** 2;
+    if (!denominator) return null;
+    const beatLengthMs = (sumWeight * sumBeatTime - sumBeat * sumTime) / denominator;
+    return {
+        offsetMs: (sumTime - beatLengthMs * sumBeat) / sumWeight,
+        beatLengthMs,
+    };
+}
+
+function refineExportTimingPoints(timingPoints, probabilities, durationMs) {
+    if (!probabilities?.length) return timingPoints;
+    return timingPoints.map((point, section) => {
+        const endMs = Math.min(timingPoints[section + 1]?.offsetMs ?? durationMs, durationMs);
+        const beatCount = Math.floor((endMs - point.offsetMs - 1e-6) / point.beatLengthMs) + 1;
+        if (beatCount < 8) return point;
+
+        const observations = [];
+        const radiusFrames = Math.max(1, Math.floor(
+            Math.min(35, point.beatLengthMs * 0.12) / MODEL_FRAME_MS
+        ));
+        for (let beat = 0; beat < beatCount; beat++) {
+            const expectedMs = point.offsetMs + beat * point.beatLengthMs;
+            const center = Math.round(expectedMs / MODEL_FRAME_MS);
+            const first = Math.max(1, center - radiusFrames);
+            const last = Math.min(probabilities.length - 2, center + radiusFrames);
+            let peakFrame = -1;
+            for (let frame = first; frame <= last; frame++) {
+                if (peakFrame < 0 || probabilities[frame] > probabilities[peakFrame]) peakFrame = frame;
+            }
+            if (peakFrame < 0 || probabilities[peakFrame] < 0.05) continue;
+            const left = probabilities[peakFrame - 1];
+            const peak = probabilities[peakFrame];
+            const right = probabilities[peakFrame + 1];
+            const curvature = left - 2 * peak + right;
+            const subframe = curvature < 0
+                ? clamp(0.5 * (left - right) / curvature, -0.5, 0.5) : 0;
+            observations.push({
+                beat,
+                timeMs: (peakFrame + subframe) * MODEL_FRAME_MS,
+                weight: peak * peak,
+                strength: peak,
+            });
+        }
+        if (observations.length < Math.max(8, Math.ceil(beatCount * 0.25))) return point;
+
+        let line = point;
+        let weights = observations.map(({ weight }) => weight);
+        for (let pass = 0; pass < 4; pass++) {
+            const fittedLine = fitWeightedTempoLine(observations, weights);
+            if (!fittedLine) break;
+            line = fittedLine;
+            weights = observations.map((observation) => {
+                const error = Math.abs(observation.timeMs - line.offsetMs -
+                    observation.beat * line.beatLengthMs);
+                return observation.weight * Math.min(1, 15 / Math.max(15, error));
+            });
+        }
+
+        const averageStrength = observations.reduce((sum, observation) =>
+            sum + observation.strength, 0) / observations.length;
+        const confidence = Math.min(1, (observations.length - 4) / 16) *
+            Math.min(1, averageStrength / 0.35);
+        const maxPeriodChange = Math.max(0.5, point.beatLengthMs * 0.002);
+        const periodCandidate = point.beatLengthMs + clamp(
+            line.beatLengthMs - point.beatLengthMs, -maxPeriodChange, maxPeriodChange
+        ) * confidence;
+        const refinedPeriod = clamp(periodCandidate, MIN_EXPORT_BEAT_LENGTH_MS, 1500);
+        const refinedOffset = point.offsetMs + clamp(line.offsetMs - point.offsetMs,
+            -35, 35) * confidence;
+        return {
+            offsetMs: Math.round(refinedOffset),
+            beatLengthMs: Number(refinedPeriod.toFixed(5)),
+        };
+    });
+}
+
 export function calculateTiming(ticks, options = {}) {
     let fittedTicks = ticks;
     let fitted = options.tempoPattern && options.tempoPattern !== "fixed" && ticks.length >= 3
         ? { timingPoints: provisionalTimingGrid(ticks, {
-            toleranceMs: options.toleranceMs ?? DEFAULT_TIMING_OPTIONS.toleranceMs,
+            toleranceMs: options.toleranceMs ?? defaultToleranceMs(options.tempoPattern),
             windowSize: options.windowSize ?? DEFAULT_TIMING_OPTIONS.windowSize,
             tempoPattern: options.tempoPattern,
         }) }
@@ -483,8 +655,6 @@ export function calculateTiming(ticks, options = {}) {
     if (options.tempoPattern && fitted.timingPoints.length && ticks.length >= 3) {
         const observedTicks = options.observedTicks?.length ? options.observedTicks : ticks;
         const initialGrid = generateTimingGrid(fitted.timingPoints, durationMs);
-        const pulseGrid = options.tempoPattern === "continuous"
-            ? selectPulse(initialGrid, observedTicks) : initialGrid;
         // In section mode, keep changes that persist on both sides of a red
         // point while regularizing the brief excursions between them.
         const boundaries = options.tempoPattern === "sections"
@@ -496,32 +666,53 @@ export function calculateTiming(ticks, options = {}) {
                 return previousBeats >= 3 && followingBeats >= 3
                     ? [point.offsetMs / 1000] : [];
             }) : [];
-        const smoothness = options.tempoSmoothness ?? DEFAULT_TIMING_OPTIONS.tempoSmoothness;
-        fittedTicks = fitTempoCurve(pulseGrid,
-            options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
-            boundaries, options.probabilities);
-        fitted = fitTimingGrid(fittedTicks, {
-            ...options,
-            observedTicks: options.tempoPattern === "fixed" ? observedTicks : fittedTicks,
-        });
-    }
-    if (options.tempoPattern === "sections") {
-        const stablePoints = chooseStableSections(
-            options.observedTicks?.length ? options.observedTicks : ticks,
-            fitted.timingPoints, durationMs
-        );
-        if (stablePoints && stablePoints.every(({ beatLengthMs }) =>
-            beatLengthMs >= MIN_EXPORT_BEAT_LENGTH_MS)) {
-            fitted = {
-                ...fitted,
-                timingPoints: stablePoints,
-                beatLengths: fittedTicks.slice(0, -1).map((tick) => {
-                    let index = 0;
-                    while (index + 1 < stablePoints.length &&
-                        stablePoints[index + 1].offsetMs <= tick * 1000) index++;
-                    return stablePoints[index].beatLengthMs.toFixed(2);
-                }),
-            };
+        const smoothness = options.tempoSmoothness ?? defaultTempoSmoothness(options.tempoPattern);
+        const candidates = competingPulseHypotheses(initialGrid, observedTicks,
+            options.tempoPattern);
+        let best = null;
+        for (const pulseGrid of candidates) {
+            const candidateTicks = fitTempoCurve(pulseGrid,
+                options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
+                boundaries, options.probabilities);
+            let candidateFit = fitTimingGrid(candidateTicks, {
+                ...options,
+                observedTicks: options.tempoPattern === "fixed" ? observedTicks : candidateTicks,
+            });
+            if (options.tempoPattern === "sections") {
+                const stablePoints = chooseStableSections(observedTicks,
+                    candidateFit.timingPoints, durationMs);
+                if (stablePoints?.length && stablePoints.every(({ beatLengthMs }) =>
+                    beatLengthMs >= MIN_EXPORT_BEAT_LENGTH_MS)) {
+                    candidateFit = {
+                        ...candidateFit,
+                        timingPoints: stablePoints,
+                        beatLengths: beatLengthsAtTicks(candidateTicks, stablePoints),
+                    };
+                }
+            }
+            const baseScore = scorePulseHypothesis(candidateFit.timingPoints, observedTicks,
+                options.probabilities, durationMs);
+            const refinedPoints = refineExportTimingPoints(
+                candidateFit.timingPoints, options.probabilities, durationMs
+            );
+            const refinedScore = scorePulseHypothesis(refinedPoints, observedTicks,
+                options.probabilities, durationMs);
+            const useRefinement = refinedScore > baseScore + POINT_REFINEMENT_MIN_GAIN;
+            if (useRefinement) {
+                candidateFit = {
+                    ...candidateFit,
+                    timingPoints: refinedPoints,
+                    beatLengths: beatLengthsAtTicks(candidateTicks, refinedPoints),
+                };
+            }
+            const score = useRefinement ? refinedScore : baseScore;
+            if (Number.isFinite(score) && (!best || score > best.score + PULSE_HYPOTHESIS_MARGIN)) {
+                best = { score, candidateTicks, candidateFit };
+            }
+        }
+        if (best) {
+            fittedTicks = best.candidateTicks;
+            fitted = best.candidateFit;
         }
     }
     const { timingPoints, beatLengths } = fitted;

@@ -1,14 +1,14 @@
 {
   "mapsetId": "545156",
   "name": "Royal Blood - Loose Change [$]",
-  "pipelineVersion": "0.6.2",
+  "pipelineVersion": "0.6.3",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
     "key": "759b55dc9abaedc8e0a0fe579fed9502295d45a0703140263b3c3f97b7f3f9bc",
-    "hit": false
+    "hit": true
   },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {

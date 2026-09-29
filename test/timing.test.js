@@ -116,7 +116,7 @@ test("probability evidence pulls a jittered live grid toward individual beats", 
             probabilities[frame + offset] = 0.9 * Math.exp(-0.5 * (offset / 1.1) ** 2);
         }
     }
-    const options = { tempoPattern: "continuous", endTime: 13.5 };
+    const options = { tempoPattern: "continuous", tempoSmoothness: 5, endTime: 13.5 };
     const withoutEvidence = calculateTiming(ticks, options);
     const withEvidence = calculateTiming(ticks, { ...options, probabilities });
     const meanError = ({ gridTicks }) => trueBeats.reduce((sum, beat, index) =>

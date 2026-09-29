@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { filterSpuriousBeats } from "../beat-filter.js";
 import { interpolateBeatGaps } from "../beat-interpolation.js";
 import { beatsFromProbabilities } from "../beat-postprocessing.js";
-import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
+import { DEFAULT_TIMING_OPTIONS, defaultTempoSmoothness, defaultToleranceMs } from "../timing.js";
 import { createProbabilityCache } from "./probability-cache.js";
 import {
     generateBeatGrid, nearestBeat, parseOsuHitObjectSpan, parseOsuTimingPoints,
@@ -14,7 +14,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.6.2";
+const pipelineVersion = "0.6.5";
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((arg) => arg.startsWith("--")));
@@ -93,6 +93,8 @@ async function runCase(benchmarkCase) {
     const interpolatedDetectedBeatsMs = interpolatedBeats.map((seconds) => seconds * 1000);
     const timingOptions = {
         ...DEFAULT_TIMING_OPTIONS,
+        toleranceMs: defaultToleranceMs(benchmarkCase.tempoPattern),
+        tempoSmoothness: defaultTempoSmoothness(benchmarkCase.tempoPattern),
         ...benchmarkCase.timingOptions,
         tempoPattern: benchmarkCase.tempoPattern,
     };

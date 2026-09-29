@@ -114,13 +114,16 @@ from the observed beats as the general fit.
 Scores measure that grid after osu! offset and beat-length rounding.
 The fitter regularizes beat times before creating the final timing points.
 Continuously variable tracks use retained detections to choose the pulse and a
-stronger penalty on abrupt tempo changes. Fixed-section tracks use a lighter
-penalty that preserves sustained section boundaries. Fixed tracks still produce
-a single precise grid. The Tempo smoothing slider adjusts the regression penalty
-without rerunning beat detection; its default is 5.
+strong penalty on abrupt tempo changes, favoring gradual BPM drift. Fixed-section
+tracks use a lighter penalty that preserves sustained section boundaries. Fixed
+tracks still produce a single precise grid. The Beat-time smoothing slider adjusts
+the earlier beat-time regression without rerunning beat detection. Its default is
+0 for continuously variable tracks, leaving the final BPM fit to smooth the grid,
+and 5 for other patterns.
 
-Default fit settings match the app: `windowSize: 4`, `toleranceMs: 5`, and
-`tempoSmoothness: 5`. The minimum
+Default fit settings match the app: `windowSize: 4`, with `tempoSmoothness: 0`
+and `toleranceMs: 6` for continuously variable tracks or `tempoSmoothness: 5`
+and `toleranceMs: 5` for other patterns. The minimum
 section length is `max(2, floor(windowSize / 2))` beats. The provisional fit
 allows an isolated interior residual up to `20 + 2 * toleranceMs` milliseconds;
 its average signed residual over eight beats must stay within `5 + toleranceMs`
