@@ -1,6 +1,8 @@
 import { calculateTiming, DEFAULT_TIMING_OPTIONS } from "../timing.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 
+const MATCHING_TOLERANCE_MS = 20;
+
 function subdivisionCount(tempoScale) {
     if (!Number.isFinite(tempoScale) || tempoScale <= 0) {
         throw new Error(`Tempo scale must be positive: ${tempoScale}`);
@@ -57,24 +59,6 @@ function symmetricMeanNearestError(detectedBeatsMs, referenceBeatsMs) {
     ) / 2;
 }
 
-function median(values) {
-    if (!values.length) return null;
-    const sorted = [...values].sort((left, right) => left - right);
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2
-        ? sorted[middle]
-        : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-function matchingTolerance(referenceBeatsMs) {
-    const intervals = referenceBeatsMs
-        .slice(1)
-        .map((beatMs, index) => beatMs - referenceBeatsMs[index])
-        .filter((intervalMs) => intervalMs > 0);
-    const medianIntervalMs = median(intervals);
-    return medianIntervalMs === null ? 70 : medianIntervalMs * 0.175;
-}
-
 function countMatchingBeats(detectedBeatsMs, referenceBeatsMs, toleranceMs) {
     let detectedIndex = 0;
     let referenceIndex = 0;
@@ -121,7 +105,7 @@ export function evaluateTempoScales(
     const evaluationReferenceBeatsMs = referenceBeatsMs.filter(
         (beatMs) => beatMs >= startMs && beatMs < endMs
     );
-    const matchingToleranceMs = matchingTolerance(evaluationReferenceBeatsMs);
+    const matchingToleranceMs = MATCHING_TOLERANCE_MS;
 
     const candidates = allowedTempoScales.flatMap((tempoScale) => {
         const phaseCount = tempoScale < 1 ? subdivisionCount(tempoScale) : 1;

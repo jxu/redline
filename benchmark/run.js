@@ -12,7 +12,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.2.0";
+const pipelineVersion = "0.2.1";
 const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
@@ -182,7 +182,7 @@ for (const benchmarkCase of selectedCases) {
         (result.selectedTempoPhase ? ` (phase ${result.selectedTempoPhase})` : "")
     );
     console.log(
-        `  Export grid F1:  ${selectedCandidate.matchingF1.toFixed(3)} ` +
+        `  Export F1@20ms:  ${selectedCandidate.matchingF1.toFixed(3)} ` +
         `(${selectedCandidate.matchedBeatCount} matches within ` +
         `${selectedCandidate.matchingToleranceMs.toFixed(1)} ms)`
     );

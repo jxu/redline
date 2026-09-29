@@ -50,6 +50,18 @@ test("penalizes an incorrect double-tempo grid for its extra beats", () => {
     assert.ok(candidates[0].matchingF1 > doubled.matchingF1);
 });
 
+test("F1 matches exported beats only within 20 ms", () => {
+    const reference = [0, 500, 1000, 1500];
+    const evaluateShift = (shiftMs) => evaluateTempoScales(
+        reference.map((beatMs) => beatMs + shiftMs), reference, [1],
+        { durationMs: 1800 }
+    )[0];
+
+    assert.equal(evaluateShift(19).matchingF1, 1);
+    assert.equal(evaluateShift(21).matchingF1, 0);
+    assert.equal(evaluateShift(21).matchingToleranceMs, 20);
+});
+
 test("scores the fitted export grid instead of jittered input detections", () => {
     const [candidate] = evaluateTempoScales(
         [0, 400, 1000, 1400, 2000],

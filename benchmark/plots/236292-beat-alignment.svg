@@ -30,11 +30,11 @@
 <line class="grid" x1="1350.708848222477" y1="105" x2="1350.708848222477" y2="1155"/>
 <text class="tick" x="1350.708848222477" y="1200" text-anchor="middle">120</text>
 <line x1="105" y1="345" x2="1565" y2="345" stroke="#444"/>
-<line x1="105" y1="198.4883720930237" x2="1565" y2="198.4883720930237" stroke="#999" stroke-dasharray="6 4"/>
-<line x1="105" y1="491.5116279069763" x2="1565" y2="491.5116279069763" stroke="#999" stroke-dasharray="6 4"/>
+<line x1="105" y1="297" x2="1565" y2="297" stroke="#999" stroke-dasharray="6 4"/>
+<line x1="105" y1="393" x2="1565" y2="393" stroke="#999" stroke-dasharray="6 4"/>
 <rect x="105" y="105" width="1460" height="480" fill="none" class="axis"/>
 <text x="25" y="345" text-anchor="middle" font-size="18" transform="rotate(-90 25 345)">Exported − reference (ms)</text>
-<text x="117" y="130" font-size="17">F1 1.000  |  median |error| 15.4 ms  |  387 matched, 0 extra, 0 missing  |  5 filtered</text>
+<text x="117" y="130" font-size="17">F1@20ms 1.000  |  median |error| 15.4 ms  |  387 matched, 0 extra, 0 missing  |  5 filtered</text>
 <g clip-path="url(#plot)">
 <path d="M 105.12142197469029 310.08754158140584 L 110.12142197469029 320.08754158140584 L 100.12142197469029 320.08754158140584 Z" fill="#2a9d8f"/>
 <path d="M 108.90011413310023 310.0456119069902 L 113.90011413310023 320.0456119069902 L 103.90011413310023 320.0456119069902 Z" fill="#2a9d8f"/>
