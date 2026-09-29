@@ -127,7 +127,9 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     // decoding will fail even before it can reach the model.
     await writeFile(audio, "cached audio fixture");
     const osu = join(root, "benchmark/reference.osu");
-    await writeFile(osu, "[TimingPoints]\n0,500,4,2,1,100,1,0\n");
+    const hitObjects = "[HitObjects]\n256,192,5000,1,0,0:0:0:0:\n" +
+        "256,192,10000,1,0,0:0:0:0:\n";
+    await writeFile(osu, `[TimingPoints]\n0,500,4,2,1,100,1,0\n${hitObjects}`);
     const manifestPath = join(root, "benchmark/manifest.json");
     const manifest = [{ id: "fixture", name: "Fixture", audio: "./audio.wav", osu: "./reference.osu",
         tempoPattern: "fixed", tempoScale: 1, allowedTempoScales: [1] }];
@@ -147,9 +149,11 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     await run("--regression-only", "fixture");
     const resultPath = join(root, "benchmark/results/fixture.json");
     const first = JSON.parse(await readFile(resultPath, "utf8"));
+    assert.equal(first.evaluationStartMs, 5000);
+    assert.equal(first.evaluationEndMs, 10001);
     manifest[0].timingOptions = { tempoSmoothness: 20 };
     await writeFile(manifestPath, JSON.stringify(manifest));
-    await writeFile(osu, "[TimingPoints]\n10,500,4,2,1,100,1,0\n");
+    await writeFile(osu, `[TimingPoints]\n10,500,4,2,1,100,1,0\n${hitObjects}`);
     await run("fixture", "--regression-only");
     const second = JSON.parse(await readFile(resultPath, "utf8"));
     assert.deepEqual(second.probabilityCache, { key: cached.cache.key, hit: true });

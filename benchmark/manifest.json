@@ -108,5 +108,47 @@
     "osu": "./corpus/545156/Royal Blood - Loose Change (BOUYAAA) [$].osu",
     "onlineOffsetMs": 0,
     "allowedTempoScales": [1]
+  },
+  {
+    "id": "1052267",
+    "name": "ORDEN OGAN - Come With Me To The Other Side (feat. Liv Kristine) [Eternal Light]",
+    "tempoPattern": "sections",
+    "tempoScale": 1,
+    "audio": "./corpus/1052267/audio.mp3",
+    "osu": "./corpus/1052267/ORDEN OGAN - Come With Me To The Other Side (feat. Liv Kristine) (GazPriest) [Eternal Light].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "1588934",
+    "name": "The Beatles - Here Comes The Sun [Comfort]",
+    "tempoPattern": "continuous",
+    "tempoScale": 1,
+    "audio": "./corpus/1588934/audio.ogg",
+    "osu": "./corpus/1588934/The Beatles - Here Comes The Sun (stackerjoe) [Comfort].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [1]
+  },
+  {
+    "id": "1819703",
+    "name": "The Beatles - Yesterday [Insane]",
+    "tempoPattern": "continuous",
+    "tempoScale": 0.5,
+    "tempoPhase": 0,
+    "audio": "./corpus/1819703/audio.ogg",
+    "osu": "./corpus/1819703/The Beatles - Yesterday (sisig) [Insane].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1]
+  },
+  {
+    "id": "2519265",
+    "name": "The Beatles - In My Life (2023 Mix) [Remembrance]",
+    "tempoPattern": "continuous",
+    "tempoScale": 0.5,
+    "tempoPhase": 0,
+    "audio": "./corpus/2519265/audio.mp3",
+    "osu": "./corpus/2519265/The Beatles - In My Life (2023 Mix) (effyl) [Remembrance].osu",
+    "onlineOffsetMs": 0,
+    "allowedTempoScales": [0.5, 1]
   }
 ]

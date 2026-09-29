@@ -1,7 +1,7 @@
 {
   "mapsetId": "2470141",
   "name": "Beach Bunny - Prom Queen [I love you however you are]",
-  "pipelineVersion": "0.4.0",
+  "pipelineVersion": "0.4.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -213,9 +213,9 @@
     }
   ],
   "durationMs": 136569.22902494328,
-  "evaluationMarginMs": 5000,
-  "evaluationStartMs": 5000,
-  "evaluationEndMs": 131569.22902494328,
+  "evaluationWindow": "first-to-last-hit-object",
+  "evaluationStartMs": 5701,
+  "evaluationEndMs": 131018,
   "confidence": 0.45574668659253065,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
@@ -234,62 +234,62 @@
       "tempoPattern": "Continuously variable BPM",
       "matchedBeatCount": 236,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.7687296416938111,
-      "weightedF1": 0.4593438474611502,
+      "matchingF1": 0.7750410509031199,
+      "weightedF1": 0.4618243842253298,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.18892508143322476
+          "f1": 0.19047619047619047
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.36807817589576547
+          "f1": 0.37110016420361247
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.495114006514658
+          "f1": 0.49917898193760263
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.6286644951140065
+          "f1": 0.6338259441707718
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.6970684039087948
+          "f1": 0.7027914614121511
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.742671009771987
+          "f1": 0.7487684729064039
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.7752442996742671
+          "f1": 0.7783251231527094
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.8078175895765473
+          "f1": 0.8045977011494253
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.8273615635179153
+          "f1": 0.8243021346469622
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.8338762214983714
+          "f1": 0.8308702791461412
         }
       ],
-      "symmetricMeanNearestErrorMs": 25.659126998690795,
-      "detectedBeatCount": 308,
+      "symmetricMeanNearestErrorMs": 26.308776476520425,
+      "detectedBeatCount": 305,
       "timingPointCount": 32
     },
     {
@@ -298,62 +298,62 @@
       "tempoPattern": "Continuously variable BPM",
       "matchedBeatCount": 276,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.6026200873362445,
-      "weightedF1": 0.36323435186176717,
+      "matchingF1": 0.6079295154185022,
+      "weightedF1": 0.36585392784306897,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.15065502183406113
+          "f1": 0.15198237885462554
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.29694323144104806
+          "f1": 0.29955947136563876
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.4104803493449782
+          "f1": 0.41409691629955947
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.4912663755458515
+          "f1": 0.4955947136563877
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.5524017467248908
+          "f1": 0.5572687224669604
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.5873362445414847
+          "f1": 0.5925110132158591
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.6069868995633187
+          "f1": 0.6123348017621145
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.6222707423580786
+          "f1": 0.6233480176211453
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.6244541484716157
+          "f1": 0.6255506607929515
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.62882096069869
+          "f1": 0.6277533039647577
         }
       ],
-      "symmetricMeanNearestErrorMs": 57.489717917512934,
-      "detectedBeatCount": 610,
+      "symmetricMeanNearestErrorMs": 57.703212626146325,
+      "detectedBeatCount": 604,
       "timingPointCount": 46
     },
     {
@@ -362,126 +362,126 @@
       "tempoPattern": "Continuously variable BPM",
       "matchedBeatCount": 106,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.4608695652173913,
-      "weightedF1": 0.2726359689685032,
+      "matchingF1": 0.4638949671772429,
+      "weightedF1": 0.2739234956866305,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.11304347826086956
+          "f1": 0.1137855579868709
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.20869565217391303
+          "f1": 0.2100656455142232
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.30434782608695654
+          "f1": 0.3063457330415755
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.3652173913043478
+          "f1": 0.3676148796498906
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.41304347826086957
+          "f1": 0.41575492341356673
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.43043478260869567
+          "f1": 0.43326039387308535
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.46956521739130436
+          "f1": 0.4726477024070022
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.49130434782608695
+          "f1": 0.49015317286652077
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.5
+          "f1": 0.4989059080962801
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.5
+          "f1": 0.4989059080962801
         }
       ],
-      "symmetricMeanNearestErrorMs": 121.2683884110985,
-      "detectedBeatCount": 154,
+      "symmetricMeanNearestErrorMs": 121.23484998792833,
+      "detectedBeatCount": 153,
       "timingPointCount": 20
     },
     {
       "tempoScale": 0.5,
       "phase": 0,
       "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 105,
+      "matchedBeatCount": 104,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.45652173913043476,
-      "weightedF1": 0.2718283724957735,
+      "matchingF1": 0.45614035087719296,
+      "weightedF1": 0.2715697250170543,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.11739130434782609
+          "f1": 0.11842105263157894
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.2217391304347826
+          "f1": 0.2236842105263158
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.2956521739130435
+          "f1": 0.29385964912280704
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.34782608695652173
+          "f1": 0.34649122807017546
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.391304347826087
+          "f1": 0.39035087719298245
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.4260869565217391
+          "f1": 0.42543859649122806
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.4608695652173913
+          "f1": 0.4605263157894737
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.48695652173913045
+          "f1": 0.4824561403508772
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.5
+          "f1": 0.4956140350877193
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.508695652173913
+          "f1": 0.5043859649122807
         }
       ],
-      "symmetricMeanNearestErrorMs": 119.24861215394566,
-      "detectedBeatCount": 154,
+      "symmetricMeanNearestErrorMs": 120.70914794546454,
+      "detectedBeatCount": 152,
       "timingPointCount": 22
     }
   ],
@@ -848,7 +848,6 @@
     }
   ],
   "referenceBeatsMs": [
-    5266.347826086956,
     5701,
     6129.571428571429,
     6558.142857142858,
@@ -1152,8 +1151,7 @@
     129776.4827586207,
     130190.27586206897,
     130604.06896551725,
-    131017.86206896552,
-    131431.6551724138
+    131017.86206896552
   ],
   "rawDetectedBeatsMs": [
     930,
@@ -2226,7 +2224,6 @@
   ],
   "interpolatedBeatCount": 43,
   "detectedBeatsMs": [
-    5289.1,
     5725,
     6148.36,
     6571.72,
@@ -2531,12 +2528,9 @@
     129377.16,
     129792.4,
     130207.64,
-    130622.88,
-    131038.12,
-    131453.36
+    130622.88
   ],
   "nearestReferenceErrorsMs": [
-    22.752173913044317,
     24,
     18.78857142857032,
     13.577142857142462,
@@ -2841,17 +2835,15 @@
     14.470344827583176,
     15.917241379298503,
     17.36413793102838,
-    18.81103448275826,
-    20.257931034473586,
-    21.704827586188912
+    18.81103448275826
   ],
   "metrics": {
-    "medianAbsoluteErrorMs": 9.220241343122325,
+    "medianAbsoluteErrorMs": 9.16746987951774,
     "percentile95AbsoluteErrorMs": 152.27345724907354,
-    "meanErrorMs": 2.4013033681727545,
-    "within5Ms": 0.30844155844155846,
-    "within10Ms": 0.551948051948052,
-    "within20Ms": 0.7662337662337663,
-    "weightedF1": 0.4593438474611502
+    "meanErrorMs": 2.2127426388967266,
+    "within5Ms": 0.3114754098360656,
+    "within10Ms": 0.5573770491803278,
+    "within20Ms": 0.7737704918032787,
+    "weightedF1": 0.4618243842253298
   }
 }

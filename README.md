@@ -132,8 +132,9 @@ weighted F1 across one-to-one beat-matching tolerances of 3, 6, ..., 30 ms,
 with normalized inverse-threshold weights of 1, 1/2, ..., 1/10. A beat can
 match at most once per threshold. F1@20ms remains available for comparison
 with older results. The benchmark also ranks alternative scales for diagnosis, but
-does not use that ranking to choose the reported export. Beats in the first and
-last five seconds of the audio are excluded from metrics.
+does not use that ranking to choose the reported export. Metrics cover the mapped
+span from the first hit object through the end of the last hit object, inclusive,
+after the manifest's online offset is applied. The fitter still processes the full audio.
 The command writes every candidate score plus detailed results under
 `benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated

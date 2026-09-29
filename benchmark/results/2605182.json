@@ -1,7 +1,7 @@
 {
   "mapsetId": "2605182",
   "name": "Guns N' Roses - Welcome To The Jungle [Appetite For Destruction]",
-  "pipelineVersion": "0.4.0",
+  "pipelineVersion": "0.4.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 48000,
   "detector": "senet-onnx",
@@ -525,9 +525,9 @@
     }
   ],
   "durationMs": 272052.9791666667,
-  "evaluationMarginMs": 5000,
-  "evaluationStartMs": 5000,
-  "evaluationEndMs": 267052.9791666667,
+  "evaluationWindow": "first-to-last-hit-object",
+  "evaluationStartMs": 1163,
+  "evaluationEndMs": 267213.17346665356,
   "confidence": 0.4751555718814246,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
@@ -544,61 +544,61 @@
       "tempoPattern": "Continuously variable BPM",
       "matchedBeatCount": 187,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.33724075743913434,
-      "weightedF1": 0.14814143349806713,
+      "matchingF1": 0.334525939177102,
+      "weightedF1": 0.14694888170783227,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.019837691614066726
+          "f1": 0.01967799642218247
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.05410279531109107
+          "f1": 0.05366726296958855
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.10640216411181244
+          "f1": 0.10554561717352415
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.16771866546438233
+          "f1": 0.16636851520572452
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.2254283137962128
+          "f1": 0.22361359570661896
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.2957619477006312
+          "f1": 0.29338103756708406
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.3678990081154193
+          "f1": 0.36493738819320215
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.4436429215509468
+          "f1": 0.4400715563506261
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.49594229035166815
+          "f1": 0.4919499105545617
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.521190261496844
+          "f1": 0.516994633273703
         }
       ],
-      "symmetricMeanNearestErrorMs": 89.1474621001172,
+      "symmetricMeanNearestErrorMs": 136.5062481508475,
       "detectedBeatCount": 560,
       "timingPointCount": 84
     }
@@ -2292,6 +2292,14 @@
     }
   ],
   "referenceBeatsMs": [
+    1163,
+    1672.554140127389,
+    2182.108280254778,
+    2691.662420382167,
+    3201,
+    3681,
+    4161,
+    4641,
     5077,
     5529.830188679245,
     5982.66037735849,
@@ -2840,7 +2848,8 @@
     265336.37996,
     265805.32829,
     266274.27662,
-    266743.22495
+    266743.22495,
+    267212.17328
   ],
   "rawDetectedBeatsMs": [
     9650,
@@ -6210,15 +6219,15 @@
     55.17171000002418,
     -31.276620000018738,
     -114.81495000002906,
-    270.59505000000354
+    -198.35327999998117
   ],
   "metrics": {
     "medianAbsoluteErrorMs": 28,
-    "percentile95AbsoluteErrorMs": 233.2399999999907,
-    "meanErrorMs": -3.4714332531757495,
+    "percentile95AbsoluteErrorMs": 231.0899999999965,
+    "meanErrorMs": -4.30884098531858,
     "within5Ms": 0.0375,
     "within10Ms": 0.125,
     "within20Ms": 0.3339285714285714,
-    "weightedF1": 0.14814143349806713
+    "weightedF1": 0.14694888170783227
   }
 }

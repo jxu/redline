@@ -1,7 +1,7 @@
 {
   "mapsetId": "13012",
   "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
-  "pipelineVersion": "0.4.0",
+  "pipelineVersion": "0.4.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -27,9 +27,9 @@
     }
   ],
   "durationMs": 94354.28571428571,
-  "evaluationMarginMs": 5000,
-  "evaluationStartMs": 5000,
-  "evaluationEndMs": 89354.28571428571,
+  "evaluationWindow": "first-to-last-hit-object",
+  "evaluationStartMs": 6779,
+  "evaluationEndMs": 94305,
   "confidence": 0.5335638513208919,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
@@ -46,10 +46,10 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 197,
+      "matchedBeatCount": 204,
       "matchingToleranceMs": 20,
       "matchingF1": 1,
-      "weightedF1": 0.38518916383608076,
+      "weightedF1": 0.3926177705874384,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
@@ -64,12 +64,12 @@
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.2233502538071066
+          "f1": 0.2696078431372549
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.8324873096446701
+          "f1": 0.8578431372549019
         },
         {
           "toleranceMs": 15,
@@ -102,146 +102,18 @@
           "f1": 1
         }
       ],
-      "symmetricMeanNearestErrorMs": 10.350151428523606,
-      "detectedBeatCount": 197,
-      "timingPointCount": 1
-    },
-    {
-      "tempoScale": 0.5,
-      "phase": 1,
-      "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 99,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.668918918918919,
-      "weightedF1": 0.2502215330084183,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.668918918918919
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.668918918918919
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 111.75219757067872,
-      "detectedBeatCount": 99,
-      "timingPointCount": 1
-    },
-    {
-      "tempoScale": 0.5,
-      "phase": 0,
-      "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 98,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.6644067796610169,
-      "weightedF1": 0.24853368359897945,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.6644067796610169
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.6644067796610169
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 112.898672545299,
-      "detectedBeatCount": 98,
+      "symmetricMeanNearestErrorMs": 10.162662142805893,
+      "detectedBeatCount": 204,
       "timingPointCount": 1
     },
     {
       "tempoScale": 2,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 197,
+      "matchedBeatCount": 204,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.6677966101694915,
-      "weightedF1": 0.2480656931792348,
+      "matchingF1": 0.6666666666666666,
+      "weightedF1": 0.25291222030066607,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
@@ -256,46 +128,174 @@
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.08135593220338982
+          "f1": 0.11437908496732026
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.5389830508474577
+          "f1": 0.5555555555555556
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.6677966101694915
+          "f1": 0.6666666666666666
         }
       ],
-      "symmetricMeanNearestErrorMs": 58.7758553980145,
-      "detectedBeatCount": 393,
+      "symmetricMeanNearestErrorMs": 58.83857295165636,
+      "detectedBeatCount": 408,
+      "timingPointCount": 1
+    },
+    {
+      "tempoScale": 0.5,
+      "phase": 1,
+      "tempoPattern": "Fixed BPM",
+      "matchedBeatCount": 102,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.6666666666666666,
+      "weightedF1": 0.24937903626428218,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 112.2824078571168,
+      "detectedBeatCount": 102,
+      "timingPointCount": 1
+    },
+    {
+      "tempoScale": 0.5,
+      "phase": 0,
+      "tempoPattern": "Fixed BPM",
+      "matchedBeatCount": 102,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.6666666666666666,
+      "weightedF1": 0.24937903626428218,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.6666666666666666
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6666666666666666
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 112.37696515403599,
+      "detectedBeatCount": 102,
       "timingPointCount": 1
     }
   ],
@@ -308,10 +308,6 @@
     }
   ],
   "referenceBeatsMs": [
-    5172.571428571432,
-    5601.1428571428605,
-    6029.71428571429,
-    6458.285714285719,
     6886.857142857149,
     7315.428571428577,
     7744.000000000006,
@@ -504,7 +500,18 @@
     87886.85714285723,
     88315.42857142867,
     88744.00000000009,
-    89172.57142857152
+    89172.57142857152,
+    89601.14285714294,
+    90029.71428571438,
+    90458.28571428581,
+    90886.85714285723,
+    91315.42857142867,
+    91744.00000000009,
+    92172.57142857152,
+    92601.14285714296,
+    93029.71428571438,
+    93458.28571428581,
+    93886.85714285723
   ],
   "rawDetectedBeatsMs": [
     1770,
@@ -1210,10 +1217,6 @@
   ],
   "interpolatedBeatCount": 8,
   "detectedBeatsMs": [
-    5185.37144,
-    5613.917869999999,
-    6042.4643,
-    6471.01073,
     6899.55716,
     7328.10359,
     7756.65002,
@@ -1406,13 +1409,20 @@
     87894.83243,
     88323.37886,
     88751.92529,
-    89180.47172
+    89180.47172,
+    89609.01815,
+    90037.56457999999,
+    90466.11101,
+    90894.65744,
+    91323.20387,
+    91751.7503,
+    92180.29673,
+    92608.84316,
+    93037.38958999999,
+    93465.93602,
+    93894.48245
   ],
   "nearestReferenceErrorsMs": [
-    12.800011428567814,
-    12.77501285713879,
-    12.750014285709767,
-    12.725015714280744,
     12.70001714285172,
     12.675018571422697,
     12.650019999993674,
@@ -1605,15 +1615,26 @@
     7.9752871427626815,
     7.95028857133002,
     7.925289999911911,
-    7.90029142847925
+    7.90029142847925,
+    7.87529285706114,
+    7.850294285613927,
+    7.825295714181266,
+    7.800297142763156,
+    7.775298571330495,
+    7.750299999912386,
+    7.725301428479725,
+    7.700302857047063,
+    7.675304285614402,
+    7.650305714181741,
+    7.625307142763631
   ],
   "metrics": {
-    "medianAbsoluteErrorMs": 10.350151428523532,
-    "percentile95AbsoluteErrorMs": 12.575024285706604,
-    "meanErrorMs": 10.350151428523606,
+    "medianAbsoluteErrorMs": 10.150162857091345,
+    "percentile95AbsoluteErrorMs": 12.450031428561488,
+    "meanErrorMs": 10.162662142805893,
     "within5Ms": 0,
-    "within10Ms": 0.4263959390862944,
+    "within10Ms": 0.46568627450980393,
     "within20Ms": 1,
-    "weightedF1": 0.38518916383608076
+    "weightedF1": 0.3926177705874384
   }
 }

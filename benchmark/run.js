@@ -7,13 +7,14 @@ import { interpolateBeatGaps } from "../beat-interpolation.js";
 import { beatsFromProbabilities } from "../beat-postprocessing.js";
 import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
 import { createProbabilityCache } from "./probability-cache.js";
-import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
+import {
+    generateBeatGrid, nearestBeat, parseOsuHitObjectSpan, parseOsuTimingPoints,
+} from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.4.0";
-const evaluationMarginMs = 5000;
+const pipelineVersion = "0.4.1";
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((arg) => arg.startsWith("--")));
@@ -68,12 +69,17 @@ async function runCase(benchmarkCase) {
     const osuText = await readFile(osuPath, "utf8");
 
     const timingPoints = parseOsuTimingPoints(osuText);
+    const hitObjectSpan = parseOsuHitObjectSpan(osuText);
     const onlineOffsetMs = benchmarkCase.onlineOffsetMs ?? 0;
     const fullReferenceBeatsMs = generateBeatGrid(timingPoints, decoded.durationMs)
         .map((beatMs) => beatMs + onlineOffsetMs)
         .filter((beatMs) => beatMs >= 0 && beatMs < decoded.durationMs);
-    const evaluationStartMs = evaluationMarginMs;
-    const evaluationEndMs = decoded.durationMs - evaluationMarginMs;
+    const evaluationStartMs = Math.max(0, hitObjectSpan.firstMs + onlineOffsetMs);
+    const evaluationEndMs = Math.min(decoded.durationMs,
+        hitObjectSpan.lastMs + onlineOffsetMs + 1);
+    if (evaluationStartMs >= evaluationEndMs) {
+        throw new Error(`No audio between the first and last hit object for ${benchmarkCase.id}`);
+    }
     const referenceBeatsMs = fullReferenceBeatsMs.filter(
         (beatMs) => beatMs >= evaluationStartMs && beatMs < evaluationEndMs
     );
@@ -125,7 +131,7 @@ async function runCase(benchmarkCase) {
         osuTimingPoints: selectedScale.osuTimingPoints,
         exportedTimingPoints: selectedScale.exportedTimingPoints,
         durationMs: decoded.durationMs,
-        evaluationMarginMs,
+        evaluationWindow: "first-to-last-hit-object",
         evaluationStartMs,
         evaluationEndMs,
         confidence: detection.confidence,

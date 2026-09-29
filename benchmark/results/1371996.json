@@ -1,7 +1,7 @@
 {
   "mapsetId": "1371996",
   "name": "umu. - Ai no Sukima [Howling]",
-  "pipelineVersion": "0.4.0",
+  "pipelineVersion": "0.4.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -27,9 +27,9 @@
     }
   ],
   "durationMs": 219057.05215419503,
-  "evaluationMarginMs": 5000,
-  "evaluationStartMs": 5000,
-  "evaluationEndMs": 214057.05215419503,
+  "evaluationWindow": "first-to-last-hit-object",
+  "evaluationStartMs": 1060,
+  "evaluationEndMs": 216943,
   "confidence": 0.44883608044731416,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
@@ -46,64 +46,64 @@
       "tempoScale": 2,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 186,
+      "matchedBeatCount": 197,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.1768901569186876,
-      "weightedF1": 0.09094214025640499,
+      "matchingF1": 0.18173431734317344,
+      "weightedF1": 0.09344364782219831,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.02757964812173086
+          "f1": 0.02859778597785978
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.05230622919638612
+          "f1": 0.0544280442804428
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.07798383262006657
+          "f1": 0.08025830258302583
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.10746552543984783
+          "f1": 0.11070110701107011
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.1331431288635283
+          "f1": 0.13653136531365315
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.15882073228720875
+          "f1": 0.16328413284132842
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.1873514027579648
+          "f1": 0.1918819188191882
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.21398002853067047
+          "f1": 0.21863468634686348
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.2396576319543509
+          "f1": 0.2444649446494465
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.2653352353780314
+          "f1": 0.2702952029520295
         }
       ],
-      "symmetricMeanNearestErrorMs": 55.67913847131936,
-      "detectedBeatCount": 1392,
+      "symmetricMeanNearestErrorMs": 56.32732356265076,
+      "detectedBeatCount": 1433,
       "timingPointCount": 1
     },
     {
@@ -113,7 +113,7 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
-      "weightedF1": 0.034141715214740555,
+      "weightedF1": 0.03407189575622371,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
@@ -163,11 +163,11 @@
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 1
+          "f1": 0.9979550102249489
         }
       ],
-      "symmetricMeanNearestErrorMs": 27.64467529394919,
-      "detectedBeatCount": 711,
+      "symmetricMeanNearestErrorMs": 28.40811749883224,
+      "detectedBeatCount": 732,
       "timingPointCount": 1
     },
     {
@@ -177,7 +177,7 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
-      "weightedF1": 0.022782475382282355,
+      "weightedF1": 0.0226991240119801,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
@@ -227,11 +227,11 @@
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.6672914714151827
+          "f1": 0.6648501362397821
         }
       ],
-      "symmetricMeanNearestErrorMs": 87.19592855084196,
-      "detectedBeatCount": 356,
+      "symmetricMeanNearestErrorMs": 88.00042522801152,
+      "detectedBeatCount": 366,
       "timingPointCount": 1
     },
     {
@@ -241,7 +241,7 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
-      "weightedF1": 0.02273979155953639,
+      "weightedF1": 0.022657683733418733,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
@@ -291,11 +291,11 @@
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.6660412757973734
+          "f1": 0.6636363636363637
         }
       ],
-      "symmetricMeanNearestErrorMs": 87.82737523984456,
-      "detectedBeatCount": 355,
+      "symmetricMeanNearestErrorMs": 90.30161846730424,
+      "detectedBeatCount": 365,
       "timingPointCount": 1
     }
   ],
@@ -308,6 +308,20 @@
     }
   ],
   "referenceBeatsMs": [
+    1060,
+    1354.1176470588239,
+    1648.235294117648,
+    1942.352941176472,
+    2236.470588235296,
+    2530.58823529412,
+    2824.705882352944,
+    3118.823529411768,
+    3412.941176470592,
+    3707.058823529416,
+    4001.1764705882397,
+    4295.294117647064,
+    4589.411764705888,
+    4883.529411764712,
     5177.647058823536,
     5471.7647058823595,
     5765.882352941184,
@@ -1018,7 +1032,17 @@
     213118.8235294121,
     213412.94117647092,
     213707.05882352975,
-    214001.17647058857
+    214001.17647058857,
+    214295.2941176474,
+    214589.41176470622,
+    214883.52941176505,
+    215177.64705882387,
+    215471.7647058827,
+    215765.88235294152,
+    216060.00000000035,
+    216354.11764705917,
+    216648.235294118,
+    216942.3529411768
   ],
   "rawDetectedBeatsMs": [
     1680,
@@ -3073,6 +3097,18 @@
   ],
   "interpolatedBeatCount": 73,
   "detectedBeatsMs": [
+    1676,
+    1970.11732,
+    2264.23464,
+    2558.35196,
+    2852.4692800000003,
+    3146.5866,
+    3440.70392,
+    3734.82124,
+    4028.93856,
+    4323.05588,
+    4617.1732,
+    4911.2905200000005,
     5205.40784,
     5499.52516,
     5793.64248,
@@ -3783,9 +3819,30 @@
     213146.35308,
     213440.4704,
     213734.58772,
-    214028.70504
+    214028.70504,
+    214322.82236,
+    214616.93968,
+    214911.057,
+    215205.17432,
+    215499.29164,
+    215793.40896,
+    216087.52628,
+    216381.6436,
+    216675.76092
   ],
   "nearestReferenceErrorsMs": [
+    27.76470588235202,
+    27.764378823527977,
+    27.764051764704163,
+    27.763724705880122,
+    27.76339764705608,
+    27.76307058823204,
+    27.762743529408,
+    27.762416470584412,
+    27.76208941176037,
+    27.761762352935875,
+    27.761435294111834,
+    27.761108235288702,
     27.76078117646375,
     27.76045411764062,
     27.76012705881658,
@@ -4496,15 +4553,24 @@
     27.52955058790394,
     27.529223529068986,
     27.528896470263135,
-    27.52856941142818
+    27.52856941142818,
+    27.528242352593224,
+    27.527915293787373,
+    27.527588234952418,
+    27.527261176117463,
+    27.52693411731161,
+    27.526607058476657,
+    27.5262799996417,
+    27.52595294083585,
+    27.525625882000895
   ],
   "metrics": {
-    "medianAbsoluteErrorMs": 27.644675293951877,
-    "percentile95AbsoluteErrorMs": 27.74933411762504,
-    "meanErrorMs": 27.64467529394919,
+    "medianAbsoluteErrorMs": 27.64500235277228,
+    "percentile95AbsoluteErrorMs": 27.752931764687673,
+    "meanErrorMs": 27.645165882185015,
     "within5Ms": 0,
     "within10Ms": 0,
     "within20Ms": 0,
-    "weightedF1": 0.034141715214740555
+    "weightedF1": 0.03407189575622371
   }
 }
