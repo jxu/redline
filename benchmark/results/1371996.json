@@ -1,14 +1,14 @@
 {
   "mapsetId": "1371996",
   "name": "umu. - Ai no Sukima [Howling]",
-  "pipelineVersion": "0.1.1",
+  "pipelineVersion": "0.2.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
     "key": "a6b70b14a8760ec49d6576bb3f8551cf39d46f40bcf3f655544fd5fa82c3c0ca",
-    "hit": false
+    "hit": true
   },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
@@ -81,9 +81,9 @@
       "tempoPattern": "Fixed BPM",
       "matchedBeatCount": 490,
       "matchingToleranceMs": 51.470588235294414,
-      "matchingF1": 0.4655581947743468,
-      "symmetricMeanNearestErrorMs": 55.467175210713364,
-      "detectedBeatCount": 1394,
+      "matchingF1": 0.466000951022349,
+      "symmetricMeanNearestErrorMs": 55.44007932227363,
+      "detectedBeatCount": 1392,
       "timingPointCount": 1
     }
   ],

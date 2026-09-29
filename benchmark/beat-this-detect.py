@@ -1,4 +1,4 @@
-"""Run a Beat This! checkpoint with its native minimal beat postprocessor."""
+"""Run Beat This! and retain its native beat times and frame probabilities."""
 
 import hashlib
 import json
@@ -30,7 +30,10 @@ def main(audio_path):
     # for the Node benchmark runner.
     with redirect_stdout(sys.stderr):
         tracker = Audio2Beats(checkpoint_path=checkpoint, device="cpu", dbn=False)
-    beats, downbeats = tracker(samples, 22050)
+    beat_logits, downbeat_logits = tracker.spect2frames(
+        tracker.signal2spect(samples, 22050)
+    )
+    beats, downbeats = tracker.frames2beats(beat_logits, downbeat_logits)
     checkpoint_sha256 = None
     checkpoint_file = Path(checkpoint)
     if not checkpoint_file.is_file() and checkpoint in ("small0", "final0"):
@@ -46,6 +49,8 @@ def main(audio_path):
     print(json.dumps({
         "ticks": [float(beat) for beat in beats],
         "downbeats": [float(beat) for beat in downbeats],
+        "beatProbabilities": beat_logits.sigmoid().tolist(),
+        "probabilityFrameMs": 20,
         "durationMs": len(samples) / 22.05,
         "checkpoint": os.path.basename(checkpoint),
         "checkpointSha256": checkpoint_sha256,

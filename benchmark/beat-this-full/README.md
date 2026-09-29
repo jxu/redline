@@ -1,14 +1,15 @@
 # Beat This! final0 comparison
 
-This experiment runs the official Beat This! `final0` checkpoint through the
-same Redline benchmark path as `small0` and SENet: beat filtering, gap
-interpolation, mapper-supplied tempo scale and pattern, fitted tempo curve,
-osu! timing-point export, and exported-grid scoring. Beat This! 1.1.0 uses
-its native minimal postprocessor without a DBN. FFmpeg decodes to 22,050 Hz
-mono, and the model produces beats on a 50-fps frame grid. The saved SENet
-results provide the same reference grid, evaluation window, and duration for
-all three detectors. Reference `.osu` timing never enters inference or chooses
-the reported export's tempo scale.
+This experiment runs the official Beat This! `final0` checkpoint through
+Redline's beat filtering, gap interpolation, mapper-supplied tempo scale and
+pattern, fitted tempo curve, osu! timing-point export, and exported-grid
+scoring. Beat This! 1.1.0 uses its native minimal postprocessor without a DBN.
+FFmpeg decodes to 22,050 Hz mono, and the model produces beats and beat
+probabilities at 50 fps. The fitter now uses the full beat-probability curve
+at its native 20 ms frame step. The saved SENet results use the same fitter
+version and provide the same reference grid, evaluation window, and duration.
+Reference `.osu` timing never enters inference or chooses the reported export's
+tempo scale.
 
 The eight variable-BPM songs are the primary comparison. The Beatles and The
 Who are representative live recordings; Disconnected Hardkore is a particularly
@@ -16,35 +17,29 @@ hard stress case. F1 matches exported beats one-to-one within 17.5% of the
 median reference beat interval. Median error is the nearest-reference distance
 for each exported beat, so a higher F1 can coexist with less precise placement.
 
-| Mapset | Pattern | final0 F1 | small0 F1 | SENet F1 | final0 median error (ms) | small0 median error (ms) | SENet median error (ms) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1670652 Beatles | Continuous | 0.968 | 0.986 | 0.916 | 26.4 | 34.2 | 10.8 |
-| 2470141 Prom Queen | Continuous | 0.961 | 0.949 | 0.883 | 16.6 | 25.4 | 8.7 |
-| 2302704 Won't Get Fooled Again | Continuous | 0.915 | 0.849 | 0.725 | 12.9 | 25.7 | 20.7 |
-| 2605182 Welcome to the Jungle | Continuous | 0.964 | 0.896 | 0.698 | 26.8 | 35.2 | 36.1 |
-| 30485 Disconnected Hardkore | Sections | 0.108 | 0.164 | 0.745 | 81.4 | 81.9 | 14.0 |
-| 65923 Roaming Legendary Pokemon | Sections | 0.984 | 0.960 | 0.949 | 31.4 | 34.9 | 53.7 |
-| 2521355 Anthem | Sections | 0.518 | 0.555 | 0.437 | 43.7 | 42.2 | 61.7 |
-| 545156 Loose Change | Sections | 0.733 | 0.837 | 0.951 | 36.4 | 23.1 | 5.2 |
+| Mapset | Pattern | final0 F1 before → after | final0 median error (ms) before → after | SENet F1 after | SENet median error (ms) after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1670652 Beatles | Continuous | 0.968 → 0.971 | 26.4 → 25.0 | 0.919 | 11.6 |
+| 2470141 Prom Queen | Continuous | 0.961 → 0.961 | 16.6 → 15.1 | 0.883 | 10.6 |
+| 2302704 Won't Get Fooled Again | Continuous | 0.915 → 0.916 | 12.9 → 13.0 | 0.742 | 17.7 |
+| 2605182 Welcome to the Jungle | Continuous | 0.964 → 0.966 | 26.8 → 29.0 | 0.683 | 29.3 |
+| 30485 Disconnected Hardkore | Sections | 0.108 → 0.093 | 81.4 → 84.4 | 0.724 | 14.0 |
+| 65923 Roaming Legendary Pokemon | Sections | 0.984 → 0.995 | 31.4 → 34.0 | 0.963 | 48.7 |
+| 2521355 Anthem | Sections | 0.518 → 0.520 | 43.7 → 42.5 | 0.464 | 58.0 |
+| 545156 Loose Change | Sections | 0.733 → 0.700 | 36.4 → 37.2 | 0.939 | 3.9 |
 
-On the four continuously variable tracks, `final0` improves mean F1 to
-**0.952**, versus **0.920** for `small0` and **0.805** for SENet. Mean per-song
-median error is **20.7 ms**, versus **30.1 ms** and **19.0 ms** respectively.
-The Who is the clearest gain: `final0` reaches 0.915 F1 and 12.9 ms median
-error, compared with 0.849 / 25.7 ms for `small0` and 0.725 / 20.7 ms for
-SENet. On the Beatles track, `small0` has slightly higher F1, but `final0`
-improves timing precision; SENet remains more precise there.
+For the four continuously variable songs, final0's mean F1 changes only from
+**0.952 to 0.953**, and mean per-song median error from **20.7 to 20.5 ms**.
+The Beatles improves slightly; The Who is effectively unchanged. Fixed-section
+mean F1 declines from **0.586 to 0.577**, with particularly poor results on
+Disconnected Hardkore and Loose Change. This does not establish a useful
+benefit from probability fitting for final0. It leaves the larger model's
+stronger pulse tracking on live music and SENet's closer timing on the Beatles
+as separate observations.
 
-On the four fixed-section songs, SENet leads in mean F1 (**0.770**) over
-`small0` (**0.629**) and `final0` (**0.586**). `final0` is worse on the
-Disconnected Hardkore stress case (0.108 F1), and it also loses ground on
-Loose Change. Across all eight variable songs, mean F1 is **0.769** for
-`final0`, **0.774** for `small0`, and **0.788** for SENet. These aggregates
-should be read with the per-song differences, especially the live tracks.
-
-Fixed-BPM results are a bonus: all three models score 1.000 F1 on Tornado and
-Ai no Sukima, while `final0` scores 0.751 on So Deep versus 1.000 for both
-`small0` and SENet. They do not determine the recommendation for variable BPM.
+The older `small0` result files still use pipeline version 0.1.1 and are not
+included in this fitted-probability comparison. Fixed-BPM songs remain a bonus:
+final0 reaches 1.000 F1 on Tornado and Ai no Sukima, but only 0.746 on So Deep.
 
 On this CPU machine with four PyTorch threads, detector-only runs including
 Python startup and decoding took 9.68 seconds for `final0` versus 6.77 seconds

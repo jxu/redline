@@ -1,3 +1,5 @@
+import { MODEL_HOP_LENGTH, MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
+
 export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     toleranceMs: 5,
     windowSize: 4,
@@ -29,7 +31,39 @@ function selectPulse(gridTicks, observedTicks) {
     return selected;
 }
 
-function fitTempoCurve(ticks, smoothness, boundaries = []) {
+function probabilityObservations(ticks, estimates, probabilities, frameMs) {
+    return estimates.map((estimate, index) => {
+        const originalMs = ticks[index] * 1000;
+        const estimateMs = estimate * 1000;
+        const previousGap = index ? (ticks[index] - ticks[index - 1]) * 1000 : Infinity;
+        const nextGap = index + 1 < ticks.length
+            ? (ticks[index + 1] - ticks[index]) * 1000 : Infinity;
+        // A local search avoids stealing a neighboring beat or subdivision.
+        const radiusMs = Math.min(80, 0.2 * Math.min(previousGap, nextGap));
+        const first = Math.max(0, Math.ceil((estimateMs - radiusMs) / frameMs));
+        const last = Math.min(probabilities.length - 1,
+            Math.floor((estimateMs + radiusMs) / frameMs));
+        let mass = 0;
+        let moment = 0;
+        let kernelTotal = 0;
+        for (let frame = first; frame <= last; frame++) {
+            const timeMs = frame * frameMs;
+            const distance = timeMs - estimateMs;
+            const kernel = Math.exp(-0.5 * (distance / 25) ** 2);
+            const evidence = probabilities[frame] ** 2 * kernel;
+            mass += evidence;
+            moment += evidence * timeMs;
+            kernelTotal += kernel;
+        }
+        // Squaring the response favors a clear hit over a broad low plateau.
+        const evidenceWeight = kernelTotal ? mass / kernelTotal : 0;
+        return { evidenceWeight, evidenceMs: mass ? moment / mass : originalMs,
+            originalMs };
+    });
+}
+
+function fitTempoCurve(ticks, smoothness, boundaries = [], probabilities = null,
+    frameMs = 1000 * MODEL_HOP_LENGTH / MODEL_SAMPLE_RATE) {
     if (ticks.length < 3) return ticks;
     const observed = ticks.map((tick) => tick * 1000);
     const count = observed.length;
@@ -39,8 +73,8 @@ function fitTempoCurve(ticks, smoothness, boundaries = []) {
             penalties[index] = 0;
         }
     }
-    const applySystem = (values) => {
-        const result = [...values];
+    const applySystem = (values, weights) => {
+        const result = values.map((value, index) => value * weights[index]);
         for (let index = 1; index < count - 1; index++) {
             const curvature = values[index - 1] - 2 * values[index] + values[index + 1];
             result[index - 1] += penalties[index] * curvature;
@@ -50,24 +84,48 @@ function fitTempoCurve(ticks, smoothness, boundaries = []) {
         return result;
     };
 
-    // Minimize squared beat-time error plus squared changes in beat spacing.
-    // The latter penalizes abrupt tempo spikes without capping BPM or jumps.
+    // Alternate between aligning each beat to the nearby probability curve
+    // and penalizing changes in beat spacing. With no model output, retain the
+    // original squared-error fit against the picked beat times.
     let fitted = [...observed];
-    let product = applySystem(fitted);
-    let residual = observed.map((time, index) => time - product[index]);
-    let direction = [...residual];
-    let residualSize = residual.reduce((sum, value) => sum + value * value, 0);
-    for (let iteration = 0; iteration < Math.min(256, count) && residualSize > 1e-8; iteration++) {
-        product = applySystem(direction);
-        const denominator = direction.reduce((sum, value, index) =>
-            sum + value * product[index], 0);
-        const step = residualSize / denominator;
-        fitted = fitted.map((time, index) => time + step * direction[index]);
-        residual = residual.map((value, index) => value - step * product[index]);
-        const nextSize = residual.reduce((sum, value) => sum + value * value, 0);
-        const ratio = nextSize / residualSize;
-        direction = residual.map((value, index) => value + ratio * direction[index]);
-        residualSize = nextSize;
+    for (let pass = 0; pass < (probabilities?.length ? 3 : 1); pass++) {
+        let observations;
+        if (probabilities?.length) {
+            const evidence = probabilityObservations(ticks,
+                fitted.map((time) => time / 1000), probabilities, frameMs);
+            const averageWeight = evidence.reduce((sum, beat) =>
+                sum + beat.evidenceWeight, 0) / count;
+            observations = evidence.map(({ evidenceWeight, evidenceMs, originalMs }) => {
+                // Keep the global smoothing setting comparable to the old fit;
+                // confidence changes the relative influence of individual beats.
+                const signalWeight = averageWeight
+                    ? Math.min(3, evidenceWeight / averageWeight) : 0;
+                const anchorWeight = averageWeight ? 0.15 : 1;
+                const weight = anchorWeight + signalWeight;
+                return { weight, targetMs:
+                    (anchorWeight * originalMs + signalWeight * evidenceMs) / weight };
+            });
+        } else {
+            observations = observed.map((targetMs) => ({ targetMs, weight: 1 }));
+        }
+        const weights = observations.map(({ weight }) => weight);
+        const right = observations.map(({ targetMs, weight }) => targetMs * weight);
+        let product = applySystem(fitted, weights);
+        let residual = right.map((value, index) => value - product[index]);
+        let direction = [...residual];
+        let residualSize = residual.reduce((sum, value) => sum + value * value, 0);
+        for (let iteration = 0; iteration < Math.min(256, count) && residualSize > 1e-8; iteration++) {
+            product = applySystem(direction, weights);
+            const denominator = direction.reduce((sum, value, index) =>
+                sum + value * product[index], 0);
+            const step = residualSize / denominator;
+            fitted = fitted.map((time, index) => time + step * direction[index]);
+            residual = residual.map((value, index) => value - step * product[index]);
+            const nextSize = residual.reduce((sum, value) => sum + value * value, 0);
+            const ratio = nextSize / residualSize;
+            direction = residual.map((value, index) => value + ratio * direction[index]);
+            residualSize = nextSize;
+        }
     }
     const curve = fitted.map((time) => time / 1000);
     return curve.every((tick, index) => index === 0 || tick > curve[index - 1])
@@ -294,7 +352,7 @@ export function calculateTiming(ticks, options = {}) {
         const smoothness = options.tempoSmoothness ?? DEFAULT_TIMING_OPTIONS.tempoSmoothness;
         fittedTicks = fitTempoCurve(pulseGrid,
             options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
-            boundaries);
+            boundaries, options.probabilities, options.probabilityFrameMs);
         fitted = fitTimingGrid(fittedTicks, {
             ...options,
             observedTicks: options.tempoPattern === "fixed" ? observedTicks : fittedTicks,

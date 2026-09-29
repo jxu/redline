@@ -78,6 +78,8 @@ async function runCase(benchmarkCase) {
         {
             durationMs: baseline.durationMs,
             observedBeatsMs: filteredTicks.map((tick) => tick * 1000),
+            probabilities: Float32Array.from(detection.beatProbabilities),
+            probabilityFrameMs: detection.probabilityFrameMs,
             timingOptions,
             startMs: baseline.evaluationStartMs,
             endMs: baseline.evaluationEndMs,
@@ -94,7 +96,7 @@ async function runCase(benchmarkCase) {
     return {
         mapsetId: benchmarkCase.id,
         name: benchmarkCase.name,
-        pipelineVersion: baseline.pipelineVersion,
+        pipelineVersion: "0.2.0",
         decoder: "ffmpeg",
         sourceSampleRate: baseline.sourceSampleRate,
         detector: `beat-this-${modelName}-minimal`,
@@ -106,6 +108,7 @@ async function runCase(benchmarkCase) {
         inferenceThreads: detection.threads,
         analysisSampleRate: 22050,
         modelFrameRate: 50,
+        probabilityFrameMs: detection.probabilityFrameMs,
         evaluationGrid: "exported-timing-points",
         timingOptions,
         osuTimingPoints: selectedScale.osuTimingPoints,

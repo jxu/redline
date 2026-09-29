@@ -1,7 +1,7 @@
 {
   "mapsetId": "236292",
   "name": "Agressor Bunx - Tornado (Original Mix) [Insane]",
-  "pipelineVersion": "0.1.1",
+  "pipelineVersion": "0.2.0",
   "decoder": "ffmpeg",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -13,6 +13,7 @@
   "inferenceThreads": 4,
   "analysisSampleRate": 22050,
   "modelFrameRate": 50,
+  "probabilityFrameMs": 20,
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
     "toleranceMs": 5,

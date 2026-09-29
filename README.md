@@ -132,7 +132,8 @@ exported BPM as step lines over the same song-time axis.
 
 The experimental Beat This! runner replaces SENet detections with the official
 `small0` or `final0` checkpoint's beats. It uses Beat This! 1.1.0 with its
-minimal postprocessor (no DBN), then applies the same
+minimal postprocessor (no DBN), and now passes its 50-fps beat probabilities
+to the tempo fitter at their native 20 ms frame step. It then applies the same
 Redline filtering, interpolation, mapper-selected tempo scale and pattern,
 timing regression, export, and scoring as above. Install Python 3.10, FFmpeg,
 and a CPU PyTorch environment, then run:
@@ -145,7 +146,9 @@ BEAT_THIS_PYTHON=.venv-beat-this/bin/python npm run benchmark:beat-this
 BEAT_THIS_PYTHON=.venv-beat-this/bin/python npm run benchmark:beat-this-full
 ```
 
-The first command runs `small0`; the second runs `final0`. Beat This! downloads
+The first command runs `small0`; the second runs `final0`. The checked-in
+`small0` results still use the earlier 0.1.1 fitter; the `final0` and SENet
+results use the 0.2.0 probability-aware fitter. Beat This! downloads
 each checkpoint on first use. Set `BEAT_THIS_CHECKPOINT` to a local copy of
 the corresponding checkpoint to use a specific file. The SHA-256 values used
 here are `6074be2c4d490c5f6101fcc374a1ec72ae93456e23bb6019783b849f5dc7d47b`
