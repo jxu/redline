@@ -98,12 +98,15 @@ that exported text, and reconstructs the beat grid through the end of the audio.
 For fixed BPM, the fitter estimates one tempo and offset from observed detections;
 interpolated or extrapolated beats do not influence the global fit. Other choices
 first build a provisional beat grid, then search section boundaries across the
-full track. The final fit pays for timing error, each new section, and the size
-of every BPM change. Large percentage changes cost more than small ones, and
-large changes close together receive an additional penalty. This makes isolated
-noisy detections less likely to create a series of large tempo jumps. The general
-fit starts each new section on a beat of the
-previous section. The waveform markers and click track follow the exported grid.
+full track. The final fit pays for timing error, unmatched detections or grid
+beats, each new section, and tempo changes. It can revise a section's beat count
+instead of bending the tempo to accommodate extra or missed detections. A steep
+penalty on accumulated absolute BPM movement over a few seconds suppresses both
+sudden spikes and excursions split into several smaller changes. Sustained tempo
+changes can still win when the beat evidence supports them. Candidate scoring uses
+the same rounded offsets and beat lengths as the export. The general fit starts
+each new section on a beat of the previous section. The waveform markers and click track follow the exported grid.
+Exported red timing points are limited to 300 BPM.
 For tracks marked variable BPM with fixed sections, Redline also looks for
 persistent tempo changes in long-span beat intervals and fits a steady grid to
 each run. It uses that simpler export when it retains nearly as much support

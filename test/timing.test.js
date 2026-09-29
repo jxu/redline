@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { calculateTiming, scoreTempoChange } from "../timing.js";
+import { calculateTiming, fitTimingGrid, generateTimingGrid, scoreTempoChange } from "../timing.js";
 import { generateBeatGrid, parseOsuTimingPoints } from "../benchmark/osu-timing.js";
 
 test("keeps a genuine tempo change and the audible grid matches the export", () => {
@@ -66,11 +66,39 @@ test("a whole-track fit ignores isolated jitter instead of adding repeated tempo
     assert.equal(timing.timingPoints[0].beatLengthMs, 500);
 });
 
+test("the exported grid stays at or below 300 BPM across fitting paths", () => {
+    for (const tempoPattern of [null, "fixed", "continuous", "sections"]) {
+        for (const count of [2, 32]) {
+            const ticks = Array.from({ length: count }, (_, index) => index * 0.15);
+            const timing = calculateTiming(ticks, { tempoPattern, endTime: 5 });
+            const points = parseOsuTimingPoints(timing.osuTimingPoints);
+            assert.ok(points.length > 0);
+            assert.ok(points.every(({ bpm }) => bpm <= 300));
+        }
+    }
+});
+
+test("a short burst of subdivisions does not bend the surrounding tempo or beat alignment", () => {
+    const period = 60 / 185;
+    const clean = Array.from({ length: 160 }, (_, index) => index * period);
+    // Roughly two seconds of extra percussion amid an otherwise steady pulse.
+    const noisy = clean.flatMap((tick, index) =>
+        index >= 60 && index < 66 ? [tick, tick + period / 2] : [tick]);
+    for (const tempoPattern of ["continuous", "sections"]) {
+        const { timingPoints } = fitTimingGrid(noisy, { tempoPattern });
+        assert.ok(timingPoints.every(({ beatLengthMs }) =>
+            Math.abs(60000 / beatLengthMs - 185) < 2));
+        const grid = generateTimingGrid(timingPoints, (clean.at(-1) + period) * 1000);
+        assert.equal(grid.length, clean.length);
+        assert.ok(clean.every((tick, index) => Math.abs(grid[index] - tick) < 0.003));
+    }
+});
+
 test("large and repeated BPM jumps cost more than small or distant changes", () => {
-    const small = scoreTempoChange(500, 475, 0, 16, 100000);
-    const large = scoreTempoChange(500, 400, 0, 16, 100000);
-    const repeated = scoreTempoChange(400, 500, large.recentLargeJumps, 4, 100000);
-    const distant = scoreTempoChange(400, 500, large.recentLargeJumps, 64, 100000);
+    const small = scoreTempoChange(500, 475, 0, 4000, 100000);
+    const large = scoreTempoChange(500, 400, 0, 4000, 100000);
+    const repeated = scoreTempoChange(400, 500, large.recentBpmMovement, 1000, 100000);
+    const distant = scoreTempoChange(400, 500, large.recentBpmMovement, 16000, 100000);
 
     assert.ok(large.cost > 4 * small.cost);
     assert.ok(repeated.cost > large.cost);
