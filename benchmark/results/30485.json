@@ -1,14 +1,14 @@
 {
   "mapsetId": "30485",
   "name": "Inspector K - Disconnected Hardkore (CanBlaster Remix) [Insane]",
-  "pipelineVersion": "0.6.0",
+  "pipelineVersion": "0.6.2",
   "decoder": "audio-decode",
   "sourceSampleRate": 48000,
   "detector": "senet-onnx",
   "modelSampleRate": 16000,
   "probabilityCache": {
-    "key": "2e3b4ef6c3edaf3f5feb6cc4ee08679786763a913fc423fa9f61bcb739bf7e1a",
-    "hit": true
+    "key": "6b61b359810b9ac743074365ae338df9edd053b31da0ecf0ab6da18821c5cc9d",
+    "hit": false
   },
   "evaluationGrid": "exported-timing-points",
   "timingOptions": {
@@ -246,7 +246,7 @@
   "evaluationWindow": "first-to-last-hit-object",
   "evaluationStartMs": 35,
   "evaluationEndMs": 114059,
-  "confidence": 0.47401293074967815,
+  "confidence": 0.47401293520541754,
   "onlineOffsetMs": 0,
   "allowedTempoScales": [
     0.5,

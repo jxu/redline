@@ -1,25 +1,8 @@
 import decode from "audio-decode";
+import { MPEGDecoder } from "mpg123-decoder";
 import { readFile } from "node:fs/promises";
 
-import { MODEL_SAMPLE_RATE } from "../audio-decoder.js";
-
-function mp3FrameLength(bytes, index) {
-    if (index < 0 || index + 4 > bytes.length || bytes[index] !== 0xff ||
-        (bytes[index + 1] & 0xe0) !== 0xe0) return 0;
-    const version = (bytes[index + 1] >> 3) & 3;
-    const layer = (bytes[index + 1] >> 1) & 3;
-    const bitrateIndex = (bytes[index + 2] >> 4) & 15;
-    const rateIndex = (bytes[index + 2] >> 2) & 3;
-    if (version === 1 || layer !== 1 || bitrateIndex === 0 ||
-        bitrateIndex === 15 || rateIndex === 3) return 0;
-    const bitrate = (version === 3
-        ? [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
-        : [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160])[bitrateIndex];
-    const sampleRate = [44100, 48000, 32000][rateIndex] /
-        (version === 3 ? 1 : version === 2 ? 2 : 4);
-    const padding = (bytes[index + 2] >> 1) & 1;
-    return Math.floor((version === 3 ? 144000 : 72000) * bitrate / sampleRate) + padding;
-}
+import { MODEL_SAMPLE_RATE, id3TagEnd, mp3FrameLength } from "../audio-decoder.js";
 
 export function removeLeadingId3Padding(encodedAudio) {
     if (
@@ -31,13 +14,8 @@ export function removeLeadingId3Padding(encodedAudio) {
         return encodedAudio;
     }
 
-    const tagSize =
-        ((encodedAudio[6] & 0x7f) << 21) |
-        ((encodedAudio[7] & 0x7f) << 14) |
-        ((encodedAudio[8] & 0x7f) << 7) |
-        (encodedAudio[9] & 0x7f);
-    const footerSize = encodedAudio[5] & 0x10 ? 10 : 0;
-    let audioStart = 10 + tagSize + footerSize;
+    const declaredStart = id3TagEnd(encodedAudio);
+    let audioStart = declaredStart;
 
     // Some older MP3s count the 10-byte ID3 header in the encoded tag size.
     // Chrome and osu!-configured BASS skip the frame overlapped by the declared
@@ -53,7 +31,7 @@ export function removeLeadingId3Padding(encodedAudio) {
     }
 
     while (encodedAudio[audioStart] === 0) audioStart++;
-    return audioStart === 10 + tagSize + footerSize
+    return audioStart === declaredStart
         ? encodedAudio
         : Uint8Array.from(encodedAudio.subarray(audioStart));
 }
@@ -66,6 +44,46 @@ async function decodeWithId3PaddingFallback(encodedAudio) {
         if (withoutPadding === encodedAudio || error.message !== "Unknown audio format") throw error;
         return decode(withoutPadding);
     }
+}
+
+function hasFirstFrameLameTag(bytes) {
+    const tagEnd = id3TagEnd(bytes) ?? 0;
+
+    // Only trust a header followed by another valid frame. A compressed payload
+    // can contain bytes that look like an MP3 sync word.
+    for (let index = Math.max(0, tagEnd - 10);
+        index < Math.min(bytes.length - 4, tagEnd + 4096); index++) {
+        const length = mp3FrameLength(bytes, index);
+        if (!length || !mp3FrameLength(bytes, index + length)) continue;
+        const frame = bytes.subarray(index, index + length);
+        for (let offset = 0; offset <= frame.length - 4; offset++) {
+            if (frame[offset] === 0x4c && frame[offset + 1] === 0x41 &&
+                frame[offset + 2] === 0x4d && frame[offset + 3] === 0x45) return true;
+        }
+        return false;
+    }
+    return null;
+}
+
+async function matchLegacyMp3GapHandling(encodedAudio, audioBuffer) {
+    if (hasFirstFrameLameTag(encodedAudio) !== false) return audioBuffer;
+
+    // mpg123 trims an assumed 529-sample decoder delay when no encoder delay
+    // is recorded. osu!lazer's BASS_CONFIG_MP3_OLDGAPS retains those samples.
+    // Compare both mpg123 modes so explicit trim data still takes precedence.
+    const decoder = new MPEGDecoder({ enableGapless: false });
+    await decoder.ready;
+    let untrimmed;
+    try {
+        untrimmed = decoder.decode(encodedAudio);
+    } finally {
+        decoder.free();
+    }
+    if (untrimmed.errors.length || untrimmed.sampleRate !== audioBuffer.sampleRate ||
+        untrimmed.samplesDecoded - audioBuffer.channelData[0].length !== 529) {
+        return audioBuffer;
+    }
+    return untrimmed;
 }
 
 function downmix(audioBuffer) {
@@ -100,7 +118,10 @@ function resampleLinear(samples, sourceRate, targetRate) {
 
 export async function decodeAudioFile(path) {
     const encodedAudio = await readFile(path);
-    const audioBuffer = await decodeWithId3PaddingFallback(encodedAudio);
+    let audioBuffer = await decodeWithId3PaddingFallback(encodedAudio);
+    if (path.toLowerCase().endsWith(".mp3")) {
+        audioBuffer = await matchLegacyMp3GapHandling(encodedAudio, audioBuffer);
+    }
     const mono = downmix(audioBuffer);
 
     return {
