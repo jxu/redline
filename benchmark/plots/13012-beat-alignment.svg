@@ -38,7 +38,7 @@
 <line x1="105" y1="393" x2="1565" y2="393" stroke="#999" stroke-dasharray="6 4"/>
 <rect x="105" y="105" width="1460" height="480" fill="none" class="axis"/>
 <text x="25" y="345" text-anchor="middle" font-size="18" transform="rotate(-90 25 345)">Exported − reference (ms)</text>
-<text x="117" y="130" font-size="17">F1@20ms 1.000  |  median |error| 10.4 ms  |  197 matched, 0 extra, 0 missing  |  18 filtered</text>
+<text x="117" y="130" font-size="17">weighted F1 0.385  |  F1@20ms 1.000  |  median |error| 10.4 ms  |  197 matched, 0 extra, 0 missing  |  18 filtered</text>
 <g clip-path="url(#plot)">
 <path d="M 107.98685814930232 308.27997257143727 L 112.98685814930232 318.27997257143727 L 102.98685814930232 318.27997257143727 Z" fill="#2a9d8f"/>
 <path d="M 115.40455222869535 308.3399691428669 L 120.40455222869535 318.3399691428669 L 110.40455222869535 318.3399691428669 Z" fill="#2a9d8f"/>

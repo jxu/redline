@@ -1,7 +1,7 @@
 {
   "mapsetId": "13012",
   "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
-  "pipelineVersion": "0.2.1",
+  "pipelineVersion": "0.4.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -49,6 +49,59 @@
       "matchedBeatCount": 197,
       "matchingToleranceMs": 20,
       "matchingF1": 1,
+      "weightedF1": 0.38518916383608076,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.2233502538071066
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.8324873096446701
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 1
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 1
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 1
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 1
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 1
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 1
+        }
+      ],
       "symmetricMeanNearestErrorMs": 10.350151428523606,
       "detectedBeatCount": 197,
       "timingPointCount": 1
@@ -60,19 +113,61 @@
       "matchedBeatCount": 99,
       "matchingToleranceMs": 20,
       "matchingF1": 0.668918918918919,
+      "weightedF1": 0.2502215330084183,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.668918918918919
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.668918918918919
+        }
+      ],
       "symmetricMeanNearestErrorMs": 111.75219757067872,
       "detectedBeatCount": 99,
-      "timingPointCount": 1
-    },
-    {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 197,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.6677966101694915,
-      "symmetricMeanNearestErrorMs": 58.7758553980145,
-      "detectedBeatCount": 393,
       "timingPointCount": 1
     },
     {
@@ -82,8 +177,125 @@
       "matchedBeatCount": 98,
       "matchingToleranceMs": 20,
       "matchingF1": 0.6644067796610169,
+      "weightedF1": 0.24853368359897945,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.6644067796610169
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6644067796610169
+        }
+      ],
       "symmetricMeanNearestErrorMs": 112.898672545299,
       "detectedBeatCount": 98,
+      "timingPointCount": 1
+    },
+    {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Fixed BPM",
+      "matchedBeatCount": 197,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.6677966101694915,
+      "weightedF1": 0.2480656931792348,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.08135593220338982
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.5389830508474577
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.6677966101694915
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.6677966101694915
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.6677966101694915
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.6677966101694915
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.6677966101694915
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6677966101694915
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 58.7758553980145,
+      "detectedBeatCount": 393,
       "timingPointCount": 1
     }
   ],
@@ -1401,6 +1613,7 @@
     "meanErrorMs": 10.350151428523606,
     "within5Ms": 0,
     "within10Ms": 0.4263959390862944,
-    "within20Ms": 1
+    "within20Ms": 1,
+    "weightedF1": 0.38518916383608076
   }
 }

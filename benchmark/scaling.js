@@ -2,6 +2,12 @@ import { calculateTiming, DEFAULT_TIMING_OPTIONS } from "../timing.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 
 const MATCHING_TOLERANCE_MS = 20;
+export const WEIGHTED_F1_TOLERANCES_MS = Object.freeze(
+    Array.from({ length: 10 }, (_, index) => (index + 1) * 3)
+);
+const WEIGHTED_F1_WEIGHT_SUM = WEIGHTED_F1_TOLERANCES_MS.reduce(
+    (sum, _, index) => sum + 1 / (index + 1), 0
+);
 
 function subdivisionCount(tempoScale) {
     if (!Number.isFinite(tempoScale) || tempoScale <= 0) {
@@ -83,6 +89,23 @@ function countMatchingBeats(detectedBeatsMs, referenceBeatsMs, toleranceMs) {
     return matchedBeatCount;
 }
 
+export function weightedBeatF1(detectedBeatsMs, referenceBeatsMs) {
+    const totalBeatCount = detectedBeatsMs.length + referenceBeatsMs.length;
+    const scores = WEIGHTED_F1_TOLERANCES_MS.map((toleranceMs, index) => ({
+        toleranceMs,
+        weight: 1 / (index + 1),
+        f1: totalBeatCount
+            ? 2 * countMatchingBeats(detectedBeatsMs, referenceBeatsMs, toleranceMs) /
+                totalBeatCount
+            : 0,
+    }));
+    return {
+        weightedF1: scores.reduce((sum, { weight, f1 }) => sum + weight * f1, 0) /
+            WEIGHTED_F1_WEIGHT_SUM,
+        scores,
+    };
+}
+
 export function evaluateTempoScales(
     detectedBeatsMs,
     referenceBeatsMs,
@@ -137,6 +160,9 @@ export function evaluateTempoScales(
                 matchingToleranceMs
             );
             const totalBeatCount = beatsMs.length + evaluationReferenceBeatsMs.length;
+            const { weightedF1, scores: weightedF1Scores } = weightedBeatF1(
+                beatsMs, evaluationReferenceBeatsMs
+            );
             return {
                 tempoScale,
                 phase,
@@ -147,6 +173,8 @@ export function evaluateTempoScales(
                 matchedBeatCount,
                 matchingToleranceMs,
                 matchingF1: totalBeatCount ? 2 * matchedBeatCount / totalBeatCount : 0,
+                weightedF1,
+                weightedF1Scores,
                 symmetricMeanNearestErrorMs: symmetricMeanNearestError(
                     beatsMs,
                     evaluationReferenceBeatsMs
@@ -156,6 +184,7 @@ export function evaluateTempoScales(
     });
 
     candidates.sort((left, right) =>
+        right.weightedF1 - left.weightedF1 ||
         right.matchingF1 - left.matchingF1 ||
         left.symmetricMeanNearestErrorMs - right.symmetricMeanNearestErrorMs ||
         Math.abs(Math.log2(left.tempoScale)) - Math.abs(Math.log2(right.tempoScale)) ||

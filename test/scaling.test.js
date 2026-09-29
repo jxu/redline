@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { evaluateTempoScales, selectTempoCandidate } from "../benchmark/scaling.js";
+import {
+    evaluateTempoScales,
+    selectTempoCandidate,
+    weightedBeatF1,
+} from "../benchmark/scaling.js";
 
 test("reports the mapper's scale even when another candidate scores better", () => {
     const candidates = [
@@ -60,6 +64,20 @@ test("F1 matches exported beats only within 20 ms", () => {
     assert.equal(evaluateShift(19).matchingF1, 1);
     assert.equal(evaluateShift(21).matchingF1, 0);
     assert.equal(evaluateShift(21).matchingToleranceMs, 20);
+});
+
+test("weighted F1 emphasizes precise matches across 3 to 30 ms", () => {
+    const exact = weightedBeatF1([0, 500], [0, 500]);
+    const shifted = weightedBeatF1([12, 512], [0, 500]);
+    const harmonic = Array.from({ length: 10 }, (_, index) => 1 / (index + 1));
+    const expected = harmonic.slice(3).reduce((sum, weight) => sum + weight, 0) /
+        harmonic.reduce((sum, weight) => sum + weight, 0);
+
+    assert.equal(exact.weightedF1, 1);
+    assert.ok(Math.abs(shifted.weightedF1 - expected) < 1e-12);
+    assert.deepEqual(shifted.scores.map(({ toleranceMs }) => toleranceMs),
+        [3, 6, 9, 12, 15, 18, 21, 24, 27, 30]);
+    assert.ok(shifted.weightedF1 < exact.weightedF1);
 });
 
 test("scores the fitted export grid instead of jittered input detections", () => {

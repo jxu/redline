@@ -1,7 +1,7 @@
 {
   "mapsetId": "1371996",
   "name": "umu. - Ai no Sukima [Howling]",
-  "pipelineVersion": "0.2.1",
+  "pipelineVersion": "0.4.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -46,10 +46,63 @@
       "tempoScale": 2,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 193,
+      "matchedBeatCount": 186,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.183547313361864,
-      "symmetricMeanNearestErrorMs": 55.44007932227363,
+      "matchingF1": 0.1768901569186876,
+      "weightedF1": 0.09094214025640499,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.02757964812173086
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.05230622919638612
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.07798383262006657
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.10746552543984783
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.1331431288635283
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.15882073228720875
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.1873514027579648
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.21398002853067047
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.2396576319543509
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.2653352353780314
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 55.67913847131936,
       "detectedBeatCount": 1392,
       "timingPointCount": 1
     },
@@ -60,6 +113,59 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
+      "weightedF1": 0.034141715214740555,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 1
+        }
+      ],
       "symmetricMeanNearestErrorMs": 27.64467529394919,
       "detectedBeatCount": 711,
       "timingPointCount": 1
@@ -71,6 +177,59 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
+      "weightedF1": 0.022782475382282355,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6672914714151827
+        }
+      ],
       "symmetricMeanNearestErrorMs": 87.19592855084196,
       "detectedBeatCount": 356,
       "timingPointCount": 1
@@ -82,6 +241,59 @@
       "matchedBeatCount": 0,
       "matchingToleranceMs": 20,
       "matchingF1": 0,
+      "weightedF1": 0.02273979155953639,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6660412757973734
+        }
+      ],
       "symmetricMeanNearestErrorMs": 87.82737523984456,
       "detectedBeatCount": 355,
       "timingPointCount": 1
@@ -4292,6 +4504,7 @@
     "meanErrorMs": 27.64467529394919,
     "within5Ms": 0,
     "within10Ms": 0,
-    "within20Ms": 0
+    "within20Ms": 0,
+    "weightedF1": 0.034141715214740555
   }
 }

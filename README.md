@@ -127,10 +127,11 @@ can override these settings with
 `"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
 the manifest. The settings and selected export text are saved in each result.
 
-The benchmark reports the manifest's scale and phase. It scores that export with
-one-to-one beat-matching F1@20ms: a beat is correct only when it is within
-20 ms of a reference beat, and each beat can match at most once. This measures
-both precision and recall. It also ranks alternative scales for diagnosis, but
+The benchmark reports the manifest's scale and phase. Its main score is
+weighted F1 across one-to-one beat-matching tolerances of 3, 6, ..., 30 ms,
+with normalized inverse-threshold weights of 1, 1/2, ..., 1/10. A beat can
+match at most once per threshold. F1@20ms remains available for comparison
+with older results. The benchmark also ranks alternative scales for diagnosis, but
 does not use that ranking to choose the reported export. Beats in the first and
 last five seconds of the audio are excluded from metrics.
 The command writes every candidate score plus detailed results under

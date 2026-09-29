@@ -30,7 +30,7 @@
 <line x1="105" y1="393" x2="1565" y2="393" stroke="#999" stroke-dasharray="6 4"/>
 <rect x="105" y="105" width="1460" height="480" fill="none" class="axis"/>
 <text x="25" y="345" text-anchor="middle" font-size="18" transform="rotate(-90 25 345)">Exported − reference (ms)</text>
-<text x="117" y="130" font-size="17">F1@20ms 0.000  |  median |error| 27.6 ms  |  0 matched, 711 extra, 711 missing  |  3 filtered</text>
+<text x="117" y="130" font-size="17">weighted F1 0.034  |  F1@20ms 0.000  |  median |error| 27.6 ms  |  0 matched, 711 extra, 711 missing  |  3 filtered</text>
 <g clip-path="url(#plot)">
 <path d="M 101.43451485281064 273.374125176487 L 111.43451485281064 283.374125176487 M 101.43451485281064 283.374125176487 L 111.43451485281064 273.374125176487" stroke="#d62728" stroke-width="2.2"/>
 <path d="M 103.48855360814177 273.3749101176625 L 113.48855360814177 283.3749101176625 M 103.48855360814177 283.3749101176625 L 113.48855360814177 273.3749101176625" stroke="#d62728" stroke-width="2.2"/>

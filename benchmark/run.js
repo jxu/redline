@@ -12,7 +12,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.2.1";
+const pipelineVersion = "0.4.0";
 const evaluationMarginMs = 5000;
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
@@ -151,7 +151,10 @@ async function runCase(benchmarkCase) {
         interpolatedBeatCount: interpolatedBeats.length - filteredBeats.length,
         detectedBeatsMs,
         nearestReferenceErrorsMs,
-        metrics: calculateMetrics(detectedBeatsMs, referenceBeatsMs),
+        metrics: {
+            ...calculateMetrics(detectedBeatsMs, referenceBeatsMs),
+            weightedF1: selectedScale.weightedF1,
+        },
     };
 }
 
@@ -186,6 +189,7 @@ for (const benchmarkCase of selectedCases) {
         `(${selectedCandidate.matchedBeatCount} matches within ` +
         `${selectedCandidate.matchingToleranceMs.toFixed(1)} ms)`
     );
+    console.log(`  Weighted F1:     ${selectedCandidate.weightedF1.toFixed(3)}`);
     console.log(`  Exported beats:  ${result.detectedBeatsMs.length}`);
     console.log(`  Timing points:   ${result.exportedTimingPoints.length}`);
     console.log(
