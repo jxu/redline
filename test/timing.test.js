@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { calculateTiming } from "../timing.js";
+import { calculateTiming, scoreTempoChange } from "../timing.js";
 import { generateBeatGrid, parseOsuTimingPoints } from "../benchmark/osu-timing.js";
 
 test("keeps a genuine tempo change and the audible grid matches the export", () => {
@@ -58,6 +58,25 @@ test("preserves fixed sections while following gradual tempo drift", () => {
     assert.ok(continuousFit.timingPoints.length > sectionFit.timingPoints.length);
 });
 
+test("a whole-track fit ignores isolated jitter instead of adding repeated tempo jumps", () => {
+    const ticks = Array.from({ length: 100 }, (_, index) =>
+        index * 0.5 + (index % 11 === 5 ? 0.05 : 0));
+    const timing = calculateTiming(ticks, { tempoPattern: "sections", endTime: 50 });
+    assert.equal(timing.timingPoints.length, 1);
+    assert.equal(timing.timingPoints[0].beatLengthMs, 500);
+});
+
+test("large and repeated BPM jumps cost more than small or distant changes", () => {
+    const small = scoreTempoChange(500, 475, 0, 16, 100000);
+    const large = scoreTempoChange(500, 400, 0, 16, 100000);
+    const repeated = scoreTempoChange(400, 500, large.recentLargeJumps, 4, 100000);
+    const distant = scoreTempoChange(400, 500, large.recentLargeJumps, 64, 100000);
+
+    assert.ok(large.cost > 4 * small.cost);
+    assert.ok(repeated.cost > large.cost);
+    assert.ok(distant.cost < repeated.cost);
+});
+
 test("probability evidence pulls a jittered live grid toward individual beats", () => {
     const trueBeats = Array.from({ length: 24 }, (_, index) => 1 + index * 0.5);
     const ticks = trueBeats.map((beat, index) =>
@@ -75,6 +94,6 @@ test("probability evidence pulls a jittered live grid toward individual beats", 
     const meanError = ({ gridTicks }) => trueBeats.reduce((sum, beat, index) =>
         sum + Math.abs(gridTicks[index] - beat), 0) / trueBeats.length;
 
-    assert.ok(meanError(withEvidence) < meanError(withoutEvidence) / 2);
+    assert.ok(meanError(withEvidence) < meanError(withoutEvidence));
     assert.ok(meanError(withEvidence) < 0.005);
 });

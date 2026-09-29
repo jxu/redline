@@ -97,10 +97,17 @@ then runs the same timing-grid fit and `[TimingPoints]` export used by the app, 
 that exported text, and reconstructs the beat grid through the end of the audio.
 For fixed BPM, the fitter estimates one tempo and offset from observed detections;
 interpolated or extrapolated beats do not influence the global fit. Other choices
-fit successive sections. Isolated noisy detections can deviate from
-the grid, but sustained drift prompts a new section. Every new section starts on
-a beat of the previous section, so a tempo change cannot produce a duplicate beat
-at the boundary. The waveform markers and click track follow the exported grid.
+first build a provisional beat grid, then search section boundaries across the
+full track. The final fit pays for timing error, each new section, and the size
+of every BPM change. Large percentage changes cost more than small ones, and
+large changes close together receive an additional penalty. This makes isolated
+noisy detections less likely to create a series of large tempo jumps. The general
+fit starts each new section on a beat of the
+previous section. The waveform markers and click track follow the exported grid.
+For tracks marked variable BPM with fixed sections, Redline also looks for
+persistent tempo changes in long-span beat intervals and fits a steady grid to
+each run. It uses that simpler export when it retains nearly as much support
+from the observed beats as the general fit.
 Scores measure that grid after osu! offset and beat-length rounding.
 The fitter regularizes beat times before creating the final timing points.
 Continuously variable tracks use retained detections to choose the pulse and a
@@ -111,9 +118,11 @@ without rerunning beat detection; its default is 5.
 
 Default fit settings match the app: `windowSize: 4`, `toleranceMs: 5`, and
 `tempoSmoothness: 5`. The minimum
-section length is `max(2, floor(windowSize / 2))` beats. The maximum isolated
-interior residual is `20 + 2 * toleranceMs` milliseconds; the average signed
-residual over eight beats must stay within `5 + toleranceMs` milliseconds. A case
+section length is `max(2, floor(windowSize / 2))` beats. The provisional fit
+allows an isolated interior residual up to `20 + 2 * toleranceMs` milliseconds;
+its average signed residual over eight beats must stay within `5 + toleranceMs`
+milliseconds. The final fit scores all candidate sections by squared timing
+error plus tempo-change costs. A case
 can override these settings with
 `"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
 the manifest. The settings and selected export text are saved in each result.

@@ -1,4 +1,5 @@
 import { MODEL_HOP_LENGTH, MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
+import { chooseStableSections } from "./fixed-sections.js";
 
 export const DEFAULT_TIMING_OPTIONS = Object.freeze({
     toleranceMs: 5,
@@ -222,9 +223,72 @@ function fitSteadyTempo(observedBeatsMs, candidatePoints, toleranceMs, firstBeat
     };
 }
 
-// Fit each section to the longest run that stays near a straight beat grid.
-// A section starts on the beat predicted by the previous one, so changing
-// tempo cannot create a second beat just before the new timing point.
+// The provisional grid supplies a stable beat count for probability alignment.
+// The final timing points are selected by the whole-track fit below.
+function provisionalTimingGrid(ticks, { toleranceMs, windowSize, tempoPattern }) {
+    const beatsMs = ticks.map((tick) => tick * 1000);
+    const minBeats = Math.max(2, Math.floor(windowSize / 2));
+    const timingPoints = [];
+    let offsetMs = Math.round(beatsMs[0]);
+    let lastTimingStart = 0;
+    for (let start = 0; start < beatsMs.length - 1;) {
+        const limit = Math.min(beatsMs.length - 1,
+            tempoPattern === "continuous" ? start + 16 : Infinity);
+        let end = Math.min(limit, start + minBeats);
+        for (let candidate = end + 1; candidate <= limit; candidate++) {
+            const length = (beatsMs[candidate] - offsetMs) / (candidate - start);
+            let largestResidual = 0;
+            let rollingResidual = 0;
+            let largestDrift = 0;
+            const residuals = [];
+            for (let index = start + 1; index < candidate; index++) {
+                const residual = beatsMs[index] - offsetMs - (index - start) * length;
+                largestResidual = Math.max(largestResidual, Math.abs(residual));
+                residuals.push(residual);
+                rollingResidual += residual;
+                if (residuals.length > 8) rollingResidual -= residuals[residuals.length - 9];
+                if (residuals.length >= 8) {
+                    largestDrift = Math.max(largestDrift, Math.abs(rollingResidual / 8));
+                }
+            }
+            if (largestResidual > 20 + 2 * toleranceMs || largestDrift > 5 + toleranceMs) break;
+            end = candidate;
+        }
+        const beatLengthMs = Number(((beatsMs[end] - offsetMs) / (end - start)).toFixed(2));
+        const previous = timingPoints.at(-1);
+        if (!previous || previous.beatLengthMs !== beatLengthMs ||
+            Math.abs(offsetMs - (previous.offsetMs +
+                (start - lastTimingStart) * previous.beatLengthMs)) > 1e-6) {
+            timingPoints.push({ offsetMs, beatLengthMs });
+            lastTimingStart = start;
+        }
+        offsetMs = Math.floor(offsetMs + (end - start) * beatLengthMs + 1e-7);
+        start = end;
+    }
+    return timingPoints;
+}
+
+const LARGE_JUMP_THRESHOLD = Math.log(1.08);
+const LARGE_JUMP_MEMORY_BEATS = 16;
+
+export function scoreTempoChange(previousBeatLengthMs, beatLengthMs,
+    recentLargeJumps, beatsSincePreviousChange, jumpPenalty) {
+    const logBpmChange = Math.abs(Math.log(beatLengthMs / previousBeatLengthMs));
+    const largeExcess = Math.max(0, logBpmChange - LARGE_JUMP_THRESHOLD);
+    const recent = recentLargeJumps *
+        Math.exp(-beatsSincePreviousChange / LARGE_JUMP_MEMORY_BEATS);
+    return {
+        // A squared log ratio penalizes a large percentage change more than
+        // several small ones. Repeated large jumps add a decaying surcharge.
+        cost: jumpPenalty * (logBpmChange ** 2 + largeExcess ** 2 * recent),
+        recentLargeJumps: Math.min(4, recent + largeExcess / Math.log(1.1)),
+    };
+}
+
+// Choose section boundaries across the entire track. Each candidate section
+// pays for its timing error; a transition also pays for a new timing point and
+// for the size of its BPM change. This lets a later beat influence an earlier
+// boundary instead of committing to the first locally acceptable section.
 export function fitTimingGrid(ticks, {
     toleranceMs = 5, windowSize = 4, observedTicks = ticks, tempoPattern = null,
 } = {}) {
@@ -233,43 +297,65 @@ export function fitTimingGrid(ticks, {
 
     const beatsMs = ticks.map((tick) => tick * 1000);
     const minBeats = Math.max(2, Math.floor(windowSize / 2));
-    const maxResidualMs = 20 + 2 * toleranceMs;
-    const maxDriftMs = 5 + toleranceMs;
+    const maxSectionBeats = Math.max(minBeats, tempoPattern === "continuous" ? 16 : 64);
+    const toleranceScale = Math.max(1, toleranceMs / 5) ** 2;
+    const sectionPenalty = (tempoPattern === "continuous" ? 1500 : 1800) * toleranceScale;
+    const jumpPenalty = (tempoPattern === "continuous" ? 250000 : 100000) * toleranceScale;
+    const states = Array.from({ length: beatsMs.length }, () => []);
+    states[0].push({
+        cost: 0, previous: null, start: 0, end: 0,
+        beatLengthMs: 0, recentLargeJumps: 0,
+    });
+
+    for (let end = 1; end < beatsMs.length; end++) {
+        const candidates = [];
+        for (let start = Math.max(0, end - maxSectionBeats); start < end; start++) {
+            if (end - start < minBeats && end !== beatsMs.length - 1) continue;
+            const beatLengthMs = (beatsMs[end] - beatsMs[start]) / (end - start);
+            if (!(beatLengthMs > 0)) continue;
+            let timingError = 0;
+            for (let index = start + 1; index < end; index++) {
+                const residual = beatsMs[index] - beatsMs[start] -
+                    (index - start) * beatLengthMs;
+                timingError += residual * residual;
+            }
+            for (const previous of states[start]) {
+                const change = start
+                    ? scoreTempoChange(previous.beatLengthMs, beatLengthMs,
+                        previous.recentLargeJumps, start - previous.start, jumpPenalty)
+                    : { cost: 0, recentLargeJumps: 0 };
+                candidates.push({
+                    cost: previous.cost + timingError + (start ? sectionPenalty +
+                        change.cost : 0),
+                    previous, start, end, beatLengthMs,
+                    recentLargeJumps: change.recentLargeJumps,
+                });
+            }
+        }
+        // Retain the cheapest paths with distinct terminal tempos or recent
+        // jump histories, which both affect the next transition cost.
+        candidates.sort((left, right) => left.cost - right.cost);
+        for (const candidate of candidates) {
+            if (states[end].every((state) =>
+                Math.abs(Math.log(candidate.beatLengthMs / state.beatLengthMs)) > 0.005 ||
+                Math.abs(candidate.recentLargeJumps - state.recentLargeJumps) > 0.3
+            )) states[end].push(candidate);
+            if (states[end].length === 24) break;
+        }
+    }
+
+    const sections = [];
+    let state = states.at(-1)[0];
+    while (state?.previous) {
+        sections.push(state);
+        state = state.previous;
+    }
+    sections.reverse();
     const timingPoints = [];
     const beatLengths = [];
     let lastTimingStart = 0;
     let offsetMs = Math.round(beatsMs[0]);
-
-    for (let start = 0; start < beatsMs.length - 1;) {
-        const limit = Math.min(
-            beatsMs.length - 1,
-            tempoPattern === "continuous" ? start + 16 : Infinity
-        );
-        let end = Math.min(limit, start + minBeats);
-
-        // The endpoint sets the tempo. Check every interior beat before
-        // extending the section, including inserted beats and tempo drift.
-        for (let candidate = end + 1; candidate <= limit; candidate++) {
-            const beatLengthMs = (beatsMs[candidate] - offsetMs) / (candidate - start);
-            let largestResidualMs = 0;
-            let rollingResidualMs = 0;
-            let largestDriftMs = 0;
-            const residuals = [];
-            for (let index = start + 1; index < candidate; index++) {
-                const predicted = offsetMs + (index - start) * beatLengthMs;
-                const residual = beatsMs[index] - predicted;
-                largestResidualMs = Math.max(largestResidualMs, Math.abs(residual));
-                residuals.push(residual);
-                rollingResidualMs += residual;
-                if (residuals.length > 8) rollingResidualMs -= residuals[residuals.length - 9];
-                if (residuals.length >= 8) {
-                    largestDriftMs = Math.max(largestDriftMs, Math.abs(rollingResidualMs / 8));
-                }
-            }
-            if (largestResidualMs > maxResidualMs || largestDriftMs > maxDriftMs) break;
-            end = candidate;
-        }
-
+    for (const { start, end } of sections) {
         const beatLengthMs = Number(((beatsMs[end] - offsetMs) / (end - start)).toFixed(2));
         const previous = timingPoints.at(-1);
         if (
@@ -289,7 +375,6 @@ export function fitTimingGrid(ticks, {
         // Integer osu! offsets must be at or before the prior section's
         // next beat; rounding up could make that beat appear twice.
         offsetMs = Math.floor(offsetMs + (end - start) * beatLengthMs + 1e-7);
-        start = end;
     }
 
     const observedBeatsMs = observedTicks.map((tick) => tick * 1000);
@@ -327,7 +412,13 @@ function generateOsuTimingPoints(timingPoints) {
 
 export function calculateTiming(ticks, options = {}) {
     let fittedTicks = ticks;
-    let fitted = fitTimingGrid(ticks, options);
+    let fitted = options.tempoPattern && options.tempoPattern !== "fixed" && ticks.length >= 2
+        ? { timingPoints: provisionalTimingGrid(ticks, {
+            toleranceMs: options.toleranceMs ?? DEFAULT_TIMING_OPTIONS.toleranceMs,
+            windowSize: options.windowSize ?? DEFAULT_TIMING_OPTIONS.windowSize,
+            tempoPattern: options.tempoPattern,
+        }) }
+        : fitTimingGrid(ticks, options);
     const initialFitWarning = fitted.fitWarning ?? false;
     const durationMs = options.endTime === undefined
         ? (ticks.at(-1) ?? 0) * 1000 + (fitted.timingPoints.at(-1)?.beatLengthMs ?? 0)
@@ -357,6 +448,24 @@ export function calculateTiming(ticks, options = {}) {
             ...options,
             observedTicks: options.tempoPattern === "fixed" ? observedTicks : fittedTicks,
         });
+    }
+    if (options.tempoPattern === "sections") {
+        const stablePoints = chooseStableSections(
+            options.observedTicks?.length ? options.observedTicks : ticks,
+            fitted.timingPoints, durationMs
+        );
+        if (stablePoints) {
+            fitted = {
+                ...fitted,
+                timingPoints: stablePoints,
+                beatLengths: fittedTicks.slice(0, -1).map((tick) => {
+                    let index = 0;
+                    while (index + 1 < stablePoints.length &&
+                        stablePoints[index + 1].offsetMs <= tick * 1000) index++;
+                    return stablePoints[index].beatLengthMs.toFixed(2);
+                }),
+            };
+        }
     }
     const { timingPoints, beatLengths } = fitted;
     const fitWarning = initialFitWarning || (fitted.fitWarning ?? false);
