@@ -57,3 +57,24 @@ test("preserves fixed sections while following gradual tempo drift", () => {
     assert.equal(sectionFit.timingPoints.length, 2);
     assert.ok(continuousFit.timingPoints.length > sectionFit.timingPoints.length);
 });
+
+test("probability evidence pulls a jittered live grid toward individual beats", () => {
+    const trueBeats = Array.from({ length: 24 }, (_, index) => 1 + index * 0.5);
+    const ticks = trueBeats.map((beat, index) =>
+        beat + [0, 0.03, -0.025, 0.04, -0.03][index % 5]);
+    const probabilities = new Float32Array(1400).fill(0.001);
+    for (const beat of trueBeats) {
+        const frame = Math.round(beat * 100);
+        for (let offset = -3; offset <= 3; offset++) {
+            probabilities[frame + offset] = 0.9 * Math.exp(-0.5 * (offset / 1.1) ** 2);
+        }
+    }
+    const options = { tempoPattern: "continuous", endTime: 13.5 };
+    const withoutEvidence = calculateTiming(ticks, options);
+    const withEvidence = calculateTiming(ticks, { ...options, probabilities });
+    const meanError = ({ gridTicks }) => trueBeats.reduce((sum, beat, index) =>
+        sum + Math.abs(gridTicks[index] - beat), 0) / trueBeats.length;
+
+    assert.ok(meanError(withEvidence) < meanError(withoutEvidence) / 2);
+    assert.ok(meanError(withEvidence) < 0.005);
+});

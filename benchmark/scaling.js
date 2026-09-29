@@ -106,6 +106,7 @@ export function evaluateTempoScales(
     {
         durationMs,
         observedBeatsMs = detectedBeatsMs,
+        probabilities = null,
         timingOptions = DEFAULT_TIMING_OPTIONS,
         startMs = 0,
         endMs = durationMs,
@@ -141,6 +142,7 @@ export function evaluateTempoScales(
                 ...timingOptions,
                 endTime: durationMs / 1000,
                 observedTicks,
+                probabilities,
             });
             const exportedTimingPoints = parseOsuTimingPoints(osuTimingPoints);
             const beatsMs = generateBeatGrid(exportedTimingPoints, durationMs)

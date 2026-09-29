@@ -313,6 +313,7 @@ function renderTicks() {
         endTime: state.track.audioBuffer.duration,
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
+        probabilities: state.track.probabilities,
     });
 
     resultsBox.innerHTML = `
@@ -342,6 +343,7 @@ function renderTimingGrid(timing = null) {
         endTime: state.track.audioBuffer.duration,
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
+        probabilities: state.track.probabilities,
     });
 
     document.getElementById("fitWarning").hidden = !timing.fitWarning;
