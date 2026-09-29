@@ -1,7 +1,7 @@
 {
   "mapsetId": "65923",
   "name": "Junichi Masuda - Battle! Roaming Legendary Pokemon [Irre's Landorus]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "ffmpeg",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -125,9 +125,9 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Variable BPM with fixed sections",
-      "matchedBeatCount": 282,
-      "matchingToleranceMs": 60.344827586207245,
-      "matchingF1": 0.9947089947089947,
+      "matchedBeatCount": 29,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.10229276895943562,
       "symmetricMeanNearestErrorMs": 32.53212289843722,
       "detectedBeatCount": 284,
       "timingPointCount": 14

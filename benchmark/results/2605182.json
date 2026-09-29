@@ -1,7 +1,7 @@
 {
   "mapsetId": "2605182",
   "name": "Guns N' Roses - Welcome To The Jungle [Appetite For Destruction]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "audio-decode",
   "sourceSampleRate": 48000,
   "detector": "senet-onnx",
@@ -470,9 +470,9 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 379,
-      "matchingToleranceMs": 84.86043299999874,
-      "matchingF1": 0.6834986474301172,
+      "matchedBeatCount": 190,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.34265103697024346,
       "symmetricMeanNearestErrorMs": 89.53971966147873,
       "detectedBeatCount": 560,
       "timingPointCount": 72

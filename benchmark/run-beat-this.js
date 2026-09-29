@@ -96,7 +96,7 @@ async function runCase(benchmarkCase) {
     return {
         mapsetId: benchmarkCase.id,
         name: benchmarkCase.name,
-        pipelineVersion: "0.2.0",
+        pipelineVersion: "0.2.1",
         decoder: "ffmpeg",
         sourceSampleRate: baseline.sourceSampleRate,
         detector: `beat-this-${modelName}-minimal`,
@@ -156,7 +156,7 @@ for (const benchmarkCase of selectedCases) {
         candidate.phase === result.selectedTempoPhase
     );
     console.log(`  Raw beats:      ${result.rawDetectedBeatsMs.length}`);
-    console.log(`  Export grid F1: ${selected.matchingF1.toFixed(3)}`);
+    console.log(`  Export F1@20ms: ${selected.matchingF1.toFixed(3)}`);
     console.log(`  Timing points:  ${result.exportedTimingPoints.length}`);
     console.log(`  Median error:   ${result.metrics?.medianAbsoluteErrorMs.toFixed(1) ?? "n/a"} ms`);
 }

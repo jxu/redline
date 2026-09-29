@@ -1,45 +1,51 @@
-# Beat This! final0 comparison
+# Beat This! final0 comparison at 20 ms
 
 This experiment runs the official Beat This! `final0` checkpoint through
 Redline's beat filtering, gap interpolation, mapper-supplied tempo scale and
 pattern, fitted tempo curve, osu! timing-point export, and exported-grid
 scoring. Beat This! 1.1.0 uses its native minimal postprocessor without a DBN.
 FFmpeg decodes to 22,050 Hz mono, and the model produces beats and beat
-probabilities at 50 fps. The fitter now uses the full beat-probability curve
+probabilities at 50 fps. The fitter uses the full beat-probability curve
 at its native 20 ms frame step. The saved SENet results use the same fitter
-version and provide the same reference grid, evaluation window, and duration.
+and F1@20ms scorer (pipeline 0.2.1), reference grid, evaluation window, and duration.
 Reference `.osu` timing never enters inference or chooses the reported export's
 tempo scale.
 
 The eight variable-BPM songs are the primary comparison. The Beatles and The
 Who are representative live recordings; Disconnected Hardkore is a particularly
-hard stress case. F1 matches exported beats one-to-one within 17.5% of the
-median reference beat interval. Median error is the nearest-reference distance
-for each exported beat, so a higher F1 can coexist with less precise placement.
+hard stress case. F1@20ms matches exported beats one-to-one within 20 ms, so
+both false positives and missed beats count. Median error measures each
+exported beat's distance to its nearest reference beat.
 
-| Mapset | Pattern | final0 F1 before → after | final0 median error (ms) before → after | SENet F1 after | SENet median error (ms) after |
-| --- | --- | ---: | ---: | ---: | ---: |
-| 1670652 Beatles | Continuous | 0.968 → 0.971 | 26.4 → 25.0 | 0.919 | 11.6 |
-| 2470141 Prom Queen | Continuous | 0.961 → 0.961 | 16.6 → 15.1 | 0.883 | 10.6 |
-| 2302704 Won't Get Fooled Again | Continuous | 0.915 → 0.916 | 12.9 → 13.0 | 0.742 | 17.7 |
-| 2605182 Welcome to the Jungle | Continuous | 0.964 → 0.966 | 26.8 → 29.0 | 0.683 | 29.3 |
-| 30485 Disconnected Hardkore | Sections | 0.108 → 0.093 | 81.4 → 84.4 | 0.724 | 14.0 |
-| 65923 Roaming Legendary Pokemon | Sections | 0.984 → 0.995 | 31.4 → 34.0 | 0.963 | 48.7 |
-| 2521355 Anthem | Sections | 0.518 → 0.520 | 43.7 → 42.5 | 0.464 | 58.0 |
-| 545156 Loose Change | Sections | 0.733 → 0.700 | 36.4 → 37.2 | 0.939 | 3.9 |
+| Mapset | Pattern | SENet F1@20ms | final0 F1@20ms | SENet median error (ms) | final0 median error (ms) | Red points SENet / final0 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1670652 Beatles | Continuous | 0.748 | 0.332 | 11.6 | 25.0 | 32 / 23 |
+| 2470141 Prom Queen | Continuous | 0.756 | 0.662 | 10.6 | 15.1 | 28 / 24 |
+| 2302704 Won't Get Fooled Again | Continuous | 0.533 | 0.662 | 17.7 | 13.0 | 150 / 91 |
+| 2605182 Welcome to the Jungle | Continuous | 0.343 | 0.216 | 29.3 | 29.0 | 72 / 48 |
+| 30485 Disconnected Hardkore | Sections | 0.602 | 0.031 | 14.0 | 84.4 | 68 / 32 |
+| 65923 Roaming Legendary Pokemon | Sections | 0.025 | 0.102 | 48.7 | 34.0 | 16 / 14 |
+| 2521355 Anthem | Sections | 0.286 | 0.152 | 58.0 | 42.5 | 165 / 158 |
+| 545156 Loose Change | Sections | 0.913 | 0.028 | 3.9 | 37.2 | 28 / 32 |
 
-For the four continuously variable songs, final0's mean F1 changes only from
-**0.952 to 0.953**, and mean per-song median error from **20.7 to 20.5 ms**.
-The Beatles improves slightly; The Who is effectively unchanged. Fixed-section
-mean F1 declines from **0.586 to 0.577**, with particularly poor results on
-Disconnected Hardkore and Loose Change. This does not establish a useful
-benefit from probability fitting for final0. It leaves the larger model's
-stronger pulse tracking on live music and SENet's closer timing on the Beatles
-as separate observations.
+On continuously variable songs, mean per-song F1@20ms is **0.595 for SENet**
+and **0.468 for final0**. final0 leads on The Who, while SENet leads clearly
+on the Beatles. On fixed-section songs, the means are **0.456** and **0.078**;
+final0 struggles especially on Disconnected Hardkore and Loose Change. The
+Pokemon case has low strict F1 for both despite high scores with the old broad
+tolerance, because their grids have systematic offsets of tens of milliseconds.
 
-The older `small0` result files still use pipeline version 0.1.1 and are not
-included in this fitted-probability comparison. Fixed-BPM songs remain a bonus:
-final0 reaches 1.000 F1 on Tornado and Ai no Sukima, but only 0.746 on So Deep.
+Only scoring changed in this comparison: cached SENet regression and a new
+final0 inference run reproduced their previous exported grids exactly. The
+older `small0` result files still use pipeline version 0.1.1 and the broad F1
+tolerance, so their stored F1 values
+cannot be compared directly. Fixed-BPM songs remain a bonus; the stricter score
+is zero for final0 on all three fixed-BPM cases despite its previously high
+broad-tolerance F1.
+
+F1@20ms also counts a uniformly shifted grid as wrong, even when a mapper could
+repair it with one global offset. Read the score alongside median error and the
+BPM plots when judging how much editing an export would require.
 
 On this CPU machine with four PyTorch threads, detector-only runs including
 Python startup and decoding took 9.68 seconds for `final0` versus 6.77 seconds

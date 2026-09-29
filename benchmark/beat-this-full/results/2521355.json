@@ -1,7 +1,7 @@
 {
   "mapsetId": "2521355",
   "name": "Bring Me The Horizon - Anthem [nihil's orvtoris]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "ffmpeg",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -989,9 +989,9 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Variable BPM with fixed sections",
-      "matchedBeatCount": 471,
-      "matchingToleranceMs": 47.727272727273885,
-      "matchingF1": 0.5204419889502763,
+      "matchedBeatCount": 138,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.15248618784530388,
       "symmetricMeanNearestErrorMs": 134.20520189412687,
       "detectedBeatCount": 881,
       "timingPointCount": 158

@@ -1,7 +1,7 @@
 {
   "mapsetId": "1371996",
   "name": "umu. - Ai no Sukima [Howling]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "ffmpeg",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -46,12 +46,23 @@
   "selectedTempoPattern": "Fixed BPM",
   "tempoScaleCandidates": [
     {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Fixed BPM",
+      "matchedBeatCount": 187,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.1798076923076923,
+      "symmetricMeanNearestErrorMs": 55.9109567169575,
+      "detectedBeatCount": 1369,
+      "timingPointCount": 1
+    },
+    {
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 711,
-      "matchingToleranceMs": 51.470588235294414,
-      "matchingF1": 1,
+      "matchedBeatCount": 0,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0,
       "symmetricMeanNearestErrorMs": 42.98628529394247,
       "detectedBeatCount": 711,
       "timingPointCount": 1
@@ -60,9 +71,9 @@
       "tempoScale": 0.5,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 356,
-      "matchingToleranceMs": 51.470588235294414,
-      "matchingF1": 0.6672914714151827,
+      "matchedBeatCount": 0,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0,
       "symmetricMeanNearestErrorMs": 94.74207853325822,
       "detectedBeatCount": 356,
       "timingPointCount": 1
@@ -71,22 +82,11 @@
       "tempoScale": 0.5,
       "phase": 1,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 355,
-      "matchingToleranceMs": 51.470588235294414,
-      "matchingF1": 0.6660412757973734,
+      "matchedBeatCount": 0,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0,
       "symmetricMeanNearestErrorMs": 95.36429080946625,
       "detectedBeatCount": 355,
-      "timingPointCount": 1
-    },
-    {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 477,
-      "matchingToleranceMs": 51.470588235294414,
-      "matchingF1": 0.45865384615384613,
-      "symmetricMeanNearestErrorMs": 55.9109567169575,
-      "detectedBeatCount": 1369,
       "timingPointCount": 1
     }
   ],

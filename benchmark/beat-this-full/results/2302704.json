@@ -1,7 +1,7 @@
 {
   "mapsetId": "2302704",
   "name": "The Who - Won't Get Fooled Again [Nothing Ever Happens]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "ffmpeg",
   "sourceSampleRate": 48000,
   "detector": "beat-this-final0-minimal",
@@ -587,9 +587,9 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 1072,
-      "matchingToleranceMs": 77.69720290069235,
-      "matchingF1": 0.9158479282357966,
+      "matchedBeatCount": 775,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.6621102093122597,
       "symmetricMeanNearestErrorMs": 22.317145877457644,
       "detectedBeatCount": 1132,
       "timingPointCount": 91

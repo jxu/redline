@@ -1,7 +1,7 @@
 {
   "mapsetId": "545156",
   "name": "Royal Blood - Loose Change [$]",
-  "pipelineVersion": "0.2.0",
+  "pipelineVersion": "0.2.1",
   "decoder": "ffmpeg",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -233,9 +233,9 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Variable BPM with fixed sections",
-      "matchedBeatCount": 253,
-      "matchingToleranceMs": 62.13017751479292,
-      "matchingF1": 0.6998616874135546,
+      "matchedBeatCount": 10,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.027662517289073305,
       "symmetricMeanNearestErrorMs": 87.25263872487031,
       "detectedBeatCount": 298,
       "timingPointCount": 32
