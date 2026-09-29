@@ -1,7 +1,7 @@
 {
   "mapsetId": "236292",
   "name": "Agressor Bunx - Tornado (Original Mix) [Insane]",
-  "pipelineVersion": "0.4.1",
+  "pipelineVersion": "0.6.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -104,70 +104,6 @@
       ],
       "symmetricMeanNearestErrorMs": 16.249305963093533,
       "detectedBeatCount": 320,
-      "timingPointCount": 1
-    },
-    {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 320,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.6659729448491155,
-      "weightedF1": 0.15672492623507697,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.22684703433922998
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.5681581685744017
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.6659729448491155
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.6659729448491155
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.6659729448491155
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.6659729448491155
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 51.78710674105821,
-      "detectedBeatCount": 640,
       "timingPointCount": 1
     },
     {
@@ -296,6 +232,70 @@
       ],
       "symmetricMeanNearestErrorMs": 96.02372004993902,
       "detectedBeatCount": 160,
+      "timingPointCount": 1
+    },
+    {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Fixed BPM",
+      "matchedBeatCount": 64,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.1461187214611872,
+      "weightedF1": 0.0739103053069123,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.02054794520547945
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.04337899543378995
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.06621004566210045
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.0867579908675799
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.10730593607305935
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.13013698630136986
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.15296803652968036
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.17579908675799086
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.1963470319634703
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.21689497716894976
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 68.99981009995899,
+      "detectedBeatCount": 555,
       "timingPointCount": 1
     }
   ],

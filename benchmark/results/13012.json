@@ -1,7 +1,7 @@
 {
   "mapsetId": "13012",
   "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
-  "pipelineVersion": "0.4.1",
+  "pipelineVersion": "0.6.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",

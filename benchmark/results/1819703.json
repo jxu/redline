@@ -1,7 +1,7 @@
 {
   "mapsetId": "1819703",
   "name": "The Beatles - Yesterday [Insane]",
-  "pipelineVersion": "0.4.1",
+  "pipelineVersion": "0.6.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -195,65 +195,65 @@
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 93,
+      "matchedBeatCount": 91,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.3105175292153589,
-      "weightedF1": 0.15977086862243195,
+      "matchingF1": 0.30333333333333334,
+      "weightedF1": 0.1599412907013503,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.05008347245409015
+          "f1": 0.05
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.08681135225375626
+          "f1": 0.09666666666666666
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.14357262103505844
+          "f1": 0.14666666666666667
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.19031719532554256
+          "f1": 0.19333333333333333
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.2303839732888147
+          "f1": 0.22333333333333333
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.2871452420701169
+          "f1": 0.2833333333333333
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.333889816360601
+          "f1": 0.32666666666666666
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.37061769616026713
+          "f1": 0.35333333333333333
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.41402337228714525
+          "f1": 0.4066666666666667
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.4507512520868113
+          "f1": 0.45
         }
       ],
-      "symmetricMeanNearestErrorMs": 93.12697451918173,
-      "detectedBeatCount": 383,
-      "timingPointCount": 41
+      "symmetricMeanNearestErrorMs": 92.38433250293824,
+      "detectedBeatCount": 384,
+      "timingPointCount": 38
     },
     {
       "tempoScale": 0.5,

@@ -1,7 +1,7 @@
 {
   "mapsetId": "1371996",
   "name": "umu. - Ai no Sukima [Howling]",
-  "pipelineVersion": "0.4.1",
+  "pipelineVersion": "0.6.0",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "senet-onnx",
@@ -46,64 +46,64 @@
       "tempoScale": 2,
       "phase": 0,
       "tempoPattern": "Fixed BPM",
-      "matchedBeatCount": 197,
+      "matchedBeatCount": 159,
       "matchingToleranceMs": 20,
-      "matchingF1": 0.18173431734317344,
-      "weightedF1": 0.09344364782219831,
+      "matchingF1": 0.17549668874172186,
+      "weightedF1": 0.07827926425255706,
       "weightedF1Scores": [
         {
           "toleranceMs": 3,
           "weight": 1,
-          "f1": 0.02859778597785978
+          "f1": 0.009933774834437087
         },
         {
           "toleranceMs": 6,
           "weight": 0.5,
-          "f1": 0.0544280442804428
+          "f1": 0.04856512141280353
         },
         {
           "toleranceMs": 9,
           "weight": 0.3333333333333333,
-          "f1": 0.08025830258302583
+          "f1": 0.08609271523178808
         },
         {
           "toleranceMs": 12,
           "weight": 0.25,
-          "f1": 0.11070110701107011
+          "f1": 0.09492273730684327
         },
         {
           "toleranceMs": 15,
           "weight": 0.2,
-          "f1": 0.13653136531365315
+          "f1": 0.10596026490066225
         },
         {
           "toleranceMs": 18,
           "weight": 0.16666666666666666,
-          "f1": 0.16328413284132842
+          "f1": 0.1467991169977925
         },
         {
           "toleranceMs": 21,
           "weight": 0.14285714285714285,
-          "f1": 0.1918819188191882
+          "f1": 0.18322295805739514
         },
         {
           "toleranceMs": 24,
           "weight": 0.125,
-          "f1": 0.21863468634686348
+          "f1": 0.18984547461368653
         },
         {
           "toleranceMs": 27,
           "weight": 0.1111111111111111,
-          "f1": 0.2444649446494465
+          "f1": 0.20309050772626933
         },
         {
           "toleranceMs": 30,
           "weight": 0.1,
-          "f1": 0.2702952029520295
+          "f1": 0.24503311258278146
         }
       ],
-      "symmetricMeanNearestErrorMs": 56.32732356265076,
-      "detectedBeatCount": 1433,
+      "symmetricMeanNearestErrorMs": 62.37966036913009,
+      "detectedBeatCount": 1077,
       "timingPointCount": 1
     },
     {
