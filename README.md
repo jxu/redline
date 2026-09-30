@@ -183,7 +183,19 @@ frame spacing. Maps whose detectors choose different beat levels use
 `beatThisTempoScale` in the manifest. The default run applies the −27 ms
 timestamp correction and writes results to `benchmark/results/` and plots to
 `benchmark/plots/`.
-This is the only saved result set in this branch.
+Run the smaller `small0` checkpoint against the same corpus with:
+
+```bash
+BEAT_THIS_PYTHON=.venv/bin/python npm run benchmark:beat-this-small
+node benchmark/compare-beat-this.js
+```
+
+Set `BEAT_THIS_PYTHON` to your installed environment. Small-model results and
+plots are saved under `benchmark/beat-this-small-offset-minus27ms/`; the
+comparison command checks that both runs used the same reference grids,
+tempo choices, timestamp correction, and timing settings before writing
+`comparison.json` there. See that directory's README for the comparison and
+download-size tradeoff.
 The browser app continues to use SENet.
 
 Render the ranked and final exported grids as click tracks mixed with the corpus audio:
@@ -199,3 +211,9 @@ npm run benchmark:listen -- 236292 10
 ```
 
 The WAV files are written under `benchmark/listening/<mapset-id>/`.
+
+## TODO
+
+- Let users adjust the final timing-grid/BPM smoothing separately from the existing beat-time smoothing slider.
+- Let users adjust the global timing offset of the exported red points.
+- When Beat This! is added to the browser, offer Small and Full: the [25-map comparison](benchmark/beat-this-small-offset-minus27ms/README.md) found similar overall weighted F1 with an approximately 90% smaller Small checkpoint.
