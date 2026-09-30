@@ -40,13 +40,17 @@ npm test
 
 ## Benchmark
 
-Place each exact audio and `.osu` pair under `benchmark/corpus/<mapset-id>/`,
-then add the case to `benchmark/manifest.json`, including a `tempoPattern` of
-`fixed`, `continuous`, or `sections`. This is the mapper-supplied choice; the
-reference `.osu` file is used only to score the resulting export. Set
+Place each exact audio and `.osu` pair under a folder named after its `.osz`
+archive (without the `.osz` extension), then add its actual file paths to
+`benchmark/manifest.json`, including a `tempoPattern` of
+`fixed`, `continuous`, or `sections`. This is normally the mapper-supplied
+choice. Cases classified from their reference `.osu` file set
+`tempoPatternSource` to `reference-osu` so those results are identifiable. Set
 `tempoScale` to the mapper's octave choice (`0.5`, `1`, or `2`) and, when
 halving, `tempoPhase` to `0` or `1`. `allowedTempoScales` lists alternatives
 to score for diagnosis, but the reference never selects the reported export.
+`genre` uses one of osu!'s broad music categories, based on the beatmapset
+listing or the `.osu` tags when that listing is misleading.
 Record any osu! online offset in `onlineOffsetMs`; positive values move the
 reference grid later, matching osu!'s gameplay convention.
 Run every configured corpus case from the command line:

@@ -51,6 +51,8 @@ export function parseOsuHitObjectSpan(osuText) {
         .filter(({ offsetMs, beatLengthMs }) =>
             Number.isFinite(offsetMs) && Number.isFinite(beatLengthMs)
         ).sort((left, right) => left.offsetMs - right.offsetMs);
+    const firstBeatLengthMs = sliderTiming.find(({ uninherited, beatLengthMs }) =>
+        uninherited && beatLengthMs > 0)?.beatLengthMs;
     const multiplierLine = lines.find((line) => line.startsWith("SliderMultiplier:"));
     const sliderMultiplier = multiplierLine
         ? Number(multiplierLine.split(":", 2)[1].trim()) : NaN;
@@ -65,16 +67,21 @@ export function parseOsuHitObjectSpan(osuText) {
         const time = fields[2]?.trim();
         if (!/^\d+$/.test(time ?? "")) continue;
         const timeMs = Number(time);
+        const type = Number(fields[3]);
+        // Spinners do not provide a rhythmic grid to evaluate, even though
+        // their long tails can extend the mapped span substantially.
+        if (type & 8) continue;
         firstMs = Math.min(firstMs, timeMs);
         let endMs = timeMs;
-        const type = Number(fields[3]);
-        if (type & 8 || type & 128) {
+        if (type & 128) {
             const objectEnd = Number(fields[5]?.split(":", 1)[0]);
             if (Number.isFinite(objectEnd) && objectEnd >= timeMs) endMs = objectEnd;
         } else if (type & 2) {
             const repeatCount = Number(fields[6]);
             const pixelLength = Number(fields[7]);
-            let beatLengthMs = NaN;
+            // Older maps can place an integer-timed slider just before a
+            // fractional first timing point; osu! uses that first red point.
+            let beatLengthMs = firstBeatLengthMs ?? NaN;
             let velocity = 1;
             for (const point of sliderTiming) {
                 if (point.offsetMs > timeMs) break;
@@ -94,7 +101,7 @@ export function parseOsuHitObjectSpan(osuText) {
         }
         lastMs = Math.max(lastMs, endMs);
     }
-    if (!Number.isFinite(firstMs)) throw new Error("The .osu file has no valid hit objects");
+    if (!Number.isFinite(firstMs)) throw new Error("The .osu file has no valid rhythmic hit objects");
     return { firstMs, lastMs };
 }
 

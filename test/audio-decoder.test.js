@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { removeId3Mp3Padding } from "../audio-decoder.js";
+import { removeId3Mp3Padding, stripLeadingZeroMp3Padding } from "../audio-decoder.js";
 import { decodeAudioFile, removeLeadingId3Padding } from "../benchmark/audio-decoder.js";
 
 test("removes padding between an ID3 tag and MP3 frames", () => {
@@ -38,8 +38,8 @@ test("matches browser frame skipping when the ID3 size overlaps the first MP3 fr
 });
 
 test("matches osu!lazer's legacy MP3 timing without changing tagged gapless audio", async () => {
-    const looseChangePath = fileURLToPath(new URL("../benchmark/corpus/545156/audio.mp3", import.meta.url));
-    const hardkorePath = fileURLToPath(new URL("../benchmark/corpus/30485/Disconnected_Hardkore.mp3", import.meta.url));
+    const looseChangePath = fileURLToPath(new URL("../benchmark/corpus/545156 Royal Blood - Loose Change/audio.mp3", import.meta.url));
+    const hardkorePath = fileURLToPath(new URL("../benchmark/corpus/30485 Inspector K - Disconnected Hardkore (CanBlaster Remix)/Disconnected_Hardkore.mp3", import.meta.url));
     const looseChange = await decodeAudioFile(looseChangePath);
     const hardkore = await decodeAudioFile(hardkorePath);
 
@@ -59,4 +59,18 @@ test("matches osu!lazer's legacy MP3 timing without changing tagged gapless audi
     const looseBytes = await readFile(looseChangePath);
     const looseBuffer = looseBytes.buffer.slice(looseBytes.byteOffset, looseBytes.byteOffset + looseBytes.byteLength);
     assert.equal(removeId3Mp3Padding(looseBuffer), looseBuffer);
+});
+
+test("decodes an old MP3 with a verified zero preamble", async () => {
+    const path = fileURLToPath(new URL(
+        "../benchmark/corpus/39217 Arctic Monkeys - I Bet You Look Good on the Dancefloor/02-I Bet You Look Good On The Dancefloor.mp3",
+        import.meta.url
+    ));
+    const bytes = await readFile(path);
+    const stripped = stripLeadingZeroMp3Padding(bytes);
+    assert.equal(bytes.length - stripped.length, 417);
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    assert.equal(new Uint8Array(removeId3Mp3Padding(buffer)).length, stripped.length);
+    const decoded = await decodeAudioFile(path);
+    assert.ok(decoded.durationMs > 170000);
 });

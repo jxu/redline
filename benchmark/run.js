@@ -14,7 +14,7 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.6.5";
+const pipelineVersion = "0.6.7";
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((arg) => arg.startsWith("--")));
@@ -78,7 +78,7 @@ async function runCase(benchmarkCase) {
     const evaluationEndMs = Math.min(decoded.durationMs,
         hitObjectSpan.lastMs + onlineOffsetMs + 1);
     if (evaluationStartMs >= evaluationEndMs) {
-        throw new Error(`No audio between the first and last hit object for ${benchmarkCase.id}`);
+        throw new Error(`No audio between the first and last rhythmic hit object for ${benchmarkCase.id}`);
     }
     const referenceBeatsMs = fullReferenceBeatsMs.filter(
         (beatMs) => beatMs >= evaluationStartMs && beatMs < evaluationEndMs
@@ -133,7 +133,7 @@ async function runCase(benchmarkCase) {
         osuTimingPoints: selectedScale.osuTimingPoints,
         exportedTimingPoints: selectedScale.exportedTimingPoints,
         durationMs: decoded.durationMs,
-        evaluationWindow: "first-to-last-hit-object",
+        evaluationWindow: "first-to-last-rhythmic-hit-object",
         evaluationStartMs,
         evaluationEndMs,
         confidence: detection.confidence,
@@ -143,6 +143,7 @@ async function runCase(benchmarkCase) {
         selectedTempoPhase: selectedScale.phase,
         tempoScaleSource: "manifest",
         selectedTempoPattern: selectedScale.tempoPattern,
+        tempoPatternSource: benchmarkCase.tempoPatternSource ?? "mapper",
         tempoScaleCandidates: scaleCandidates.map(({
             beatsMs, osuTimingPoints, exportedTimingPoints, ...candidate
         }) => ({

@@ -26,10 +26,23 @@ export function id3TagEnd(bytes) {
         (bytes[5] & 0x10 ? 10 : 0);
 }
 
+// Some old MP3s begin with zero bytes before the first valid frame. Remove
+// only a short preamble followed by two correctly spaced frame headers.
+export function stripLeadingZeroMp3Padding(bytes) {
+    let frameStart = 0;
+    while (frameStart < Math.min(bytes.length, 4096) && bytes[frameStart] === 0) frameStart++;
+    if (!frameStart || frameStart >= 4096) return bytes;
+    const frameLength = mp3FrameLength(bytes, frameStart);
+    return frameLength && mp3FrameLength(bytes, frameStart + frameLength)
+        ? bytes.subarray(frameStart) : bytes;
+}
+
 // Chrome can overlook gapless MP3 metadata if padding separates the ID3 tag
 // from the first frame. Remove only verified padding before a LAME-tagged frame.
 export function removeId3Mp3Padding(arrayBuffer) {
-    const bytes = new Uint8Array(arrayBuffer);
+    const originalBytes = new Uint8Array(arrayBuffer);
+    const bytes = stripLeadingZeroMp3Padding(originalBytes);
+    if (bytes !== originalBytes) return bytes.slice().buffer;
     const tagEnd = id3TagEnd(bytes);
     if (tagEnd === null) return arrayBuffer;
     let frameStart = tagEnd;

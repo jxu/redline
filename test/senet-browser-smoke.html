@@ -12,7 +12,7 @@ try {
     let samples;
     if (corpusSeconds) {
         const response = await fetch(
-            "../benchmark/corpus/13012/SO%20DEEP%20(PERFECT%20SPHERE%20REMIX).mp3"
+            "../benchmark/corpus/13012%20Silvertear%20-%20So%20Deep%20(Perfect%20Sphere%20Remix)/SO%20DEEP%20(PERFECT%20SPHERE%20REMIX).mp3"
         );
         const decoded = await decodeAudio(await response.arrayBuffer(), new AudioContext());
         samples = decoded.samples.slice(0, corpusSeconds * sampleRate);

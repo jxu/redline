@@ -2,7 +2,7 @@ import decode from "audio-decode";
 import { MPEGDecoder } from "mpg123-decoder";
 import { readFile } from "node:fs/promises";
 
-import { MODEL_SAMPLE_RATE, id3TagEnd, mp3FrameLength } from "../audio-decoder.js";
+import { MODEL_SAMPLE_RATE, id3TagEnd, mp3FrameLength, stripLeadingZeroMp3Padding } from "../audio-decoder.js";
 
 export function removeLeadingId3Padding(encodedAudio) {
     if (
@@ -40,7 +40,9 @@ async function decodeWithId3PaddingFallback(encodedAudio) {
     try {
         return await decode(encodedAudio);
     } catch (error) {
-        const withoutPadding = removeLeadingId3Padding(encodedAudio);
+        const withoutId3Padding = removeLeadingId3Padding(encodedAudio);
+        const withoutPadding = withoutId3Padding === encodedAudio
+            ? stripLeadingZeroMp3Padding(encodedAudio) : withoutId3Padding;
         if (withoutPadding === encodedAudio || error.message !== "Unknown audio format") throw error;
         return decode(withoutPadding);
     }
