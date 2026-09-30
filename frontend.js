@@ -33,6 +33,7 @@ const state = {
         samples: null, // 16 kHz mono Float32Array for SENet
         ticks: [],
         observedTicks: [],
+        manualTempoLevel: false,
         filteredBeatCount: 0,
         interpolatedBeatCount: 0,
         confidence: 0,
@@ -239,6 +240,7 @@ document.getElementById("doubleTempo").onclick = () => {
     if (state.track.ticks.length < 2) return;
     state.track.ticks = doubleTicks(state.track.ticks);
     state.track.observedTicks = doubleTicks(state.track.observedTicks);
+    state.track.manualTempoLevel = true;
     renderTicks();
 };
 
@@ -249,6 +251,7 @@ document.getElementById("halveTempo").onclick = () => {
     state.track.observedTicks = state.track.observedTicks.filter(
         (tick) => gridTimes.has(Math.round(tick * 1e6))
     );
+    state.track.manualTempoLevel = true;
     renderTicks();
 };
 
@@ -283,6 +286,7 @@ async function analyze() {
     }
 
     resultsBox.textContent = "Analyzing...";
+    state.track.manualTempoLevel = false;
 
     try {
         const result = await detectBeats(state.track.samples, {
@@ -328,6 +332,7 @@ function renderTicks() {
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
         probabilities: state.track.probabilities,
+        preserveInputPulse: state.track.manualTempoLevel,
     });
 
     resultsBox.innerHTML = `
@@ -358,6 +363,7 @@ function renderTimingGrid(timing = null) {
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
         probabilities: state.track.probabilities,
+        preserveInputPulse: state.track.manualTempoLevel,
     });
 
     document.getElementById("fitWarning").hidden = !timing.fitWarning;
@@ -416,6 +422,7 @@ fileInput.addEventListener("change", async (event) => {
     regions.clearRegions();
     state.track.ticks = [];
     state.track.observedTicks = [];
+    state.track.manualTempoLevel = false;
     state.track.filteredBeatCount = 0;
     state.track.interpolatedBeatCount = 0;
     state.track.inferenceBackend = null;

@@ -1,7 +1,7 @@
 {
   "mapsetId": "39217",
   "name": "Arctic Monkeys - I Bet You Look Good on the Dancefloor [Insane]",
-  "pipelineVersion": "0.6.7-beat-this-final0-offset-minus27ms",
+  "pipelineVersion": "0.7.0-beat-this-final0-offset-minus27ms",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",

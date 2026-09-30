@@ -115,10 +115,11 @@
     "genre": "Rock",
     "tempoPattern": "sections",
     "tempoScale": 1,
+    "beatThisTempoScale": 2,
     "audio": "./corpus/545156 Royal Blood - Loose Change/audio.mp3",
     "osu": "./corpus/545156 Royal Blood - Loose Change/Royal Blood - Loose Change (BOUYAAA) [$].osu",
     "onlineOffsetMs": 0,
-    "allowedTempoScales": [1]
+    "allowedTempoScales": [1, 2]
   },
   {
     "id": "1052267",
@@ -148,6 +149,7 @@
     "genre": "Folk",
     "tempoPattern": "continuous",
     "tempoScale": 0.5,
+    "beatThisTempoScale": 1,
     "tempoPhase": 0,
     "audio": "./corpus/1819703 The Beatles - Yesterday/audio.ogg",
     "osu": "./corpus/1819703 The Beatles - Yesterday/The Beatles - Yesterday (sisig) [Insane].osu",
@@ -160,6 +162,7 @@
     "genre": "Pop",
     "tempoPattern": "continuous",
     "tempoScale": 0.5,
+    "beatThisTempoScale": 1,
     "tempoPhase": 0,
     "audio": "./corpus/2519265 The Beatles - In My Life (2023 Mix)/audio.mp3",
     "osu": "./corpus/2519265 The Beatles - In My Life (2023 Mix)/The Beatles - In My Life (2023 Mix) (effyl) [Remembrance].osu",
@@ -185,10 +188,11 @@
     "tempoPattern": "sections",
     "tempoPatternSource": "reference-osu",
     "tempoScale": 1,
+    "beatThisTempoScale": 2,
     "audio": "./corpus/45935 Spriggan - Valkyrie Dimension/VALKYRIESDIMENSIONZ.mp3",
     "osu": "./corpus/45935 Spriggan - Valkyrie Dimension/Spriggan - Valkyrie Dimension (Charles445) [Insane].osu",
     "onlineOffsetMs": 0,
-    "allowedTempoScales": [1]
+    "allowedTempoScales": [1, 2]
   },
   {
     "id": "124311",
@@ -269,10 +273,11 @@
     "tempoPattern": "continuous",
     "tempoPatternSource": "reference-osu",
     "tempoScale": 1,
+    "beatThisTempoScale": 2,
     "audio": "./corpus/2052208 Static-X - Skinnyman/audio.mp3",
     "osu": "./corpus/2052208 Static-X - Skinnyman/Static-X - Skinnyman (yousick) [FCL's Six miles high].osu",
     "onlineOffsetMs": 0,
-    "allowedTempoScales": [1]
+    "allowedTempoScales": [1, 2]
   },
   {
     "id": "2242178",

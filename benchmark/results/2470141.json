@@ -1,7 +1,7 @@
 {
   "mapsetId": "2470141",
   "name": "Beach Bunny - Prom Queen [I love you however you are]",
-  "pipelineVersion": "0.6.7-beat-this-final0-offset-minus27ms",
+  "pipelineVersion": "0.7.0-beat-this-final0-offset-minus27ms",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -256,70 +256,6 @@
       "timingPointCount": 25
     },
     {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 222,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.7551020408163265,
-      "weightedF1": 0.37388422378841796,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0.11904761904761904
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0.24149659863945577
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0.336734693877551
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.445578231292517
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.5782312925170068
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.6802721088435374
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.7687074829931972
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.8299319727891157
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.8843537414965986
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.9081632653061225
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 19.196133340443254,
-      "detectedBeatCount": 292,
-      "timingPointCount": 25
-    },
-    {
       "tempoScale": 0.5,
       "phase": 1,
       "tempoPattern": "Continuously variable BPM",
@@ -382,6 +318,70 @@
       "symmetricMeanNearestErrorMs": 114.72813603427679,
       "detectedBeatCount": 146,
       "timingPointCount": 16
+    },
+    {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Continuously variable BPM",
+      "matchedBeatCount": 230,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.5221339387060159,
+      "weightedF1": 0.27104657616320454,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.07945516458569807
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.18388195232690124
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.2542565266742338
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.36095346197502837
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.4335981838819523
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.49035187287173665
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.5380249716231555
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.5811577752553916
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.6061293984108967
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.6220204313280363
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 59.43907178864857,
+      "detectedBeatCount": 585,
+      "timingPointCount": 42
     },
     {
       "tempoScale": 0.5,

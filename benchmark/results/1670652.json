@@ -1,7 +1,7 @@
 {
   "mapsetId": "1670652",
   "name": "The Beatles - It Won't Be Long [Yeah]",
-  "pipelineVersion": "0.6.7-beat-this-final0-offset-minus27ms",
+  "pipelineVersion": "0.7.0-beat-this-final0-offset-minus27ms",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",
@@ -192,70 +192,6 @@
   "tempoPatternSource": "mapper",
   "tempoScaleCandidates": [
     {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Continuously variable BPM",
-      "matchedBeatCount": 246,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.924812030075188,
-      "weightedF1": 0.5254157952800984,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0.21428571428571427
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0.3684210526315789
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0.5413533834586466
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.7330827067669173
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.8383458646616542
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.9060150375939849
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.943609022556391
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.9511278195488722
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.9661654135338346
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.9699248120300752
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 11.039678021200661,
-      "detectedBeatCount": 265,
-      "timingPointCount": 25
-    },
-    {
       "tempoScale": 1,
       "phase": 0,
       "tempoPattern": "Continuously variable BPM",
@@ -318,6 +254,70 @@
       "symmetricMeanNearestErrorMs": 10.709438573319066,
       "detectedBeatCount": 266,
       "timingPointCount": 25
+    },
+    {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Continuously variable BPM",
+      "matchedBeatCount": 253,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.6340852130325815,
+      "weightedF1": 0.3781720932870042,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.15789473684210525
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.3082706766917293
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.41604010025062654
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.5112781954887218
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.5764411027568922
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.6190476190476191
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.6340852130325815
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.6516290726817042
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.656641604010025
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.656641604010025
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 60.31524193509404,
+      "detectedBeatCount": 531,
+      "timingPointCount": 40
     },
     {
       "tempoScale": 0.5,

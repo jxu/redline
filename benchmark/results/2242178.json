@@ -1,7 +1,7 @@
 {
   "mapsetId": "2242178",
   "name": "Sonata Arctica - Wolf & Raven (Cut Ver.) [Dread]",
-  "pipelineVersion": "0.6.7-beat-this-final0-offset-minus27ms",
+  "pipelineVersion": "0.7.0-beat-this-final0-offset-minus27ms",
   "decoder": "audio-decode",
   "sourceSampleRate": 44100,
   "detector": "beat-this-final0-minimal",

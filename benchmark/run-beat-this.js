@@ -128,8 +128,10 @@ async function runCase(benchmarkCase) {
             endMs: evaluationEndMs,
         }
     );
+    const mapperScale = benchmarkCase.beatThisTempoScale ?? benchmarkCase.tempoScale;
+    const mapperPhase = benchmarkCase.beatThisTempoPhase ?? benchmarkCase.tempoPhase ?? 0;
     const selectedScale = selectTempoCandidate(
-        scaleCandidates, benchmarkCase.tempoScale, benchmarkCase.tempoPhase ?? 0
+        scaleCandidates, mapperScale, mapperPhase
     );
     const detectedBeatsMs = selectedScale.beatsMs;
     const nearestReferenceErrorsMs = detectedBeatsMs.map((beatMs) =>
@@ -138,7 +140,7 @@ async function runCase(benchmarkCase) {
     return {
         mapsetId: benchmarkCase.id,
         name: benchmarkCase.name,
-        pipelineVersion: `0.6.7-beat-this-${modelName}${modeSuffix}`,
+        pipelineVersion: `0.7.0-beat-this-${modelName}${modeSuffix}`,
         decoder: "audio-decode",
         sourceSampleRate: decoded.sourceSampleRate,
         detector: `beat-this-${modelName}-minimal`,
@@ -164,7 +166,8 @@ async function runCase(benchmarkCase) {
         allowedTempoScales: benchmarkCase.allowedTempoScales,
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
-        tempoScaleSource: "manifest",
+        tempoScaleSource: benchmarkCase.beatThisTempoScale === undefined
+            ? "manifest" : "manifest-beat-this",
         selectedTempoPattern: selectedScale.tempoPattern,
         tempoPatternSource: benchmarkCase.tempoPatternSource ?? "mapper",
         tempoScaleCandidates: scaleCandidates.map(({

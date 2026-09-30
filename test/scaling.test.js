@@ -28,6 +28,26 @@ test("selects double tempo when raw detections are half the reference tempo", ()
     assert.equal(candidates[0].symmetricMeanNearestErrorMs, 0);
 });
 
+test("an explicit double-tempo choice survives pulse fitting", () => {
+    const observed = Array.from({ length: 32 }, (_, index) => index * 440);
+    const probabilities = new Float32Array(730);
+    for (const beatMs of observed) probabilities[beatMs / 20] = 0.9;
+    const [candidate] = evaluateTempoScales(
+        observed, observed.flatMap((beatMs) => [beatMs, beatMs + 220]), [2],
+        {
+            durationMs: 14500,
+            observedBeatsMs: observed,
+            probabilities,
+            probabilityFrameMs: 20,
+            timingOptions: { tempoPattern: "sections", windowSize: 4,
+                toleranceMs: 5, tempoSmoothness: 5 },
+        }
+    );
+
+    assert.ok(candidate.exportedTimingPoints.every(({ beatLengthMs }) => beatLengthMs < 300));
+    assert.ok(candidate.beatsMs.length >= 60);
+});
+
 test("tries both phases when reducing a double-tempo grid", () => {
     const candidates = evaluateTempoScales(
         [0, 500, 1000, 1500, 2000],

@@ -1,7 +1,7 @@
 {
   "mapsetId": "30485",
   "name": "Inspector K - Disconnected Hardkore (CanBlaster Remix) [Insane]",
-  "pipelineVersion": "0.6.7-beat-this-final0-offset-minus27ms",
+  "pipelineVersion": "0.7.0-beat-this-final0-offset-minus27ms",
   "decoder": "audio-decode",
   "sourceSampleRate": 48000,
   "detector": "beat-this-final0-minimal",
@@ -149,70 +149,6 @@
   "selectedTempoPattern": "Variable BPM with fixed sections",
   "tempoPatternSource": "mapper",
   "tempoScaleCandidates": [
-    {
-      "tempoScale": 2,
-      "phase": 0,
-      "tempoPattern": "Variable BPM with fixed sections",
-      "matchedBeatCount": 268,
-      "matchingToleranceMs": 20,
-      "matchingF1": 0.7362637362637363,
-      "weightedF1": 0.3268400749771838,
-      "weightedF1Scores": [
-        {
-          "toleranceMs": 3,
-          "weight": 1,
-          "f1": 0.054945054945054944
-        },
-        {
-          "toleranceMs": 6,
-          "weight": 0.5,
-          "f1": 0.18681318681318682
-        },
-        {
-          "toleranceMs": 9,
-          "weight": 0.3333333333333333,
-          "f1": 0.2802197802197802
-        },
-        {
-          "toleranceMs": 12,
-          "weight": 0.25,
-          "f1": 0.4258241758241758
-        },
-        {
-          "toleranceMs": 15,
-          "weight": 0.2,
-          "f1": 0.6291208791208791
-        },
-        {
-          "toleranceMs": 18,
-          "weight": 0.16666666666666666,
-          "f1": 0.7142857142857143
-        },
-        {
-          "toleranceMs": 21,
-          "weight": 0.14285714285714285,
-          "f1": 0.7445054945054945
-        },
-        {
-          "toleranceMs": 24,
-          "weight": 0.125,
-          "f1": 0.7527472527472527
-        },
-        {
-          "toleranceMs": 27,
-          "weight": 0.1111111111111111,
-          "f1": 0.7692307692307693
-        },
-        {
-          "toleranceMs": 30,
-          "weight": 0.1,
-          "f1": 0.782967032967033
-        }
-      ],
-      "symmetricMeanNearestErrorMs": 26.984992210591628,
-      "detectedBeatCount": 351,
-      "timingPointCount": 20
-    },
     {
       "tempoScale": 1,
       "phase": 0,
@@ -404,6 +340,70 @@
       "symmetricMeanNearestErrorMs": 90.60467827851018,
       "detectedBeatCount": 175,
       "timingPointCount": 21
+    },
+    {
+      "tempoScale": 2,
+      "phase": 0,
+      "tempoPattern": "Variable BPM with fixed sections",
+      "matchedBeatCount": 105,
+      "matchingToleranceMs": 20,
+      "matchingF1": 0.22900763358778625,
+      "weightedF1": 0.12136617094467406,
+      "weightedF1Scores": [
+        {
+          "toleranceMs": 3,
+          "weight": 1,
+          "f1": 0.03489640130861505
+        },
+        {
+          "toleranceMs": 6,
+          "weight": 0.5,
+          "f1": 0.07415485278080698
+        },
+        {
+          "toleranceMs": 9,
+          "weight": 0.3333333333333333,
+          "f1": 0.128680479825518
+        },
+        {
+          "toleranceMs": 12,
+          "weight": 0.25,
+          "f1": 0.1766630316248637
+        },
+        {
+          "toleranceMs": 15,
+          "weight": 0.2,
+          "f1": 0.1875681570338059
+        },
+        {
+          "toleranceMs": 18,
+          "weight": 0.16666666666666666,
+          "f1": 0.1984732824427481
+        },
+        {
+          "toleranceMs": 21,
+          "weight": 0.14285714285714285,
+          "f1": 0.23991275899672845
+        },
+        {
+          "toleranceMs": 24,
+          "weight": 0.125,
+          "f1": 0.2617230098146129
+        },
+        {
+          "toleranceMs": 27,
+          "weight": 0.1111111111111111,
+          "f1": 0.27262813522355506
+        },
+        {
+          "toleranceMs": 30,
+          "weight": 0.1,
+          "f1": 0.2857142857142857
+        }
+      ],
+      "symmetricMeanNearestErrorMs": 61.17245974169075,
+      "detectedBeatCount": 540,
+      "timingPointCount": 23
     }
   ],
   "timingPoints": [

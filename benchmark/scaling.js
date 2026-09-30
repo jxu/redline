@@ -155,6 +155,8 @@ export function evaluateTempoScales(
                 .map((beatMs) => beatMs / 1000);
             const fitted = calculateTiming(ticks, {
                 ...timingOptions,
+                // A mapper-selected octave must survive pulse-hypothesis fitting.
+                preserveInputPulse: tempoScale !== 1 || timingOptions.preserveInputPulse,
                 endTime: durationMs / 1000,
                 observedTicks,
                 probabilities,

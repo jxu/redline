@@ -28,7 +28,8 @@ continuously variable BPM follows changes in sections of at most 16 beats;
 variable BPM with fixed sections extends steady sections as long as the beat
 evidence supports them. A warning appears if detected beats do not consistently
 support a requested fixed BPM. Changing the selection after calculation refits
-the export without rerunning beat detection.
+the export without rerunning beat detection. The ×2 and ÷2 controls preserve
+the chosen beat level through subsequent timing fits.
 
 ## Test
 
@@ -49,6 +50,10 @@ choice. Cases classified from their reference `.osu` file set
 `tempoScale` to the mapper's octave choice (`0.5`, `1`, or `2`) and, when
 halving, `tempoPhase` to `0` or `1`. `allowedTempoScales` lists alternatives
 to score for diagnosis, but the reference never selects the reported export.
+When the detectors start at different beat levels, `beatThisTempoScale` can
+override the SENet-oriented choice for Beat This! so both exports target the
+same mapper-intended pulse. An explicit half/double selection is preserved by
+the fitter instead of being silently reversed.
 `genre` uses one of osu!'s broad music categories, based on the beatmapset
 listing or the `.osu` tags when that listing is misleading.
 Record any osu! online offset in `onlineOffsetMs`; positive values move the
@@ -174,8 +179,10 @@ BEAT_THIS_PYTHON=/tmp/redline-beat-this/bin/python npm run benchmark:beat-this-f
 An optional mapset ID follows `--`. Beat This! uses the same audio decoder,
 mapper tempo input, fitter, exported-grid scoring, and evaluation window as the
 SENet benchmark. Its native 20 ms beat probabilities enter the fitter at that
-frame spacing. The default run applies the −27 ms timestamp correction and
-writes results to `benchmark/results/` and plots to `benchmark/plots/`.
+frame spacing. Maps whose detectors choose different beat levels use
+`beatThisTempoScale` in the manifest. The default run applies the −27 ms
+timestamp correction and writes results to `benchmark/results/` and plots to
+`benchmark/plots/`.
 This is the only saved result set in this branch.
 The browser app continues to use SENet.
 
