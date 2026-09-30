@@ -138,6 +138,7 @@ function missingMarker(x, referenceY) {
 
 export function renderResultPlot(result) {
     const isExportGrid = result.evaluationGrid === "exported-timing-points";
+    const detectorLabel = result.detector?.startsWith("beat-this-") ? "Beat This!" : "SENet";
     const width = 1600;
     const bpmTop = isExportGrid ? 925 : 855;
     const bpmBottom = bpmTop + 230;
@@ -235,7 +236,7 @@ export function renderResultPlot(result) {
         [COLORS.scaled, "triangle", "matched exported beat"],
         [COLORS.error, "cross", "extra exported beat"],
     ] : [
-        [COLORS.raw, "circle", "matched SENet peak"],
+        [COLORS.raw, "circle", `matched ${detectorLabel} peak`],
         [COLORS.interpolated, "diamond", "matched interpolated beat"],
         [COLORS.scaled, "triangle", "matched tempo-scaled beat"],
         [COLORS.error, "cross", "extra detection"],
@@ -251,13 +252,13 @@ export function renderResultPlot(result) {
     });
 
     svg.push(
-        `<line x1="${left + 10}" y1="615" x2="${left + 32}" y2="615" stroke="${COLORS.raw}" stroke-width="3"/><text class="legend" x="${left + 40}" y="620">retained SENet peak</text>`,
+        `<line x1="${left + 10}" y1="615" x2="${left + 32}" y2="615" stroke="${COLORS.raw}" stroke-width="3"/><text class="legend" x="${left + 40}" y="620">retained ${detectorLabel} peak</text>`,
         `<line x1="${left + 215}" y1="615" x2="${left + 237}" y2="615" stroke="${COLORS.interpolated}" stroke-width="3"/><text class="legend" x="${left + 245}" y="620">interpolated beat</text>`,
         `<line x1="${left + 395}" y1="615" x2="${left + 417}" y2="615" stroke="${COLORS.filtered}" stroke-width="3" stroke-opacity="0.5" stroke-dasharray="4 3"/><text class="legend" x="${left + 425}" y="620">filtered-out peak</text>`,
         `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
         `<rect x="${left}" y="640" width="${plotWidth}" height="${rasterBottom - 640}" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
-        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">SENet</text>`,
+        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">${detectorLabel}</text>`,
     );
 
     for (const beatMs of result.referenceBeatsMs) {
@@ -320,16 +321,23 @@ export async function writeResultPlot(result, benchmarkDirectory) {
 
 async function runCli() {
     const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-    const requestedId = process.argv[2];
+    const args = process.argv.slice(2);
+    const resultsDirectoryIndex = args.indexOf("--results-dir");
+    const resultsDirectory = resultsDirectoryIndex < 0
+        ? benchmarkDirectory
+        : resolve(benchmarkDirectory, args[resultsDirectoryIndex + 1]);
+    if (resultsDirectoryIndex >= 0) args.splice(resultsDirectoryIndex, 2);
+    const requestedId = args[0];
+    if (args.length > 1) throw new Error("Specify at most one mapset ID");
     const resultNames = requestedId
         ? [`${requestedId}.json`]
-        : (await readdir(resolve(benchmarkDirectory, "results")))
+        : (await readdir(resolve(resultsDirectory, "results")))
             .filter((name) => name.endsWith(".json"))
             .sort();
 
     for (const resultName of resultNames) {
         const result = JSON.parse(await readFile(
-            resolve(benchmarkDirectory, "results", resultName),
+            resolve(resultsDirectory, "results", resultName),
             "utf8"
         ));
         console.log(await writeResultPlot(result, benchmarkDirectory));

@@ -118,7 +118,7 @@ function resampleLinear(samples, sourceRate, targetRate) {
     return output;
 }
 
-export async function decodeAudioFile(path) {
+export async function decodeAudioFile(path, targetSampleRate = MODEL_SAMPLE_RATE) {
     const encodedAudio = await readFile(path);
     let audioBuffer = await decodeWithId3PaddingFallback(encodedAudio);
     if (path.toLowerCase().endsWith(".mp3")) {
@@ -128,7 +128,7 @@ export async function decodeAudioFile(path) {
 
     return {
         durationMs: mono.length / audioBuffer.sampleRate * 1000,
-        samples: resampleLinear(mono, audioBuffer.sampleRate, MODEL_SAMPLE_RATE),
+        samples: resampleLinear(mono, audioBuffer.sampleRate, targetSampleRate),
         sourceSampleRate: audioBuffer.sampleRate,
     };
 }

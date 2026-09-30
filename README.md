@@ -143,19 +143,41 @@ with normalized inverse-threshold weights of 1, 1/2, ..., 1/10. A beat can
 match at most once per threshold. F1@20ms remains available for comparison
 with older results. The benchmark also ranks alternative scales for diagnosis, but
 does not use that ranking to choose the reported export. Metrics cover the mapped
-span from the first hit object through the end of the last hit object, inclusive,
-after the manifest's online offset is applied. The fitter still processes the full audio.
-The command writes every candidate score plus detailed results under
-`benchmark/results/` and an SVG beat-alignment chart under `benchmark/plots/`.
+span from the first through the last rhythmic hit object, including slider tails
+but excluding spinner-only intros or outros, after the manifest's online offset
+is applied. The fitter still processes the full audio.
+The benchmark writes every candidate score and detailed results under
+`benchmark/results/`, and an SVG beat-alignment chart under `benchmark/plots/`.
+The checked-in files currently show the full-corpus Beat This! run with the
+−27 ms timestamp correction. Running either benchmark command again replaces
+the results and plots for the selected mapsets.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
-alongside the reference and the intermediate SENet beats, plus reference and
+alongside the reference and the intermediate detector beats, plus reference and
 exported BPM as step lines over the same song-time axis.
 Regenerate charts from the saved result files without rerunning inference with:
 
 ```bash
 npm run benchmark:plot
 ```
+
+To compare the experimental Beat This! `final0` model against the same corpus,
+install Python 3.10, CPU PyTorch, and Beat This! 1.1.0 in a separate environment:
+
+```bash
+python3.10 -m venv /tmp/redline-beat-this
+/tmp/redline-beat-this/bin/pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.11.0+cpu' 'torchaudio==2.11.0+cpu'
+/tmp/redline-beat-this/bin/pip install beat-this==1.1.0
+BEAT_THIS_PYTHON=/tmp/redline-beat-this/bin/python npm run benchmark:beat-this-full
+```
+
+An optional mapset ID follows `--`. Beat This! uses the same audio decoder,
+mapper tempo input, fitter, exported-grid scoring, and evaluation window as the
+SENet benchmark. Its native 20 ms beat probabilities enter the fitter at that
+frame spacing. The default run applies the −27 ms timestamp correction and
+writes results to `benchmark/results/` and plots to `benchmark/plots/`.
+This is the only saved result set in this branch.
+The browser app continues to use SENet.
 
 Render the ranked and final exported grids as click tracks mixed with the corpus audio:
 

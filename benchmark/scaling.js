@@ -9,6 +9,12 @@ const WEIGHTED_F1_WEIGHT_SUM = WEIGHTED_F1_TOLERANCES_MS.reduce(
     (sum, _, index) => sum + 1 / (index + 1), 0
 );
 
+function shiftOsuTimingPoints(osuTimingPoints, offsetMs) {
+    if (!offsetMs) return osuTimingPoints;
+    return osuTimingPoints.replace(/^(-?\d+(?:\.\d+)?)(,.*)$/gm,
+        (_, timeMs, rest) => `${Number(timeMs) + offsetMs}${rest}`);
+}
+
 function subdivisionCount(tempoScale) {
     if (!Number.isFinite(tempoScale) || tempoScale <= 0) {
         throw new Error(`Tempo scale must be positive: ${tempoScale}`);
@@ -114,6 +120,8 @@ export function evaluateTempoScales(
         durationMs,
         observedBeatsMs = detectedBeatsMs,
         probabilities = null,
+        probabilityFrameMs,
+        exportOffsetMs = 0,
         timingOptions = DEFAULT_TIMING_OPTIONS,
         startMs = 0,
         endMs = durationMs,
@@ -145,12 +153,15 @@ export function evaluateTempoScales(
             const observedTicks = scaledObservedBeatsMs
                 .filter((beatMs) => scaledTickTimes.has(Math.round(beatMs * 1000)))
                 .map((beatMs) => beatMs / 1000);
-            const { osuTimingPoints, tempoPattern } = calculateTiming(ticks, {
+            const fitted = calculateTiming(ticks, {
                 ...timingOptions,
                 endTime: durationMs / 1000,
                 observedTicks,
                 probabilities,
+                probabilityFrameMs,
             });
+            const osuTimingPoints = shiftOsuTimingPoints(fitted.osuTimingPoints, exportOffsetMs);
+            const tempoPattern = fitted.tempoPattern;
             const exportedTimingPoints = parseOsuTimingPoints(osuTimingPoints);
             const beatsMs = generateBeatGrid(exportedTimingPoints, durationMs)
                 .filter((beatMs) => beatMs >= startMs && beatMs < endMs);

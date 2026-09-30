@@ -66,6 +66,17 @@ test("F1 matches exported beats only within 20 ms", () => {
     assert.equal(evaluateShift(21).matchingToleranceMs, 20);
 });
 
+test("scores a fixed beat-timestamp correction in the exported timing points", () => {
+    const [candidate] = evaluateTempoScales(
+        [27, 527, 1027, 1527], [0, 500, 1000, 1500], [1],
+        { durationMs: 1800, exportOffsetMs: -27 }
+    );
+
+    assert.equal(candidate.osuTimingPoints, "[TimingPoints]\n0,500.00,4,2,0,100,1,0");
+    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500]);
+    assert.equal(candidate.weightedF1, 1);
+});
+
 test("weighted F1 emphasizes precise matches across 3 to 30 ms", () => {
     const exact = weightedBeatF1([0, 500], [0, 500]);
     const shifted = weightedBeatF1([12, 512], [0, 500]);

@@ -48,7 +48,7 @@ function selectPulse(gridTicks, observedTicks) {
     return selected;
 }
 
-function probabilityObservations(ticks, estimates, probabilities) {
+function probabilityObservations(ticks, estimates, probabilities, frameMs) {
     return estimates.map((estimate, index) => {
         const originalMs = ticks[index] * 1000;
         const estimateMs = estimate * 1000;
@@ -57,14 +57,14 @@ function probabilityObservations(ticks, estimates, probabilities) {
             ? (ticks[index + 1] - ticks[index]) * 1000 : Infinity;
         // A local search avoids stealing a neighboring beat or subdivision.
         const radiusMs = Math.min(80, 0.2 * Math.min(previousGap, nextGap));
-        const first = Math.max(0, Math.ceil((estimateMs - radiusMs) / MODEL_FRAME_MS));
+        const first = Math.max(0, Math.ceil((estimateMs - radiusMs) / frameMs));
         const last = Math.min(probabilities.length - 1,
-            Math.floor((estimateMs + radiusMs) / MODEL_FRAME_MS));
+            Math.floor((estimateMs + radiusMs) / frameMs));
         let mass = 0;
         let moment = 0;
         let kernelTotal = 0;
         for (let frame = first; frame <= last; frame++) {
-            const timeMs = frame * MODEL_FRAME_MS;
+            const timeMs = frame * frameMs;
             const distance = timeMs - estimateMs;
             const kernel = Math.exp(-0.5 * (distance / 25) ** 2);
             const evidence = probabilities[frame] ** 2 * kernel;
@@ -79,7 +79,8 @@ function probabilityObservations(ticks, estimates, probabilities) {
     });
 }
 
-function fitTempoCurve(ticks, smoothness, boundaries = [], probabilities = null) {
+function fitTempoCurve(ticks, smoothness, boundaries = [], probabilities = null,
+    frameMs = MODEL_FRAME_MS) {
     if (ticks.length < 3) return ticks;
     const observed = ticks.map((tick) => tick * 1000);
     const count = observed.length;
@@ -108,7 +109,7 @@ function fitTempoCurve(ticks, smoothness, boundaries = [], probabilities = null)
         let observations;
         if (probabilities?.length) {
             const evidence = probabilityObservations(ticks,
-                fitted.map((time) => time / 1000), probabilities);
+                fitted.map((time) => time / 1000), probabilities, frameMs);
             const averageWeight = evidence.reduce((sum, beat) =>
                 sum + beat.evidenceWeight, 0) / count;
             observations = evidence.map(({ evidenceWeight, evidenceMs, originalMs }) => {
@@ -512,7 +513,8 @@ function competingPulseHypotheses(gridTicks, observedTicks, tempoPattern) {
     });
 }
 
-function scorePulseHypothesis(timingPoints, observedTicks, probabilities, durationMs) {
+function scorePulseHypothesis(timingPoints, observedTicks, probabilities, durationMs,
+    frameMs = MODEL_FRAME_MS) {
     const gridMs = generateTimingGrid(timingPoints, durationMs).map((tick) => tick * 1000);
     if (!gridMs.length) return -Infinity;
     const observedMs = observedTicks.map((tick) => tick * 1000);
@@ -534,10 +536,10 @@ function scorePulseHypothesis(timingPoints, observedTicks, probabilities, durati
     const detectionF1 = total ? 2 * matches / total : 0;
     if (!probabilities?.length) return detectionF1;
 
-    const radius = Math.max(1, Math.round(Math.min(30, typicalInterval * 0.1) / MODEL_FRAME_MS));
+    const radius = Math.max(1, Math.round(Math.min(30, typicalInterval * 0.1) / frameMs));
     let probabilitySupport = 0;
     for (const timeMs of gridMs) {
-        const center = Math.round(timeMs / MODEL_FRAME_MS);
+        const center = Math.round(timeMs / frameMs);
         let peak = 0;
         for (let frame = Math.max(0, center - radius);
             frame <= Math.min(probabilities.length - 1, center + radius); frame++) {
@@ -571,7 +573,8 @@ function fitWeightedTempoLine(observations, weights) {
     };
 }
 
-function refineExportTimingPoints(timingPoints, probabilities, durationMs) {
+function refineExportTimingPoints(timingPoints, probabilities, durationMs,
+    frameMs = MODEL_FRAME_MS) {
     if (!probabilities?.length) return timingPoints;
     return timingPoints.map((point, section) => {
         const endMs = Math.min(timingPoints[section + 1]?.offsetMs ?? durationMs, durationMs);
@@ -580,11 +583,11 @@ function refineExportTimingPoints(timingPoints, probabilities, durationMs) {
 
         const observations = [];
         const radiusFrames = Math.max(1, Math.floor(
-            Math.min(35, point.beatLengthMs * 0.12) / MODEL_FRAME_MS
+            Math.min(35, point.beatLengthMs * 0.12) / frameMs
         ));
         for (let beat = 0; beat < beatCount; beat++) {
             const expectedMs = point.offsetMs + beat * point.beatLengthMs;
-            const center = Math.round(expectedMs / MODEL_FRAME_MS);
+            const center = Math.round(expectedMs / frameMs);
             const first = Math.max(1, center - radiusFrames);
             const last = Math.min(probabilities.length - 2, center + radiusFrames);
             let peakFrame = -1;
@@ -600,7 +603,7 @@ function refineExportTimingPoints(timingPoints, probabilities, durationMs) {
                 ? clamp(0.5 * (left - right) / curvature, -0.5, 0.5) : 0;
             observations.push({
                 beat,
-                timeMs: (peakFrame + subframe) * MODEL_FRAME_MS,
+                timeMs: (peakFrame + subframe) * frameMs,
                 weight: peak * peak,
                 strength: peak,
             });
@@ -639,6 +642,7 @@ function refineExportTimingPoints(timingPoints, probabilities, durationMs) {
 }
 
 export function calculateTiming(ticks, options = {}) {
+    const probabilityFrameMs = options.probabilityFrameMs ?? MODEL_FRAME_MS;
     let fittedTicks = ticks;
     let fitted = options.tempoPattern && options.tempoPattern !== "fixed" && ticks.length >= 3
         ? { timingPoints: provisionalTimingGrid(ticks, {
@@ -667,13 +671,15 @@ export function calculateTiming(ticks, options = {}) {
                     ? [point.offsetMs / 1000] : [];
             }) : [];
         const smoothness = options.tempoSmoothness ?? defaultTempoSmoothness(options.tempoPattern);
-        const candidates = competingPulseHypotheses(initialGrid, observedTicks,
-            options.tempoPattern);
+        const candidates = options.preserveInputPulse
+            ? [initialGrid]
+            : competingPulseHypotheses(initialGrid, observedTicks,
+                options.tempoPattern);
         let best = null;
         for (const pulseGrid of candidates) {
             const candidateTicks = fitTempoCurve(pulseGrid,
                 options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
-                boundaries, options.probabilities);
+                boundaries, options.probabilities, probabilityFrameMs);
             let candidateFit = fitTimingGrid(candidateTicks, {
                 ...options,
                 observedTicks: options.tempoPattern === "fixed" ? observedTicks : candidateTicks,
@@ -691,12 +697,13 @@ export function calculateTiming(ticks, options = {}) {
                 }
             }
             const baseScore = scorePulseHypothesis(candidateFit.timingPoints, observedTicks,
-                options.probabilities, durationMs);
+                options.probabilities, durationMs, probabilityFrameMs);
             const refinedPoints = refineExportTimingPoints(
-                candidateFit.timingPoints, options.probabilities, durationMs
+                candidateFit.timingPoints, options.probabilities, durationMs,
+                probabilityFrameMs
             );
             const refinedScore = scorePulseHypothesis(refinedPoints, observedTicks,
-                options.probabilities, durationMs);
+                options.probabilities, durationMs, probabilityFrameMs);
             const useRefinement = refinedScore > baseScore + POINT_REFINEMENT_MIN_GAIN;
             if (useRefinement) {
                 candidateFit = {
