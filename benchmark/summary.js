@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -15,8 +14,6 @@ export function summarizeResult(result) {
         ...Object.fromEntries(fields.filter((field) => result[field] !== undefined)
             .map((field) => [field, result[field]])),
         tempoScaleCandidates: result.tempoScaleCandidates.map(({ weightedF1Scores, ...candidate }) => candidate),
-        referenceSha256: createHash("sha256")
-            .update(JSON.stringify(result.referenceBeatsMs)).digest("hex"),
         referenceBeatCount: result.referenceBeatsMs.length,
         rawBeatCount: result.rawDetectedBeatsMs.length,
         exportedBeatCount: result.detectedBeatsMs.length,
@@ -38,7 +35,6 @@ export async function recordSummary(result, outputDirectory) {
     }
     const previous = summary.cases.find((entry) => entry.mapsetId === result.mapsetId);
     const current = summarizeResult(result);
-    current.recordedAt = new Date().toISOString();
     current.comment = previous?.comment ?? "";
     if (previous) {
         current.previousWeightedF1 = previous.metrics.weightedF1;
