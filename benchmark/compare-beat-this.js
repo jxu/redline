@@ -2,16 +2,18 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const manifest = JSON.parse(await readFile(new URL("./manifest.json", import.meta.url), "utf8"));
-const smallDirectory = new URL("./beat-this-small-offset-minus27ms/", import.meta.url);
+const smallDirectory = new URL("./beat-this-small/", import.meta.url);
+const fullDirectory = new URL("./beat-this-large/", import.meta.url);
 const rows = [];
 function selected(result) {
     return result.tempoScaleCandidates.find(({ tempoScale, phase }) =>
         tempoScale === result.selectedTempoScale && phase === result.selectedTempoPhase);
 }
 for (const entry of manifest) {
-    const full = JSON.parse(await readFile(new URL(`./results/${entry.id}.json`, import.meta.url), "utf8"));
+    const full = JSON.parse(await readFile(new URL(`./results/${entry.id}.json`, fullDirectory), "utf8"));
     const small = JSON.parse(await readFile(new URL(`./results/${entry.id}.json`, smallDirectory), "utf8"));
-    for (const field of ["beatOffsetMs", "evaluationStartMs", "evaluationEndMs", "selectedTempoScale", "selectedTempoPhase", "beatThisVersion", "torchVersion"]) {
+    for (const field of ["beatOffsetMs", "evaluationStartMs", "evaluationEndMs", "beatThisVersion", "torchVersion",
+        "tempoScaleSource"]) {
         if (full[field] !== small[field]) throw new Error(`${entry.id}: different ${field}`);
     }
     if (full.modelName !== "final0" || small.modelName !== "small0" ||
@@ -19,12 +21,22 @@ for (const entry of manifest) {
         JSON.stringify(full.referenceBeatsMs) !== JSON.stringify(small.referenceBeatsMs)) {
         throw new Error(`${entry.id}: incompatible model results or timing configuration`);
     }
+    if ((full.tempoScaleSource !== "reference-best-octave" ||
+        full.pipelineVersion.split("-beat-this-")[0] !== small.pipelineVersion.split("-beat-this-")[0] ||
+        JSON.stringify([...full.allowedTempoScales].sort()) !==
+        JSON.stringify([...small.allowedTempoScales].sort()))) {
+        throw new Error(`${entry.id}: incompatible octave selection rules`);
+    }
     rows.push({
         mapsetId: entry.id, name: entry.name, tempoPattern: entry.tempoPattern,
         fullWeightedF1: selected(full).weightedF1, smallWeightedF1: selected(small).weightedF1,
         deltaWeightedF1: selected(small).weightedF1 - selected(full).weightedF1,
         fullF1At20Ms: selected(full).matchingF1, smallF1At20Ms: selected(small).matchingF1,
         fullTimingPoints: full.exportedTimingPoints.length, smallTimingPoints: small.exportedTimingPoints.length,
+        fullTempoScale: full.selectedTempoScale, smallTempoScale: small.selectedTempoScale,
+        fullTempoPhase: full.selectedTempoPhase, smallTempoPhase: small.selectedTempoPhase,
+        fullConfiguredWeightedF1: full.configuredWeightedF1 ?? selected(full).weightedF1,
+        smallConfiguredWeightedF1: small.configuredWeightedF1 ?? selected(small).weightedF1,
     });
 }
 function mean(values) { return values.reduce((a, b) => a + b, 0) / values.length; }
@@ -43,10 +55,13 @@ function summarize(group) {
         fullMeanF1At20Ms: mean(group.map(r => r.fullF1At20Ms)),
         smallMeanF1At20Ms: mean(group.map(r => r.smallF1At20Ms)),
         smallWins: group.filter(r => r.deltaWeightedF1 > 0).length,
+        fullConfiguredMeanWeightedF1: mean(group.map(r => r.fullConfiguredWeightedF1)),
+        smallConfiguredMeanWeightedF1: mean(group.map(r => r.smallConfiguredWeightedF1)),
     };
 }
 const report = {
     beatOffsetMs: -27,
+    octaveSelection: "reference-best-octave",
     groups: {
         all: summarize(rows),
         continuous: summarize(rows.filter(r => r.tempoPattern === "continuous")),

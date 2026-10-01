@@ -16,6 +16,17 @@ import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 const run = promisify(execFile);
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
+const manifestTempoIndex = args.indexOf("--manifest-tempo");
+const useManifestTempo = manifestTempoIndex >= 0;
+if (useManifestTempo) args.splice(manifestTempoIndex, 1);
+const outputFlagIndex = args.indexOf("--output-dir");
+const requestedOutputDirectory = outputFlagIndex < 0 ? null : args[outputFlagIndex + 1];
+if (outputFlagIndex >= 0) {
+    if (!requestedOutputDirectory || requestedOutputDirectory.startsWith("--")) {
+        throw new Error("--output-dir requires a directory path");
+    }
+    args.splice(outputFlagIndex, 2);
+}
 const offsetFlagIndex = args.indexOf("--beat-offset-ms");
 const beatOffsetMs = offsetFlagIndex < 0 ? -27 : Number(args[offsetFlagIndex + 1]);
 if (!Number.isFinite(beatOffsetMs) || !Number.isInteger(beatOffsetMs)) {
@@ -34,11 +45,10 @@ if (modelFlagIndex >= 0) args.splice(modelFlagIndex, 2);
 if (args.length > 1) throw new Error("Specify at most one mapset ID");
 const offsetSuffix = beatOffsetMs
     ? `-offset-${beatOffsetMs < 0 ? "minus" : "plus"}${Math.abs(beatOffsetMs)}ms` : "";
-const modeSuffix = `${offsetSuffix}${preserveInputPulse ? "-pulse-locked" : ""}`;
-const outputDirectory = modelName === "final0" && beatOffsetMs === -27 && !preserveInputPulse
-    ? benchmarkDirectory
+const modeSuffix = `${offsetSuffix}${preserveInputPulse ? "-pulse-locked" : ""}${useManifestTempo ? "" : "-best-octave"}`;
+const outputDirectory = requestedOutputDirectory ? resolve(requestedOutputDirectory)
     : resolve(benchmarkDirectory,
-        `beat-this-${modelName === "small0" ? "small" : "full"}${modeSuffix}`);
+        `beat-this-${modelName === "small0" ? "small" : "large"}`);
 const python = process.env.BEAT_THIS_PYTHON ?? "python3";
 const detectorScript = resolve(benchmarkDirectory, "beat-this-detect.py");
 const manifest = JSON.parse(await readFile(resolve(benchmarkDirectory, "manifest.json"), "utf8"));
@@ -116,10 +126,12 @@ async function runCase(benchmarkCase) {
     const scaleCandidates = evaluateTempoScales(
         interpolatedTicks.map((tick) => tick * 1000),
         referenceBeatsMs,
-        benchmarkCase.allowedTempoScales,
+        useManifestTempo ? benchmarkCase.allowedTempoScales
+            : [...new Set([0.5, 1, 2, ...benchmarkCase.allowedTempoScales])],
         {
             durationMs: decoded.durationMs,
             observedBeatsMs: filteredTicks.map((tick) => tick * 1000),
+            downbeatTicks: detection.downbeats,
             probabilities: Float32Array.from(detection.beatProbabilities),
             probabilityFrameMs: detection.probabilityFrameMs,
             exportOffsetMs: beatOffsetMs,
@@ -130,8 +142,9 @@ async function runCase(benchmarkCase) {
     );
     const mapperScale = benchmarkCase.beatThisTempoScale ?? benchmarkCase.tempoScale;
     const mapperPhase = benchmarkCase.beatThisTempoPhase ?? benchmarkCase.tempoPhase ?? 0;
+    const configuredCandidate = selectTempoCandidate(scaleCandidates, mapperScale, mapperPhase);
     const selectedScale = selectTempoCandidate(
-        scaleCandidates, mapperScale, mapperPhase
+        scaleCandidates, useManifestTempo ? mapperScale : undefined, mapperPhase
     );
     const detectedBeatsMs = selectedScale.beatsMs;
     const nearestReferenceErrorsMs = detectedBeatsMs.map((beatMs) =>
@@ -140,7 +153,7 @@ async function runCase(benchmarkCase) {
     return {
         mapsetId: benchmarkCase.id,
         name: benchmarkCase.name,
-        pipelineVersion: `0.7.0-beat-this-${modelName}${modeSuffix}`,
+        pipelineVersion: `0.8.0-beat-this-${modelName}${modeSuffix}`,
         decoder: "audio-decode",
         sourceSampleRate: decoded.sourceSampleRate,
         detector: `beat-this-${modelName}-minimal`,
@@ -163,11 +176,15 @@ async function runCase(benchmarkCase) {
         evaluationStartMs,
         evaluationEndMs,
         onlineOffsetMs,
-        allowedTempoScales: benchmarkCase.allowedTempoScales,
+        allowedTempoScales: [...new Set(scaleCandidates.map(({ tempoScale }) => tempoScale))],
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
-        tempoScaleSource: benchmarkCase.beatThisTempoScale === undefined
-            ? "manifest" : "manifest-beat-this",
+        tempoScaleSource: !useManifestTempo ? "reference-best-octave"
+            : benchmarkCase.beatThisTempoScale === undefined ? "manifest" : "manifest-beat-this",
+        configuredTempoScale: mapperScale,
+        configuredTempoPhase: mapperPhase,
+        configuredWeightedF1: configuredCandidate.weightedF1,
+        configuredF1At20Ms: configuredCandidate.matchingF1,
         selectedTempoPattern: selectedScale.tempoPattern,
         tempoPatternSource: benchmarkCase.tempoPatternSource ?? "mapper",
         tempoScaleCandidates: scaleCandidates.map(({

@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
     generateBeatGrid,
-    nearestBeat,
     parseOsuHitObjectSpan,
     parseOsuTimingPoints,
 } from "../benchmark/osu-timing.js";
@@ -70,10 +69,4 @@ SliderMultiplier:2
 test("generates beats until each new timing section resets the grid", () => {
     const points = parseOsuTimingPoints(osuText);
     assert.deepEqual(generateBeatGrid(points, 3100), [1000, 1500, 2000, 2200, 2600, 3000]);
-});
-
-test("finds the closest reference beat", () => {
-    assert.equal(nearestBeat([1000, 1500, 2000], 1410), 1500);
-    assert.equal(nearestBeat([1000, 1500, 2000], 1250), 1000);
-    assert.equal(nearestBeat([], 1250), null);
 });

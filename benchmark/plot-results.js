@@ -324,7 +324,7 @@ async function runCli() {
     const args = process.argv.slice(2);
     const resultsDirectoryIndex = args.indexOf("--results-dir");
     const resultsDirectory = resultsDirectoryIndex < 0
-        ? benchmarkDirectory
+        ? resolve(benchmarkDirectory, "beat-this-small")
         : resolve(benchmarkDirectory, args[resultsDirectoryIndex + 1]);
     if (resultsDirectoryIndex >= 0) args.splice(resultsDirectoryIndex, 2);
     const requestedId = args[0];
@@ -340,7 +340,7 @@ async function runCli() {
             resolve(resultsDirectory, "results", resultName),
             "utf8"
         ));
-        console.log(await writeResultPlot(result, benchmarkDirectory));
+        console.log(await writeResultPlot(result, resultsDirectory));
     }
 }
 

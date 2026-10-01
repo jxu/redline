@@ -14,12 +14,12 @@ import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
-const pipelineVersion = "0.7.0";
+const pipelineVersion = "0.8.0";
 const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`, "utf8"));
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((arg) => arg.startsWith("--")));
 for (const flag of flags) {
-    if (!["--cache-only", "--regression-only", "--refresh-probabilities"].includes(flag)) {
+    if (!["--cache-only", "--regression-only", "--refresh-probabilities", "--manifest-tempo"].includes(flag)) {
         throw new Error(`Unknown option: ${flag}`);
     }
 }
@@ -29,6 +29,8 @@ const requestedId = ids[0];
 const cacheOnly = flags.has("--cache-only");
 const requireCached = flags.has("--regression-only");
 const refresh = flags.has("--refresh-probabilities");
+const useManifestTempo = flags.has("--manifest-tempo");
+const outputDirectory = useManifestTempo ? benchmarkDirectory : `${benchmarkDirectory}/best-octave`;
 if (requireCached && (cacheOnly || refresh)) {
     throw new Error("--regression-only cannot be combined with --cache-only or --refresh-probabilities");
 }
@@ -101,7 +103,8 @@ async function runCase(benchmarkCase) {
     const scaleCandidates = evaluateTempoScales(
         interpolatedDetectedBeatsMs,
         fullReferenceBeatsMs,
-        benchmarkCase.allowedTempoScales,
+        useManifestTempo ? benchmarkCase.allowedTempoScales
+            : [...new Set([0.5, 1, 2, ...benchmarkCase.allowedTempoScales])],
         {
             durationMs: decoded.durationMs,
             observedBeatsMs: filteredDetectedBeatsMs,
@@ -111,8 +114,12 @@ async function runCase(benchmarkCase) {
             endMs: evaluationEndMs,
         }
     );
-    const selectedScale = selectTempoCandidate(
+    const configuredCandidate = selectTempoCandidate(
         scaleCandidates, benchmarkCase.tempoScale, benchmarkCase.tempoPhase ?? 0
+    );
+    const selectedScale = selectTempoCandidate(
+        scaleCandidates, useManifestTempo ? benchmarkCase.tempoScale : undefined,
+        benchmarkCase.tempoPhase ?? 0
     );
     const detectedBeatsMs = selectedScale.beatsMs;
     const nearestReferenceErrorsMs = detectedBeatsMs.map((detectedMs) =>
@@ -138,10 +145,14 @@ async function runCase(benchmarkCase) {
         evaluationEndMs,
         confidence: detection.confidence,
         onlineOffsetMs,
-        allowedTempoScales: benchmarkCase.allowedTempoScales,
+        allowedTempoScales: [...new Set(scaleCandidates.map(({ tempoScale }) => tempoScale))],
         selectedTempoScale: selectedScale.tempoScale,
         selectedTempoPhase: selectedScale.phase,
-        tempoScaleSource: "manifest",
+        tempoScaleSource: useManifestTempo ? "manifest" : "reference-best-octave",
+        configuredTempoScale: benchmarkCase.tempoScale,
+        configuredTempoPhase: benchmarkCase.tempoPhase ?? 0,
+        configuredWeightedF1: configuredCandidate.weightedF1,
+        configuredF1At20Ms: configuredCandidate.matchingF1,
         selectedTempoPattern: selectedScale.tempoPattern,
         tempoPatternSource: benchmarkCase.tempoPatternSource ?? "mapper",
         tempoScaleCandidates: scaleCandidates.map(({
@@ -167,15 +178,15 @@ async function runCase(benchmarkCase) {
     };
 }
 
-if (!cacheOnly) await mkdir(`${benchmarkDirectory}/results`, { recursive: true });
+if (!cacheOnly) await mkdir(`${outputDirectory}/results`, { recursive: true });
 
 for (const benchmarkCase of selectedCases) {
     console.log(`Analyzing ${benchmarkCase.id}: ${benchmarkCase.name}`);
     const result = await runCase(benchmarkCase);
     if (cacheOnly) continue;
-    const outputPath = `${benchmarkDirectory}/results/${benchmarkCase.id}.json`;
+    const outputPath = `${outputDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
-    const plotPath = await writeResultPlot(result, benchmarkDirectory);
+    const plotPath = await writeResultPlot(result, outputDirectory);
     const selectedCandidate = result.tempoScaleCandidates.find((candidate) =>
         candidate.tempoScale === result.selectedTempoScale &&
         candidate.phase === result.selectedTempoPhase

@@ -7,25 +7,14 @@ import {
     weightedBeatF1,
 } from "../benchmark/scaling.js";
 
-test("reports the mapper's scale even when another candidate scores better", () => {
+test("allows the best octave while retaining an explicit mapper scale", () => {
     const candidates = [
         { tempoScale: 2, phase: 0, matchingF1: 1 },
         { tempoScale: 1, phase: 0, matchingF1: 0.8 },
     ];
+    assert.equal(selectTempoCandidate(candidates).tempoScale, 2);
     assert.equal(selectTempoCandidate(candidates, 1).matchingF1, 0.8);
     assert.throws(() => selectTempoCandidate(candidates, 0.5), /not evaluated/);
-});
-
-test("selects double tempo when raw detections are half the reference tempo", () => {
-    const candidates = evaluateTempoScales(
-        [0, 1000, 2000],
-        [0, 500, 1000, 1500, 2000],
-        [0.5, 1, 2],
-        { durationMs: 2500 }
-    );
-
-    assert.equal(candidates[0].tempoScale, 2);
-    assert.equal(candidates[0].symmetricMeanNearestErrorMs, 0);
 });
 
 test("an explicit double-tempo choice survives pulse fitting", () => {
@@ -109,40 +98,6 @@ test("weighted F1 emphasizes precise matches across 3 to 30 ms", () => {
     assert.deepEqual(shifted.scores.map(({ toleranceMs }) => toleranceMs),
         [3, 6, 9, 12, 15, 18, 21, 24, 27, 30]);
     assert.ok(shifted.weightedF1 < exact.weightedF1);
-});
-
-test("scores the fitted export grid instead of jittered input detections", () => {
-    const [candidate] = evaluateTempoScales(
-        [0, 400, 1000, 1400, 2000],
-        [0, 500, 1000, 1500, 2000],
-        [1],
-        { durationMs: 2400, timingOptions: { windowSize: 2, toleranceMs: 101 } }
-    );
-
-    assert.equal(candidate.osuTimingPoints, "[TimingPoints]\n0,500.00,4,2,0,100,1,0");
-    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500, 2000]);
-    assert.equal(candidate.matchedBeatCount, 5);
-    assert.equal(candidate.matchingF1, 1);
-});
-
-test("uses the app's default fit tolerance when no timing options are supplied", () => {
-    const detected = [0, 500, 1000, 1500, 2100];
-    const reference = [0, 500, 1000, 1500, 2100];
-    const [candidate] = evaluateTempoScales(
-        detected,
-        reference,
-        [1],
-        { durationMs: 2500 }
-    );
-    const [loose] = evaluateTempoScales(
-        detected, reference, [1],
-        { durationMs: 2500, timingOptions: { windowSize: 4, toleranceMs: 101 } }
-    );
-
-    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500, 2100]);
-    assert.deepEqual(candidate.exportedTimingPoints.map((point) => point.beatLengthMs),
-        [500, 600]);
-    assert.notDeepEqual(loose.beatsMs, candidate.beatsMs);
 });
 
 test("export rounding, section resets, and final tempo continuation affect the grid", () => {

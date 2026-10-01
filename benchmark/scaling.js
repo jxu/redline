@@ -49,6 +49,12 @@ export function scaleBeatGrid(beatsMs, tempoScale, phase = 0) {
 }
 
 export function selectTempoCandidate(candidates, tempoScale, phase = 0) {
+    // evaluateTempoScales orders candidates by weighted F1, then F1@20ms.
+    // Omitting a requested scale allows reference-assisted octave selection.
+    if (tempoScale === undefined) {
+        if (!candidates.length) throw new Error("No tempo candidates were evaluated");
+        return candidates[0];
+    }
     const selected = candidates.find((candidate) =>
         candidate.tempoScale === tempoScale && candidate.phase === phase
     );
@@ -119,6 +125,7 @@ export function evaluateTempoScales(
     {
         durationMs,
         observedBeatsMs = detectedBeatsMs,
+        downbeatTicks = [],
         probabilities = null,
         probabilityFrameMs,
         exportOffsetMs = 0,
@@ -159,6 +166,7 @@ export function evaluateTempoScales(
                 preserveInputPulse: tempoScale !== 1 || timingOptions.preserveInputPulse,
                 endTime: durationMs / 1000,
                 observedTicks,
+                downbeatTicks,
                 probabilities,
                 probabilityFrameMs,
             });
