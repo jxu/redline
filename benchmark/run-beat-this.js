@@ -12,6 +12,7 @@ import { decodeAudioFile } from "./audio-decoder.js";
 import { generateBeatGrid, nearestBeat, parseOsuHitObjectSpan, parseOsuTimingPoints } from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
+import { recordSummary } from "./summary.js";
 
 const run = promisify(execFile);
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
@@ -218,6 +219,7 @@ for (const benchmarkCase of selectedCases) {
     const path = resolve(outputDirectory, "results", `${benchmarkCase.id}.json`);
     await writeFile(path, `${JSON.stringify(result, null, 2)}\n`);
     await writeResultPlot(result, outputDirectory);
+    await recordSummary(result, outputDirectory);
     const selected = result.tempoScaleCandidates.find((candidate) =>
         candidate.tempoScale === result.selectedTempoScale &&
         candidate.phase === result.selectedTempoPhase

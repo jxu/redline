@@ -12,6 +12,7 @@ import {
 } from "./osu-timing.js";
 import { writeResultPlot } from "./plot-results.js";
 import { evaluateTempoScales, selectTempoCandidate } from "./scaling.js";
+import { recordSummary } from "./summary.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
 const pipelineVersion = "0.8.0";
@@ -187,6 +188,7 @@ for (const benchmarkCase of selectedCases) {
     const outputPath = `${outputDirectory}/results/${benchmarkCase.id}.json`;
     await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`);
     const plotPath = await writeResultPlot(result, outputDirectory);
+    await recordSummary(result, outputDirectory);
     const selectedCandidate = result.tempoScaleCandidates.find((candidate) =>
         candidate.tempoScale === result.selectedTempoScale &&
         candidate.phase === result.selectedTempoPhase

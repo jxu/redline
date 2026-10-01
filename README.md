@@ -36,8 +36,9 @@ possible. A consistently wrong whole-song beat level still needs the ×2 or ÷2
 control; inspect the click track after any automatic correction.
 
 The recorded Small-model benchmark for this fitter is in
-[latest Small/Large comparison](benchmark/beat-this-small/README.md),
-with separate results and plots for all 25 original corpus maps.
+[Small benchmark](benchmark/beat-this-small/README.md),
+with compact summaries for all 25 original corpus maps. Detailed results and plots
+are generated locally and ignored by Git.
 
 ## Test
 
@@ -166,9 +167,11 @@ is applied. The fitter still processes the full audio.
 The SENet benchmark writes best-octave results and plots under
 `benchmark/best-octave/`; `--manifest-tempo` uses `benchmark/results/` and
 `benchmark/plots/`.
-The retained results are the latest Large and Small Beat This! runs, using
+The retained summary is the latest Small Beat This! run, using
 best-octave selection and the −27 ms timestamp correction. Running either benchmark command again replaces
-the results and plots for the selected mapsets.
+the local results and plots for the selected mapsets. Each run updates a tracked
+`summary.json` with per-map scores, settings, and changes from the previous run.
+Edit a case's `comment` field to record observations; reruns preserve it.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
 alongside the reference and the intermediate detector beats, plus reference and
@@ -179,14 +182,14 @@ Regenerate charts from the saved result files without rerunning inference with:
 npm run benchmark:plot
 ```
 
-To compare the experimental Beat This! `final0` model against the same corpus,
-install Python 3.10, CPU PyTorch, and Beat This! 1.1.0 in a separate environment:
+To run the Beat This! Small model against the corpus, install Python 3.10,
+CPU PyTorch, and Beat This! 1.1.0 in a separate environment:
 
 ```bash
 python3.10 -m venv /tmp/redline-beat-this
 /tmp/redline-beat-this/bin/pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.11.0+cpu' 'torchaudio==2.11.0+cpu'
 /tmp/redline-beat-this/bin/pip install beat-this==1.1.0
-BEAT_THIS_PYTHON=/tmp/redline-beat-this/bin/python npm run benchmark:beat-this-full
+BEAT_THIS_PYTHON=/tmp/redline-beat-this/bin/python npm run benchmark:beat-this-small
 ```
 
 An optional mapset ID follows `--`. Beat This! uses the same audio decoder,
@@ -194,19 +197,11 @@ mapper tempo input, fitter, exported-grid scoring, and evaluation window as the
 SENet benchmark. Its native 20 ms beat probabilities enter the fitter at that
 frame spacing. Maps whose detectors choose different beat levels use
 `beatThisTempoScale` in the manifest. The default run applies the −27 ms
-timestamp correction and writes results and plots to
-`benchmark/beat-this-large/`.
-Use `--manifest-tempo` to retain the prior configured-scale behavior.
-Run the smaller `small0` checkpoint against the same corpus with:
-
-```bash
-BEAT_THIS_PYTHON=.venv/bin/python npm run benchmark:beat-this-small
-```
-
-Set `BEAT_THIS_PYTHON` to your installed environment. Small-model results and
-plots are saved under `benchmark/beat-this-small/`.
-Run `node benchmark/compare-beat-this.js` to compare the retained Large and
-Small results. Each result also includes its configured-octave score.
+timestamp correction. The compact summary is saved to
+`benchmark/beat-this-small/summary.json`; detailed results and plots remain
+local and ignored by Git. Each case includes its configured-octave score.
+Use `--manifest-tempo` to retain the configured-scale behavior.
+Set `BEAT_THIS_PYTHON` to your installed environment.
 The browser app continues to use SENet.
 
 Render the ranked and final exported grids as click tracks mixed with the corpus audio:
@@ -227,4 +222,4 @@ The WAV files are written under `benchmark/listening/<mapset-id>/`.
 
 - Let users adjust the final timing-grid/BPM smoothing separately from the existing beat-time smoothing slider.
 - Let users adjust the global timing offset of the exported red points.
-- When Beat This! is added to the browser, offer Small and Full: the [25-map comparison](benchmark/beat-this-small/README.md) found similar overall weighted F1 with an approximately 90% smaller Small checkpoint.
+- Add Beat This! Small to the browser after validating a browser-compatible model export.
