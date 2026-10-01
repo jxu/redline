@@ -1,5 +1,6 @@
 import { MODEL_HOP_LENGTH, MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
 import { chooseStableSections } from "./fixed-sections.js";
+import { constrainOctaveJumps, isOctaveJump } from "./tempo-continuity.js";
 
 export const MAX_EXPORT_BPM = 300;
 const MIN_EXPORT_BEAT_LENGTH_MS = 60000 / MAX_EXPORT_BPM;
@@ -285,7 +286,7 @@ function provisionalTimingGrid(ticks, { toleranceMs, windowSize, tempoPattern })
     return timingPoints;
 }
 
-const TEMPO_MOVEMENT_MEMORY_MS = 4000;
+const TEMPO_MOVEMENT_MEMORY_MS = 8000;
 const TEMPO_MOVEMENT_ALLOWANCE_BPM = 20;
 const TEMPO_MOVEMENT_SCALE_BPM = 30;
 // Avoid switching pulses or moving red points for a marginal support increase.
@@ -305,6 +306,10 @@ export function scoreTempoChange(previousBeatLengthMs, beatLengthMs,
         // Both a reversal and several smaller steps accumulate the same motion;
         // a sustained new tempo lets the history decay in real elapsed time.
         cost: jumpPenalty * (logBpmChange ** 2 +
+            // A large jump after a short section is less plausible than a
+            // sustained new tempo. Keep this finite for genuine transitions.
+            4 * Math.max(0, logBpmChange - Math.log(1.3)) ** 2 *
+                Math.exp(-elapsedMs / TEMPO_MOVEMENT_MEMORY_MS) +
             excursionCost(movement) - excursionCost(recent)),
         recentBpmMovement: movement,
     };
@@ -394,6 +399,8 @@ export function fitTimingGrid(ticks, {
                         segmentCosts.set(key, segment);
                     }
                     const { beatLengthMs, timingError } = segment;
+                    if (start && tempoPattern && tempoPattern !== "fixed" &&
+                        isOctaveJump(previous.beatLengthMs, beatLengthMs)) continue;
                     const change = start
                         ? scoreTempoChange(previous.beatLengthMs, beatLengthMs,
                             previous.recentBpmMovement, offsetMs - previous.offsetMs, jumpPenalty)
@@ -675,46 +682,49 @@ export function calculateTiming(ticks, options = {}) {
             ? [initialGrid]
             : competingPulseHypotheses(initialGrid, observedTicks,
                 options.tempoPattern);
+        const constrainPoints = options.tempoPattern === "fixed" ? (points) => points
+            : (points) => constrainOctaveJumps(points, durationMs, {
+                observedTicks, downbeatTicks: options.downbeatTicks,
+                probabilities: options.probabilities, probabilityFrameMs,
+            });
         let best = null;
         for (const pulseGrid of candidates) {
             const candidateTicks = fitTempoCurve(pulseGrid,
                 options.tempoPattern === "sections" ? smoothness / 5 : smoothness,
                 boundaries, options.probabilities, probabilityFrameMs);
-            let candidateFit = fitTimingGrid(candidateTicks, {
+            const candidateFit = fitTimingGrid(candidateTicks, {
                 ...options,
                 observedTicks: options.tempoPattern === "fixed" ? observedTicks : candidateTicks,
             });
+            let candidatePoints = candidateFit.timingPoints;
             if (options.tempoPattern === "sections") {
                 const stablePoints = chooseStableSections(observedTicks,
                     candidateFit.timingPoints, durationMs);
                 if (stablePoints?.length && stablePoints.every(({ beatLengthMs }) =>
                     beatLengthMs >= MIN_EXPORT_BEAT_LENGTH_MS)) {
-                    candidateFit = {
-                        ...candidateFit,
-                        timingPoints: stablePoints,
-                        beatLengths: beatLengthsAtTicks(candidateTicks, stablePoints),
-                    };
+                    candidatePoints = stablePoints;
                 }
             }
-            const baseScore = scorePulseHypothesis(candidateFit.timingPoints, observedTicks,
+            candidatePoints = constrainPoints(candidatePoints);
+            const baseScore = scorePulseHypothesis(candidatePoints, observedTicks,
                 options.probabilities, durationMs, probabilityFrameMs);
-            const refinedPoints = refineExportTimingPoints(
-                candidateFit.timingPoints, options.probabilities, durationMs,
+            const refinedPoints = constrainPoints(refineExportTimingPoints(
+                candidatePoints, options.probabilities, durationMs,
                 probabilityFrameMs
-            );
+            ));
             const refinedScore = scorePulseHypothesis(refinedPoints, observedTicks,
                 options.probabilities, durationMs, probabilityFrameMs);
             const useRefinement = refinedScore > baseScore + POINT_REFINEMENT_MIN_GAIN;
-            if (useRefinement) {
-                candidateFit = {
-                    ...candidateFit,
-                    timingPoints: refinedPoints,
-                    beatLengths: beatLengthsAtTicks(candidateTicks, refinedPoints),
-                };
-            }
             const score = useRefinement ? refinedScore : baseScore;
             if (Number.isFinite(score) && (!best || score > best.score + PULSE_HYPOTHESIS_MARGIN)) {
-                best = { score, candidateTicks, candidateFit };
+                const points = useRefinement ? refinedPoints : candidatePoints;
+                best = { score, candidateTicks, candidateFit: {
+                    ...candidateFit, timingPoints: points,
+                    // Fixed fits can have diagnostic lengths distinct from the
+                    // grid; retain them when neither replacement is selected.
+                    beatLengths: options.tempoPattern === "fixed" && !useRefinement
+                        ? candidateFit.beatLengths : beatLengthsAtTicks(candidateTicks, points),
+                } };
             }
         }
         if (best) {

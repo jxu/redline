@@ -103,6 +103,23 @@ test("large and repeated BPM jumps cost more than small or distant changes", () 
     assert.ok(large.cost > 4 * small.cost);
     assert.ok(repeated.cost > large.cost);
     assert.ok(distant.cost < repeated.cost);
+    const brief = scoreTempoChange(500, 312.5, 0, 1000, 100000);
+    const sustained = scoreTempoChange(500, 312.5, 0, 30000, 100000);
+    assert.ok(brief.cost > sustained.cost);
+});
+
+test("a sustained non-octave section transition survives while half-time detections do not", () => {
+    const ticks = ticksFromIntervals([
+        ...Array(80).fill(500), ...Array(160).fill(312.5),
+        ...Array(32).fill(625), ...Array(80).fill(312.5),
+    ]);
+    const timing = calculateTiming(ticks, {
+        tempoPattern: "sections", preserveInputPulse: true, endTime: ticks.at(-1) + 0.313,
+    });
+    const bpms = timing.timingPoints.map((p) => 60000 / p.beatLengthMs);
+    assert.ok(bpms.some((bpm) => Math.abs(bpm - 120) < 2));
+    assert.ok(bpms.some((bpm) => Math.abs(bpm - 192) < 2));
+    assert.ok(!bpms.some((bpm) => Math.abs(bpm - 96) < 2));
 });
 
 test("probability evidence pulls a jittered live grid toward individual beats", () => {
