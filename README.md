@@ -30,6 +30,14 @@ evidence supports them. A warning appears if detected beats do not consistently
 support a requested fixed BPM. Changing the selection after calculation refits
 the export without rerunning beat detection. The ×2 and ÷2 controls preserve
 the chosen beat level through subsequent timing fits.
+Variable-tempo fits discourage large changes close together and suppress local
+half/double-time switches. Sustained transitions to a different tempo remain
+possible. A consistently wrong whole-song beat level still needs the ×2 or ÷2
+control; inspect the click track after any automatic correction.
+
+The recorded Small-model benchmark for this fitter is in
+[latest Small/Large comparison](benchmark/beat-this-small/README.md),
+with separate results and plots for all 25 original corpus maps.
 
 ## Test
 
@@ -49,7 +57,8 @@ choice. Cases classified from their reference `.osu` file set
 `tempoPatternSource` to `reference-osu` so those results are identifiable. Set
 `tempoScale` to the mapper's octave choice (`0.5`, `1`, or `2`) and, when
 halving, `tempoPhase` to `0` or `1`. `allowedTempoScales` lists alternatives
-to score for diagnosis, but the reference never selects the reported export.
+to try. By default the reference scores select the best global octave and phase;
+`--manifest-tempo` retains the configured choice instead.
 When the detectors start at different beat levels, `beatThisTempoScale` can
 override the SENet-oriented choice for Beat This! so both exports target the
 same mapper-intended pulse. An explicit half/double selection is preserved by
@@ -142,19 +151,23 @@ can override these settings with
 `"timingOptions": { "windowSize": 4, "toleranceMs": 5 }` in
 the manifest. The settings and selected export text are saved in each result.
 
-The benchmark reports the manifest's scale and phase. Its main score is
+The benchmark reports the best allowed global scale and phase by default, labeled
+`reference-best-octave` in the result. This models a mapper choosing ×2 or ÷2
+after listening; it is reference-assisted rather than automatic tempo selection.
+Use `--manifest-tempo` for the configured scale and phase. Its main score is
 weighted F1 across one-to-one beat-matching tolerances of 3, 6, ..., 30 ms,
 with normalized inverse-threshold weights of 1, 1/2, ..., 1/10. A beat can
 match at most once per threshold. F1@20ms remains available for comparison
-with older results. The benchmark also ranks alternative scales for diagnosis, but
-does not use that ranking to choose the reported export. Metrics cover the mapped
+with older results. Only a global octave and halving phase are selected; local
+tempo sections are fitted without the reference. Metrics cover the mapped
 span from the first through the last rhythmic hit object, including slider tails
 but excluding spinner-only intros or outros, after the manifest's online offset
 is applied. The fitter still processes the full audio.
-The benchmark writes every candidate score and detailed results under
-`benchmark/results/`, and an SVG beat-alignment chart under `benchmark/plots/`.
-The checked-in files currently show the full-corpus Beat This! run with the
-−27 ms timestamp correction. Running either benchmark command again replaces
+The SENet benchmark writes best-octave results and plots under
+`benchmark/best-octave/`; `--manifest-tempo` uses `benchmark/results/` and
+`benchmark/plots/`.
+The retained results are the latest Large and Small Beat This! runs, using
+best-octave selection and the −27 ms timestamp correction. Running either benchmark command again replaces
 the results and plots for the selected mapsets.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
@@ -181,21 +194,19 @@ mapper tempo input, fitter, exported-grid scoring, and evaluation window as the
 SENet benchmark. Its native 20 ms beat probabilities enter the fitter at that
 frame spacing. Maps whose detectors choose different beat levels use
 `beatThisTempoScale` in the manifest. The default run applies the −27 ms
-timestamp correction and writes results to `benchmark/results/` and plots to
-`benchmark/plots/`.
+timestamp correction and writes results and plots to
+`benchmark/beat-this-large/`.
+Use `--manifest-tempo` to retain the prior configured-scale behavior.
 Run the smaller `small0` checkpoint against the same corpus with:
 
 ```bash
 BEAT_THIS_PYTHON=.venv/bin/python npm run benchmark:beat-this-small
-node benchmark/compare-beat-this.js
 ```
 
 Set `BEAT_THIS_PYTHON` to your installed environment. Small-model results and
-plots are saved under `benchmark/beat-this-small-offset-minus27ms/`; the
-comparison command checks that both runs used the same reference grids,
-tempo choices, timestamp correction, and timing settings before writing
-`comparison.json` there. See that directory's README for the comparison and
-download-size tradeoff.
+plots are saved under `benchmark/beat-this-small/`.
+Run `node benchmark/compare-beat-this.js` to compare the retained Large and
+Small results. Each result also includes its configured-octave score.
 The browser app continues to use SENet.
 
 Render the ranked and final exported grids as click tracks mixed with the corpus audio:
@@ -216,4 +227,4 @@ The WAV files are written under `benchmark/listening/<mapset-id>/`.
 
 - Let users adjust the final timing-grid/BPM smoothing separately from the existing beat-time smoothing slider.
 - Let users adjust the global timing offset of the exported red points.
-- When Beat This! is added to the browser, offer Small and Full: the [25-map comparison](benchmark/beat-this-small-offset-minus27ms/README.md) found similar overall weighted F1 with an approximately 90% smaller Small checkpoint.
+- When Beat This! is added to the browser, offer Small and Full: the [25-map comparison](benchmark/beat-this-small/README.md) found similar overall weighted F1 with an approximately 90% smaller Small checkpoint.
