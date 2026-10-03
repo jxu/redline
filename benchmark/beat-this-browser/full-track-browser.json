@@ -1,0 +1,95 @@
+{
+  "mapsetId": "13012",
+  "probabilityTolerance": 0.0001,
+  "exported": {
+    "checkpoint": "small0",
+    "checkpointSha256": "6074be2c4d490c5f6101fcc374a1ec72ae93456e23bb6019783b849f5dc7d47b",
+    "modelBytes": 10401061,
+    "opset": 17,
+    "versions": {
+      "beat-this": "1.1.0",
+      "torch": "2.11.0+cpu",
+      "torchaudio": "2.11.0+cpu",
+      "onnx": "1.23.1"
+    },
+    "fixtures": [
+      {
+        "name": "5s",
+        "seconds": 5,
+        "frames": 251,
+        "inputFrames": 263,
+        "pytorchInferenceMs": [
+          498.59636900055193,
+          332.09453300059977,
+          350.0613780006461
+        ]
+      },
+      {
+        "name": "30s",
+        "seconds": 30,
+        "frames": 1501,
+        "inputFrames": 1513,
+        "pytorchInferenceMs": [
+          2252.1393280003394,
+          1530.4574279998633,
+          1496.6260799992597
+        ]
+      }
+    ],
+    "preprocessing": {
+      "sampleRate": 22050,
+      "fftSize": 1024,
+      "hopLength": 441,
+      "melBands": 128,
+      "power": 1,
+      "normalized": "frame_length",
+      "logMultiplier": 1000,
+      "padding": "reflect"
+    },
+    "mapsetId": "13012"
+  },
+  "results": [
+    {
+      "provider": "webgpu",
+      "backend": "webgpu",
+      "frames": 4718,
+      "timings": {
+        "spectrogramMs": 2014.6000001430511,
+        "modelLoadMs": 9786.599999904633,
+        "inferenceMs": 38302.59999990463,
+        "postprocessingMs": 44.700000047683716,
+        "totalMs": 50148.5
+      },
+      "beatError": 0.00009548664093017578,
+      "downbeatError": 0.000030338764190673828,
+      "identicalBeats": true,
+      "identicalDownbeats": true,
+      "beatCount": 221,
+      "browserDecodedSamples": 2080512,
+      "pcmSamples": 2080512,
+      "timingPointCount": 9,
+      "passed": true
+    },
+    {
+      "provider": "wasm",
+      "backend": "wasm",
+      "frames": 4718,
+      "timings": {
+        "spectrogramMs": 3706.5,
+        "modelLoadMs": 10951.700000047684,
+        "inferenceMs": 45859.59999990463,
+        "postprocessingMs": 3.5,
+        "totalMs": 60521.299999952316
+      },
+      "beatError": 0.000014424324035644531,
+      "downbeatError": 0.000005543231964111328,
+      "identicalBeats": true,
+      "identicalDownbeats": true,
+      "beatCount": 221,
+      "browserDecodedSamples": 2080512,
+      "pcmSamples": 2080512,
+      "timingPointCount": 9,
+      "passed": true
+    }
+  ]
+}

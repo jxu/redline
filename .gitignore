@@ -5,3 +5,4 @@ benchmark/cache/
 benchmark/full-corpus/
 benchmark/**/results/
 benchmark/**/plots/
+.venv/

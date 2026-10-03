@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "mapsetId": "13012",
+      "name": "Silvertear - So Deep (Perfect Sphere Remix) [Heavy]",
+      "pipelineVersion": "0.8.0",
+      "detector": "beat-this-small0-onnx-minimal",
+      "beatOffsetMs": -27,
+      "inferenceBackend": "wasm",
+      "browserVersion": "154.0.8037.93",
+      "decoder": "browser-decodeAudio",
+      "probabilityFrameMs": 20,
+      "durationMs": 94354.27083333333,
+      "evaluationGrid": "exported-timing-points",
+      "evaluationWindow": "first-to-last-rhythmic-hit-object",
+      "evaluationStartMs": 8601,
+      "evaluationEndMs": 90887.28571428571,
+      "onlineOffsetMs": 0,
+      "timingOptions": {
+        "toleranceMs": 5,
+        "windowSize": 4,
+        "tempoSmoothness": 5,
+        "tempoPattern": "fixed"
+      },
+      "allowedTempoScales": [
+        1,
+        0.5,
+        2
+      ],
+      "selectedTempoScale": 1,
+      "selectedTempoPhase": 0,
+      "tempoScaleSource": "reference-best-octave",
+      "configuredTempoScale": 1,
+      "configuredTempoPhase": 0,
+      "configuredWeightedF1": 0.13713905658086664,
+      "configuredF1At20Ms": 0.3012987012987013,
+      "selectedTempoPattern": "Fixed BPM",
+      "tempoPatternSource": "mapper",
+      "metrics": {
+        "medianAbsoluteErrorMs": 31.6323600000469,
+        "percentile95AbsoluteErrorMs": 58.57091571437195,
+        "meanErrorMs": -31.7871792857615,
+        "within5Ms": 0.046875,
+        "within10Ms": 0.13541666666666666,
+        "within20Ms": 0.3020833333333333,
+        "weightedF1": 0.13713905658086664
+      },
+      "tempoScaleCandidates": [
+        {
+          "tempoScale": 1,
+          "phase": 0,
+          "tempoPattern": "Fixed BPM",
+          "matchedBeatCount": 58,
+          "matchingToleranceMs": 20,
+          "matchingF1": 0.3012987012987013,
+          "weightedF1": 0.13713905658086664,
+          "symmetricMeanNearestErrorMs": 32.80937502040237,
+          "detectedBeatCount": 192,
+          "timingPointCount": 1
+        },
+        {
+          "tempoScale": 0.5,
+          "phase": 1,
+          "tempoPattern": "Fixed BPM",
+          "matchedBeatCount": 35,
+          "matchingToleranceMs": 20,
+          "matchingF1": 0.2422145328719723,
+          "weightedF1": 0.11856684304458891,
+          "symmetricMeanNearestErrorMs": 121.59888778685064,
+          "detectedBeatCount": 96,
+          "timingPointCount": 1
+        },
+        {
+          "tempoScale": 0.5,
+          "phase": 0,
+          "tempoPattern": "Fixed BPM",
+          "matchedBeatCount": 30,
+          "matchingToleranceMs": 20,
+          "matchingF1": 0.20689655172413793,
+          "weightedF1": 0.1174534802778803,
+          "symmetricMeanNearestErrorMs": 123.24567162054993,
+          "detectedBeatCount": 97,
+          "timingPointCount": 1
+        },
+        {
+          "tempoScale": 2,
+          "phase": 0,
+          "tempoPattern": "Fixed BPM",
+          "matchedBeatCount": 63,
+          "matchingToleranceMs": 20,
+          "matchingF1": 0.2179930795847751,
+          "weightedF1": 0.11058084701719416,
+          "symmetricMeanNearestErrorMs": 68.91788013360457,
+          "detectedBeatCount": 385,
+          "timingPointCount": 1
+        }
+      ],
+      "referenceBeatCount": 193,
+      "rawBeatCount": 223,
+      "exportedBeatCount": 192,
+      "timingPointCount": 1,
+      "comment": "",
+      "previousWeightedF1": 0.13713905658086664,
+      "deltaWeightedF1": 0,
+      "deltaF1At20Ms": 0
+    }
+  ],
+  "aggregate": {
+    "count": 1,
+    "meanWeightedF1": 0.13713905658086664,
+    "meanF1At20Ms": 0.3012987012987013
+  }
+}
