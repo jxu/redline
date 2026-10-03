@@ -3,13 +3,17 @@
 redline is a browser-based prototype that generates a rough osu! timing map from
 an audio file. Its output is intended as a starting point for manual timing.
 
-Beat detection on the `senet` branch uses Jacob Lin's trained ResNet-SE beat
-model, exported to ONNX. In the browser, Redline recreates the model's three
-mel-spectrogram inputs and runs inference with ONNX Runtime Web. The model and
-all audio processing remain local to the browser. Spectrogram generation and
-model inference run in a Web Worker so the page remains responsive; FFT.js and
-ONNX Runtime Web are loaded from pinned CDN URLs by the worker. Inference uses
-WebGPU when the browser and model support it, with automatic WASM fallback.
+Beat detection uses Beat This! Small (`small0`), exported to ONNX. Audio is
+resampled to 22.05 kHz and converted to the model's 128-band log-mel spectrogram.
+The model and audio processing remain local to the browser. Spectrogram generation
+and inference run in a Web Worker; FFT.js and ONNX Runtime Web load from pinned
+CDN URLs. WebGPU is preferred, with WASM fallback if initialization or inference
+fails. The worker keeps its session loaded between analyses. First use can take
+longer while the runtime loads and GPU shaders compile.
+
+The included model, preprocessing coefficients, provenance, and upstream MIT
+license are in `models/`. [Browser validation](benchmark/beat-this-browser/README.md)
+records numerical comparisons and measured performance.
 
 ## Run locally
 
@@ -61,7 +65,7 @@ halving, `tempoPhase` to `0` or `1`. `allowedTempoScales` lists alternatives
 to try. By default the reference scores select the best global octave and phase;
 `--manifest-tempo` retains the configured choice instead.
 When the detectors start at different beat levels, `beatThisTempoScale` can
-override the SENet-oriented choice for Beat This! so both exports target the
+override `tempoScale` for the model so exports target the
 same mapper-intended pulse. An explicit half/double selection is preserved by
 the fitter instead of being silently reversed.
 `genre` uses one of osu!'s broad music categories, based on the beatmapset
@@ -80,11 +84,11 @@ To run one mapset:
 npm run benchmark -- 1670652
 ```
 
-Raw SENet probabilities are saved in `benchmark/cache/probabilities/` on the first
+Raw Beat This! beat and downbeat probabilities are saved in `benchmark/cache/probabilities/` on the first
 run. Later runs reuse them, skipping audio decoding, spectrogram generation, and
-model inference. Smoothing, peak picking, filtering, and timing regression still
+model inference. Peak picking, filtering, and timing regression still
 run with the current code and settings. The cache stores the full probability
-curve at 10 ms frame spacing plus the audio duration and source sample rate;
+curves at 20 ms frame spacing plus the audio duration and source sample rate;
 it does not freeze the detected beats or regression output.
 
 To prepare probabilities first, then run regression without any inference:
@@ -101,7 +105,7 @@ does not generate scores or plots. A normal `npm run benchmark` reuses valid
 caches and computes missing ones automatically.
 
 Cache keys include the exact audio bytes, model, inference/preprocessing source,
-dependency lockfile, and Node runtime/platform. Changes to these inputs create a
+dependency lockfile, browser backend, and Node runtime/platform. Changes to these inputs create a
 new cache; changes to timing settings, peak thresholds, reference maps, or online
 offsets reuse the probabilities. To explicitly regenerate probabilities, run
 `npm run benchmark:cache -- --refresh-probabilities` (optionally with a mapset ID).
@@ -164,13 +168,14 @@ tempo sections are fitted without the reference. Metrics cover the mapped
 span from the first through the last rhythmic hit object, including slider tails
 but excluding spinner-only intros or outros, after the manifest's online offset
 is applied. The fitter still processes the full audio.
-The SENet benchmark writes best-octave results and plots under
+The browser benchmark writes best-octave results and plots under
 `benchmark/best-octave/`; `--manifest-tempo` uses `benchmark/results/` and
 `benchmark/plots/`.
-The retained summary is the latest Small Beat This! run, using
-best-octave selection and the −27 ms timestamp correction. Running either benchmark command again replaces
-the local results and plots for the selected mapsets. Each run updates a tracked
-`summary.json` with per-map scores, settings, and changes from the previous run.
+The retained Python summary is a historical Small Beat This! run, using
+best-octave selection and the −27 ms timestamp correction. New browser runs write
+their results and plots under `benchmark/best-octave/` (or the chosen output
+directory), with a `summary.json` containing per-map scores, settings, and changes
+from the previous run. Historical Python summaries remain separate.
 Edit a case's `comment` field to record observations; reruns preserve it.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
@@ -182,27 +187,32 @@ Regenerate charts from the saved result files without rerunning inference with:
 npm run benchmark:plot
 ```
 
-To run the Beat This! Small model against the corpus, install Python 3.10,
-CPU PyTorch, and Beat This! 1.1.0 in a separate environment:
+The benchmark uses the browser decoder and production Beat This! Small worker,
+then the same export function as the UI. Both shift the fitted timing points by
+−27 ms; waveform markers and click playback follow that corrected export grid.
+Raw beat probabilities and detections remain on their native timeline.
+The Python inference benchmark has been removed. The ONNX asset exporter remains
+at [`benchmark/beat-this-browser/export.py`](benchmark/beat-this-browser/export.py).
+
+Install Chrome and the project dependencies, then run:
 
 ```bash
-python3.10 -m venv /tmp/redline-beat-this
-/tmp/redline-beat-this/bin/pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.11.0+cpu' 'torchaudio==2.11.0+cpu'
-/tmp/redline-beat-this/bin/pip install beat-this==1.1.0
-BEAT_THIS_PYTHON=/tmp/redline-beat-this/bin/python npm run benchmark:beat-this-small
+npm install
+npm run benchmark -- 13012
+npm run benchmark -- --backend webgpu 13012
+npm run benchmark:regression -- 13012
 ```
 
-An optional mapset ID follows `--`. Beat This! uses the same audio decoder,
-mapper tempo input, fitter, exported-grid scoring, and evaluation window as the
-SENet benchmark. Its native 20 ms beat probabilities enter the fitter at that
-frame spacing. Maps whose detectors choose different beat levels use
-`beatThisTempoScale` in the manifest. The default run applies the −27 ms
-timestamp correction. The compact summary is saved to
-`benchmark/beat-this-small/summary.json`; detailed results and plots remain
-local and ignored by Git. Each case includes its configured-octave score.
-Use `--manifest-tempo` to retain the configured-scale behavior.
-Set `BEAT_THIS_PYTHON` to your installed environment.
-The browser app continues to use SENet.
+WASM is the default benchmark backend. `--backend webgpu` requires actual WebGPU
+execution and fails if the worker falls back. Set `REDLINE_BROWSER_EXECUTABLE` for
+a custom Chrome path. In WSL, set `REDLINE_BROWSER_LAUNCHER` to a module exporting
+`launchBenchmarkBrowser()` returning `{ browser, close }` for Windows Chrome;
+see the [browser validation notes](benchmark/beat-this-browser/README.md).
+`--manifest path/to/manifest.json` selects another corpus (audio and osu paths are
+relative to that manifest); `--output-dir path` selects its output folder.
+Cached regression runs do not launch a browser. Browser backend and inference
+source hashes separate cache entries; results record the browser version.
+Refresh probabilities after upgrading the browser or changing devices.
 
 Render the ranked and final exported grids as click tracks mixed with the corpus audio:
 
@@ -222,4 +232,4 @@ The WAV files are written under `benchmark/listening/<mapset-id>/`.
 
 - Let users adjust the final timing-grid/BPM smoothing separately from the existing beat-time smoothing slider.
 - Let users adjust the global timing offset of the exported red points.
-- Add Beat This! Small to the browser after validating a browser-compatible model export.
+- Validate additional browsers and devices for Beat This! Small inference.
