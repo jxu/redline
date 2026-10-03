@@ -483,7 +483,7 @@ export function generateTimingGrid(timingPoints, durationMs) {
     return beats;
 }
 
-function generateOsuTimingPoints(timingPoints) {
+export function generateOsuTimingPoints(timingPoints) {
     const lines = timingPoints.map(({ offsetMs, beatLengthMs }) => {
         const decimals = beatLengthMs === Number(beatLengthMs.toFixed(2)) ? 2 : 5;
         return `${offsetMs},${beatLengthMs.toFixed(decimals)},4,2,0,100,1,0`;

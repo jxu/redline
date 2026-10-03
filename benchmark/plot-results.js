@@ -138,7 +138,7 @@ function missingMarker(x, referenceY) {
 
 export function renderResultPlot(result) {
     const isExportGrid = result.evaluationGrid === "exported-timing-points";
-    const detectorLabel = result.detector?.startsWith("beat-this-") ? "Beat This!" : "SENet";
+    const detectorLabel = "Beat This!";
     const width = 1600;
     const bpmTop = isExportGrid ? 925 : 855;
     const bpmBottom = bpmTop + 230;
@@ -150,7 +150,7 @@ export function renderResultPlot(result) {
     const plotBottom = 585;
     const plotWidth = width - left - right;
     const plotHeight = plotBottom - plotTop;
-    const rasterRows = { reference: 690, senet: 760 };
+    const rasterRows = { reference: 690, detector: 760 };
     const startMs = result.evaluationStartMs;
     const endMs = result.evaluationEndMs;
     const durationMs = endMs - startMs;
@@ -258,20 +258,20 @@ export function renderResultPlot(result) {
         `${missingMarker(left + 590, 642)}<text class="legend" x="${left + 602}" y="620">missing reference beat</text>`,
         `<rect x="${left}" y="640" width="${plotWidth}" height="${rasterBottom - 640}" fill="none" class="axis"/>`,
         `<text x="${left - 12}" y="${rasterRows.reference + 6}" text-anchor="end" font-size="17">reference</text>`,
-        `<text x="${left - 12}" y="${rasterRows.senet + 6}" text-anchor="end" font-size="17">${detectorLabel}</text>`,
+        `<text x="${left - 12}" y="${rasterRows.detector + 6}" text-anchor="end" font-size="17">${detectorLabel}</text>`,
     );
 
     for (const beatMs of result.referenceBeatsMs) {
         svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.reference - 16}" x2="${x(beatMs)}" y2="${rasterRows.reference + 16}" stroke="${COLORS.reference}"/>`);
     }
     for (const beatMs of retainedBeats.filter(inside)) {
-        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.raw}"/>`);
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.detector - 16}" x2="${x(beatMs)}" y2="${rasterRows.detector + 16}" stroke="${COLORS.raw}"/>`);
     }
     for (const beatMs of addedInterpolated.filter(inside)) {
-        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.interpolated}" stroke-width="2"/>`);
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.detector - 16}" x2="${x(beatMs)}" y2="${rasterRows.detector + 16}" stroke="${COLORS.interpolated}" stroke-width="2"/>`);
     }
     for (const beatMs of filteredBeats.filter(inside)) {
-        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.senet - 16}" x2="${x(beatMs)}" y2="${rasterRows.senet + 16}" stroke="${COLORS.filtered}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="4 3"/>`);
+        svg.push(`<line x1="${x(beatMs)}" y1="${rasterRows.detector - 16}" x2="${x(beatMs)}" y2="${rasterRows.detector + 16}" stroke="${COLORS.filtered}" stroke-width="2" stroke-opacity="0.5" stroke-dasharray="4 3"/>`);
     }
     for (const beatMs of alignment.missing) {
         svg.push(missingMarker(x(beatMs), rasterRows.reference));
@@ -324,7 +324,7 @@ async function runCli() {
     const args = process.argv.slice(2);
     const resultsDirectoryIndex = args.indexOf("--results-dir");
     const resultsDirectory = resultsDirectoryIndex < 0
-        ? resolve(benchmarkDirectory, "beat-this-small")
+        ? resolve(benchmarkDirectory, "best-octave")
         : resolve(benchmarkDirectory, args[resultsDirectoryIndex + 1]);
     if (resultsDirectoryIndex >= 0) args.splice(resultsDirectoryIndex, 2);
     const requestedId = args[0];

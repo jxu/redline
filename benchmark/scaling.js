@@ -1,4 +1,5 @@
-import { calculateTiming, DEFAULT_TIMING_OPTIONS } from "../timing.js";
+import { DEFAULT_TIMING_OPTIONS } from "../timing.js";
+import { calculateExportTiming as calculateTiming, EXPORT_OFFSET_MS } from "../timing-export.js";
 import { generateBeatGrid, nearestBeat, parseOsuTimingPoints } from "./osu-timing.js";
 
 const MATCHING_TOLERANCE_MS = 20;
@@ -8,12 +9,6 @@ export const WEIGHTED_F1_TOLERANCES_MS = Object.freeze(
 const WEIGHTED_F1_WEIGHT_SUM = WEIGHTED_F1_TOLERANCES_MS.reduce(
     (sum, _, index) => sum + 1 / (index + 1), 0
 );
-
-function shiftOsuTimingPoints(osuTimingPoints, offsetMs) {
-    if (!offsetMs) return osuTimingPoints;
-    return osuTimingPoints.replace(/^(-?\d+(?:\.\d+)?)(,.*)$/gm,
-        (_, timeMs, rest) => `${Number(timeMs) + offsetMs}${rest}`);
-}
 
 function subdivisionCount(tempoScale) {
     if (!Number.isFinite(tempoScale) || tempoScale <= 0) {
@@ -128,7 +123,7 @@ export function evaluateTempoScales(
         downbeatTicks = [],
         probabilities = null,
         probabilityFrameMs,
-        exportOffsetMs = 0,
+        exportOffsetMs = EXPORT_OFFSET_MS,
         timingOptions = DEFAULT_TIMING_OPTIONS,
         startMs = 0,
         endMs = durationMs,
@@ -162,6 +157,7 @@ export function evaluateTempoScales(
                 .map((beatMs) => beatMs / 1000);
             const fitted = calculateTiming(ticks, {
                 ...timingOptions,
+                exportOffsetMs,
                 // A mapper-selected octave must survive pulse-hypothesis fitting.
                 preserveInputPulse: tempoScale !== 1 || timingOptions.preserveInputPulse,
                 endTime: durationMs / 1000,
@@ -170,7 +166,7 @@ export function evaluateTempoScales(
                 probabilities,
                 probabilityFrameMs,
             });
-            const osuTimingPoints = shiftOsuTimingPoints(fitted.osuTimingPoints, exportOffsetMs);
+            const osuTimingPoints = fitted.osuTimingPoints;
             const tempoPattern = fitted.tempoPattern;
             const exportedTimingPoints = parseOsuTimingPoints(osuTimingPoints);
             const beatsMs = generateBeatGrid(exportedTimingPoints, durationMs)

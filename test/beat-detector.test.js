@@ -1,14 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+    beatsFromProbabilities,
+    pickBeatPeaks,
+} from "../beat-postprocessing.js";
 
-import { pickBeatPeaks } from "../beat-detector.js";
-
-test("picks local probability maxima above the threshold", () => {
-    const probabilities = Float32Array.from([0, 0.2, 0.4, 0.2, 0, 0, 0, 0, 0.6, 0]);
-    assert.deepEqual(pickBeatPeaks(probabilities, 0.33), [0.02, 0.08]);
+test("Beat This keeps strict positive-logit maxima in seven-frame windows", () => {
+    assert.deepEqual(
+        pickBeatPeaks(Float32Array.from([0.6, 0, 0, 0, 0.5, 0, 0, 0.7, 0])),
+        [0, 0.14],
+    );
+    assert.deepEqual(
+        pickBeatPeaks(Float32Array.from([0, 0.6, 0, 0.7, 0, 0, 0, 0.6, 0])),
+        [0.06, 0.14],
+    );
 });
-
-test("keeps the taller of peaks inside the minimum distance", () => {
-    const probabilities = Float32Array.from([0, 0.5, 0, 0.7, 0, 0, 0, 0.6, 0]);
-    assert.deepEqual(pickBeatPeaks(probabilities, 0.33), [0.03]);
+test("adjacent equal maxima are averaged and downbeats snap to beats", () => {
+    const p = Float32Array.from([0, 0.8, 0.8, 0, 0, 0, 0, 0, 0.9]);
+    const d = Float32Array.from([0, 0, 0, 0, 0, 0, 0, 0.9, 0]);
+    const result = beatsFromProbabilities(p, { downbeatProbabilities: d });
+    assert.deepEqual(result.ticks, [0.03, 0.16]);
+    assert.deepEqual(result.downbeats, [0.16]);
+    assert.equal(result.probabilityFrameMs, 20);
 });

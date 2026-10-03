@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-    evaluateTempoScales,
+    evaluateTempoScales as evaluateCorrectedTempoScales,
     selectTempoCandidate,
     weightedBeatF1,
 } from "../benchmark/scaling.js";
+
+// These scoring tests isolate rounding and matching from the default export shift.
+const evaluateTempoScales = (beats, reference, scales, options = {}) =>
+    evaluateCorrectedTempoScales(beats, reference, scales, { exportOffsetMs: 0, ...options });
 
 test("allows the best octave while retaining an explicit mapper scale", () => {
     const candidates = [
@@ -134,4 +138,12 @@ test("no timing grid is invented when fewer than two beats are available", () =>
         assert.deepEqual(candidate.beatsMs, []);
         assert.equal(candidate.matchingF1, 0);
     }
+});
+
+test("default benchmark export matches the browser correction", () => {
+    const [candidate] = evaluateCorrectedTempoScales(
+        [27, 527, 1027, 1527], [0, 500, 1000, 1500], [1], { durationMs: 1800 }
+    );
+    assert.deepEqual(candidate.beatsMs, [0, 500, 1000, 1500]);
+    assert.equal(candidate.weightedF1, 1);
 });

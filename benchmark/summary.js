@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 export function summarizeResult(result) {
     const fields = ["mapsetId", "name", "pipelineVersion", "detector", "modelName",
         "checkpointSha256", "beatThisVersion", "torchVersion", "beatOffsetMs",
+        "inferenceBackend", "browserVersion", "decoder",
         "probabilityFrameMs", "durationMs", "evaluationGrid", "evaluationWindow",
         "evaluationStartMs", "evaluationEndMs", "onlineOffsetMs", "timingOptions",
         "allowedTempoScales", "selectedTempoScale", "selectedTempoPhase",

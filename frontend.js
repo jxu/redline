@@ -10,8 +10,10 @@ import { interpolateBeatGaps } from "./beat-interpolation.js";
 import { detectBeats } from "./analysis-worker-client.js";
 import { createMetronomeBuffer, mixBuffers } from "./metronome.js";
 import {
-    calculateTiming, defaultTempoSmoothness, defaultToleranceMs, doubleTicks, halveTicks,
+    defaultTempoSmoothness, defaultToleranceMs, doubleTicks, halveTicks,
 } from "./timing.js";
+
+import { calculateExportTiming as calculateTiming } from "./timing-export.js";
 
 const MIN_PX_PER_SEC = 1;
 const MAX_PX_PER_SEC = 500;
@@ -30,7 +32,7 @@ const state = {
     track: {
         file: null,
         audioBuffer: null,
-        samples: null, // 16 kHz mono Float32Array for SENet
+        samples: null, // 22.05 kHz mono Float32Array for Beat This!
         ticks: [],
         observedTicks: [],
         manualTempoLevel: false,
@@ -40,7 +42,7 @@ const state = {
         inferenceBackend: null,
         inferenceTimings: null,
         probabilities: null,
-        smoothedProbabilities: null,
+        downbeats: null,
     },
 };
 
@@ -309,7 +311,7 @@ async function analyze() {
         state.track.inferenceBackend = result.backend;
         state.track.inferenceTimings = result.timings;
         state.track.probabilities = result.probabilities;
-        state.track.smoothedProbabilities = result.smoothedProbabilities;
+        state.track.downbeats = result.downbeats;
     } catch (err) {
         resultsBox.textContent = `Analysis failed: ${err}`;
         return;
@@ -332,6 +334,8 @@ function renderTicks() {
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
         probabilities: state.track.probabilities,
+        probabilityFrameMs: 20,
+        downbeatTicks: state.track.downbeats,
         preserveInputPulse: state.track.manualTempoLevel,
     });
 
@@ -363,6 +367,8 @@ function renderTimingGrid(timing = null) {
         observedTicks: state.track.observedTicks,
         tempoPattern: tempoPatternSelect.value,
         probabilities: state.track.probabilities,
+        probabilityFrameMs: 20,
+        downbeatTicks: state.track.downbeats,
         preserveInputPulse: state.track.manualTempoLevel,
     });
 
@@ -428,7 +434,7 @@ fileInput.addEventListener("change", async (event) => {
     state.track.inferenceBackend = null;
     state.track.inferenceTimings = null;
     state.track.probabilities = null;
-    state.track.smoothedProbabilities = null;
+    state.track.downbeats = null;
     document.getElementById("osuTimingPoints").value = "";
     resultsBox.textContent = "Press Calculate after the waveform updates.";
 

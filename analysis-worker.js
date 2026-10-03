@@ -1,32 +1,25 @@
 import FFT from "https://esm.sh/fft.js@4.0.4";
 import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.webgpu.min.mjs";
-
+import { createSpectrogram } from "./mel-spectrogram.js";
 import {
-    MODEL_CONTEXT_FRAMES,
-    MODEL_HOP_LENGTH,
-    MODEL_MEL_BANDS,
-    MODEL_SAMPLE_RATE,
-    createMultiViewSpectrogram,
-    packContextWindows,
-} from "./mel-spectrogram.js";
-import {
-    DEFAULT_BEAT_THRESHOLD,
-    pickBeatPeaks,
-    smoothProbabilities,
-} from "./beat-postprocessing.js";
-
-const BATCH_SIZE = 128;
-const MODEL_URL = new URL("./models/senet.onnx", import.meta.url);
-let sessionPromise;
-
+    MODEL_URL,
+    FILTER_URL,
+    WINDOW_URL,
+    inferSpectrogram,
+} from "./beat-this-inference.js";
+import { beatsFromProbabilities } from "./beat-postprocessing.js";
 ort.env.wasm.wasmPaths =
     "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
 ort.env.wasm.numThreads = globalThis.crossOriginIsolated
     ? Math.min(4, navigator.hardwareConcurrency || 1)
     : 1;
-
-async function loadSession() {
-    if (navigator.gpu) {
+let sessionPromise, coefficientsPromise;
+async function loadSession(backend) {
+    if (
+        backend !== "wasm" &&
+        navigator.gpu &&
+        (await navigator.gpu.requestAdapter())
+    ) {
         try {
             const session = await ort.InferenceSession.create(MODEL_URL.href, {
                 executionProviders: ["webgpu"],
@@ -34,97 +27,118 @@ async function loadSession() {
             });
             return { session, backend: "webgpu" };
         } catch (error) {
-            console.warn("SENet WebGPU initialization failed; using WASM", error);
+            console.warn(
+                "Beat This! WebGPU initialization failed; using WASM",
+                error,
+            );
         }
     }
-
     const session = await ort.InferenceSession.create(MODEL_URL.href, {
         executionProviders: ["wasm"],
         graphOptimizationLevel: "all",
     });
     return { session, backend: "wasm" };
 }
-
-function reportProgress(id, stage, fraction) {
-    self.postMessage({ type: "progress", id, progress: { stage, fraction } });
-}
-
-async function detectBeats(samples, id, threshold = DEFAULT_BEAT_THRESHOLD) {
-    const startedAt = performance.now();
-    reportProgress(id, "Preparing spectrogram", 0);
-    const views = createMultiViewSpectrogram(samples, FFT, (fraction) =>
-        reportProgress(id, "Preparing spectrogram", fraction * 0.45)
+async function coefficients() {
+    const values = await Promise.all(
+        [FILTER_URL, WINDOW_URL].map(async (url) => {
+            const response = await fetch(url);
+            if (!response.ok)
+                throw new Error(
+                    `Failed to load Beat This! preprocessing (${response.status})`,
+                );
+            return new Float32Array(await response.arrayBuffer());
+        }),
     );
-    const frameCount = views[0].frameCount;
-    const spectrogramFinishedAt = performance.now();
-
-    reportProgress(id, "Loading SENet model", 0.45);
-    sessionPromise ??= loadSession();
-    const { session, backend } = await sessionPromise;
-    const modelLoadedAt = performance.now();
-    const probabilities = new Float32Array(frameCount);
-
-    for (let firstFrame = 0; firstFrame < frameCount; firstFrame += BATCH_SIZE) {
-        const batchSize = Math.min(BATCH_SIZE, frameCount - firstFrame);
-        const input = packContextWindows(views, firstFrame, batchSize);
-        const tensor = new ort.Tensor(
-            "float32",
-            input,
-            [batchSize, 3, MODEL_MEL_BANDS, MODEL_CONTEXT_FRAMES]
-        );
-        const output = await session.run({ spectrogram_windows: tensor });
-        probabilities.set(output.beat_probability.data, firstFrame);
-        reportProgress(
+    return { filters: values[0], window: values[1] };
+}
+async function detect(samples, id, threshold, requestedBackend) {
+    const started = performance.now();
+    const progress = (stage, fraction) =>
+        self.postMessage({
+            type: "progress",
             id,
-            `Detecting beats (${backend === "webgpu" ? "WebGPU" : "WASM"})`,
-            0.45 + 0.55 * (firstFrame + batchSize) / frameCount
+            progress: { stage, fraction },
+        });
+    progress("Preparing spectrogram", 0);
+    coefficientsPromise ??= coefficients().catch((error) => {
+        coefficientsPromise = undefined;
+        throw error;
+    });
+    const spect = createSpectrogram(
+        samples,
+        FFT,
+        await coefficientsPromise,
+        (fraction) => progress("Preparing spectrogram", fraction * 0.4),
+    );
+    const spectrogramFinished = performance.now();
+    progress("Loading Beat This! Small", 0.4);
+    sessionPromise ??= loadSession(requestedBackend).catch((error) => {
+        sessionPromise = undefined;
+        throw error;
+    });
+    let loaded = await sessionPromise;
+    const modelLoaded = performance.now();
+    let frames;
+    try {
+        frames = await inferSpectrogram(
+            ort,
+            loaded.session,
+            spect,
+            (fraction) => progress("Detecting beats", 0.4 + 0.6 * fraction),
+        );
+    } catch (error) {
+        if (loaded.backend !== "webgpu") throw error;
+        console.warn(
+            "Beat This! WebGPU inference failed; retrying with WASM",
+            error,
+        );
+        await loaded.session.release().catch(() => {});
+        sessionPromise = loadSession("wasm");
+        loaded = await sessionPromise;
+        frames = await inferSpectrogram(
+            ort,
+            loaded.session,
+            spect,
+            (fraction) => progress("Detecting beats", 0.4 + 0.6 * fraction),
         );
     }
-
-    const inferenceFinishedAt = performance.now();
-    const smoothedProbabilities = smoothProbabilities(probabilities);
-    const ticks = pickBeatPeaks(smoothedProbabilities, threshold);
-    const confidence = ticks.length
-        ? ticks.reduce(
-            (sum, tick) => sum + smoothedProbabilities[Math.round(
-                tick * MODEL_SAMPLE_RATE / MODEL_HOP_LENGTH
-            )],
-            0
-        ) / ticks.length
-        : 0;
-    const finishedAt = performance.now();
-
+    const inferred = performance.now();
+    const result = beatsFromProbabilities(frames.probabilities, {
+        threshold,
+        ...frames,
+    });
     return {
-        ticks,
-        confidence,
-        probabilities,
-        smoothedProbabilities,
-        backend,
+        ...result,
+        backend: loaded.backend,
         timings: {
-            spectrogramMs: spectrogramFinishedAt - startedAt,
-            modelLoadMs: modelLoadedAt - spectrogramFinishedAt,
-            inferenceMs: inferenceFinishedAt - modelLoadedAt,
-            postprocessingMs: finishedAt - inferenceFinishedAt,
-            totalMs: finishedAt - startedAt,
+            spectrogramMs: spectrogramFinished - started,
+            modelLoadMs: modelLoaded - spectrogramFinished,
+            inferenceMs: inferred - modelLoaded,
+            postprocessingMs: performance.now() - inferred,
+            totalMs: performance.now() - started,
         },
     };
 }
-
-self.onmessage = async ({ data: { id, samples, threshold } }) => {
-    try {
-        const result = await detectBeats(samples, id, threshold);
-        self.postMessage(
-            { type: "result", id, result },
-            [result.probabilities.buffer, result.smoothedProbabilities.buffer]
-        );
-    } catch (error) {
-        self.postMessage({
-            type: "error",
-            id,
-            error: {
-                message: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            },
-        });
-    }
+// Serialize analyses so a fallback cannot release a session another run is using.
+let queue = Promise.resolve();
+self.onmessage = ({ data: { id, samples, threshold, backend } }) => {
+    queue = queue.then(async () => {
+        try {
+            const result = await detect(samples, id, threshold, backend);
+            self.postMessage({ type: "result", id, result }, [
+                result.probabilities.buffer,
+                result.downbeatProbabilities.buffer,
+            ]);
+        } catch (error) {
+            self.postMessage({
+                type: "error",
+                id,
+                error: {
+                    message: error.message || String(error),
+                    stack: error.stack,
+                },
+            });
+        }
+    });
 };

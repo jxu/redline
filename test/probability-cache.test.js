@@ -26,9 +26,9 @@ async function fixture(t) {
         dependencies: [model],
         decode: async () => {
             decodes++;
-            return { samples: new Float32Array(1600), durationMs: 100, sourceSampleRate: 44100 };
+            return { samples: new Float32Array(4410), durationMs: 100, sourceSampleRate: 44100 };
         },
-        infer: async () => { inferences++; return probabilities; },
+        infer: async () => { inferences++; return { probabilities, downbeatProbabilities: new Float32Array(probabilities.length) }; },
     };
     return { audio, model, directory, probabilities, options, counts: () => [decodes, inferences] };
 }
@@ -117,7 +117,7 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     await mkdir(join(root, "benchmark"));
     for (const directory of ["", "benchmark"]) {
         for (const name of await readdir(join(source, directory))) {
-            if (name.endsWith(".js")) await cp(join(source, directory, name), join(root, directory, name));
+            if (name.endsWith(".js") || name === "browser-runner.html") await cp(join(source, directory, name), join(root, directory, name));
         }
     }
     for (const name of ["package.json", "package-lock.json"]) await cp(join(source, name), join(root, name));
@@ -140,8 +140,8 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     const probabilities = new Float32Array(1501);
     for (let frame = 50; frame < 1500; frame += 50) probabilities.fill(1, frame - 1, frame + 2);
     const cached = await createCache({
-        decode: async () => ({ samples: new Float32Array(240000), durationMs: 15000, sourceSampleRate: 16000 }),
-        infer: async () => probabilities,
+        decode: async () => ({ samples: new Float32Array(661500), durationMs: 15000, sourceSampleRate: 16000 }),
+        infer: async () => ({ probabilities, downbeatProbabilities: new Float32Array(probabilities.length) }),
     })(audio);
     const prepared = await run("--cache-only", "fixture");
     assert.match(prepared.stdout, /Probabilities: +cached/);

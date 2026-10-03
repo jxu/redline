@@ -23,7 +23,9 @@ function getWorker() {
         if (data.type === "result") {
             request.resolve(data.result);
         } else {
-            const error = new Error(data.error?.message || "Beat analysis failed");
+            const error = new Error(
+                data.error?.message || "Beat analysis failed",
+            );
             error.stack = data.error?.stack || error.stack;
             request.reject(error);
         }
@@ -40,7 +42,7 @@ function getWorker() {
 
 export function detectBeats(
     samples,
-    { onProgress, threshold = DEFAULT_BEAT_THRESHOLD } = {}
+    { onProgress, threshold = DEFAULT_BEAT_THRESHOLD, backend } = {},
 ) {
     const requestWorker = getWorker();
     const id = nextRequestId++;
@@ -50,8 +52,8 @@ export function detectBeats(
     return new Promise((resolve, reject) => {
         pending.set(id, { resolve, reject, onProgress });
         requestWorker.postMessage(
-            { id, samples: workerSamples, threshold },
-            [workerSamples.buffer]
+            { id, samples: workerSamples, threshold, backend },
+            [workerSamples.buffer],
         );
     });
 }

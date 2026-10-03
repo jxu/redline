@@ -1,4 +1,5 @@
-export const MODEL_SAMPLE_RATE = 16000;
+export { MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
+import { MODEL_SAMPLE_RATE } from "./mel-spectrogram.js";
 
 export function mp3FrameLength(bytes, index) {
     if (index < 0 || index + 4 > bytes.length || bytes[index] !== 0xff ||
@@ -65,8 +66,8 @@ export function removeId3Mp3Padding(arrayBuffer) {
     return normalized.buffer;
 }
 
-// Decode browser-supported audio and produce the 16 kHz mono samples expected
-// by SENet. The original AudioBuffer is retained for playback.
+// Decode browser-supported audio and produce the 22.05 kHz mono samples expected
+// by Beat This!. The original AudioBuffer is retained for playback.
 export async function decodeAudio(arrayBuffer, audioContext) {
     const audioBuffer = await audioContext.decodeAudioData(removeId3Mp3Padding(arrayBuffer));
     const offlineContext = new OfflineAudioContext(
