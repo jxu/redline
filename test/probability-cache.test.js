@@ -145,9 +145,9 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     })(audio);
     const prepared = await run("--cache-only", "fixture");
     assert.match(prepared.stdout, /Probabilities: +cached/);
-    assert.deepEqual(await readdir(join(root, "benchmark/best-octave/results")), []);
+    assert.deepEqual(await readdir(join(root, "benchmark/beat-this-small/results")), []);
     await run("--regression-only", "fixture");
-    const resultPath = join(root, "benchmark/best-octave/results/fixture.json");
+    const resultPath = join(root, "benchmark/beat-this-small/results/fixture.json");
     const first = JSON.parse(await readFile(resultPath, "utf8"));
     assert.equal(first.evaluationStartMs, 5000);
     assert.equal(first.evaluationEndMs, 10001);
@@ -161,5 +161,5 @@ test("benchmark CLI refits cached probabilities after timing/reference changes w
     assert.notDeepEqual(second.referenceBeatsMs, first.referenceBeatsMs);
     assert.equal(second.timingOptions.tempoSmoothness, 20);
     assert.ok(second.detectedBeatsMs.length > 0);
-    assert.ok((await readdir(join(root, "benchmark/best-octave/plots"))).some((name) => name.endsWith(".svg")));
+    assert.ok((await readdir(join(root, "benchmark/beat-this-small/plots"))).some((name) => name.endsWith(".svg")));
 });

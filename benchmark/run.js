@@ -62,7 +62,7 @@ const manifestPath = valueOptions["--manifest"] ? resolve(valueOptions["--manife
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const outputDirectory = valueOptions["--output-dir"] ? resolve(valueOptions["--output-dir"]) : useManifestTempo
     ? benchmarkDirectory
-    : `${benchmarkDirectory}/best-octave`;
+    : `${benchmarkDirectory}/beat-this-small`;
 if (requireCached && (cacheOnly || refresh)) {
     throw new Error(
         "--regression-only cannot be combined with --cache-only or --refresh-probabilities",

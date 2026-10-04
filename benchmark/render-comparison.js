@@ -20,7 +20,7 @@ const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`
 const benchmarkCase = manifest.find(({ id }) => id === mapsetId);
 if (!benchmarkCase) throw new Error(`Unknown mapset ID: ${mapsetId}`);
 
-const resultPath = `${benchmarkDirectory}/best-octave/results/${mapsetId}.json`;
+const resultPath = `${benchmarkDirectory}/beat-this-small/results/${mapsetId}.json`;
 const result = JSON.parse(await readFile(resultPath, "utf8"));
 const audioPath = fileURLToPath(new URL(benchmarkCase.audio, import.meta.url));
 const decoded = await decodeAudioFile(audioPath);

@@ -12,8 +12,9 @@ fails. The worker keeps its session loaded between analyses. First use can take
 longer while the runtime loads and GPU shaders compile.
 
 The included model, preprocessing coefficients, provenance, and upstream MIT
-license are in `models/`. [Browser validation](benchmark/beat-this-browser/README.md)
-records numerical comparisons and measured performance.
+license are in `models/`. [Model conversion instructions](models/README.md)
+describe how to regenerate the assets. The benchmark uses the production browser decoder
+and worker, with compact corpus results in `benchmark/beat-this-small/summary.json`.
 
 ## Run locally
 
@@ -39,10 +40,10 @@ half/double-time switches. Sustained transitions to a different tempo remain
 possible. A consistently wrong whole-song beat level still needs the ×2 or ÷2
 control; inspect the click track after any automatic correction.
 
-The recorded Small-model benchmark for this fitter is in
-[Small benchmark](benchmark/beat-this-small/README.md),
-with compact summaries for all 25 original corpus maps. Detailed results and plots
-are generated locally and ignored by Git.
+The Small-model browser benchmark covers the 25 original corpus maps. Its compact
+scores are recorded in
+[the benchmark summary](benchmark/beat-this-small/summary.json). Detailed results,
+plots, and raw probability caches are generated locally and ignored by Git.
 
 ## Test
 
@@ -169,13 +170,11 @@ span from the first through the last rhythmic hit object, including slider tails
 but excluding spinner-only intros or outros, after the manifest's online offset
 is applied. The fitter still processes the full audio.
 The browser benchmark writes best-octave results and plots under
-`benchmark/best-octave/`; `--manifest-tempo` uses `benchmark/results/` and
+`benchmark/beat-this-small/`; `--manifest-tempo` uses `benchmark/results/` and
 `benchmark/plots/`.
-The retained Python summary is a historical Small Beat This! run, using
-best-octave selection and the −27 ms timestamp correction. New browser runs write
-their results and plots under `benchmark/best-octave/` (or the chosen output
-directory), with a `summary.json` containing per-map scores, settings, and changes
-from the previous run. Historical Python summaries remain separate.
+Browser runs write their results and plots under `benchmark/beat-this-small/` (or the
+chosen output directory), with a `summary.json` containing per-map scores,
+settings, and changes from the previous run.
 Edit a case's `comment` field to record observations; reruns preserve it.
 `detectedBeatsMs` contains the evaluated export grid; raw, filtered, and interpolated
 detections remain in separate fields for diagnosis. Charts show the export grid
@@ -191,8 +190,6 @@ The benchmark uses the browser decoder and production Beat This! Small worker,
 then the same export function as the UI. Both shift the fitted timing points by
 −27 ms; waveform markers and click playback follow that corrected export grid.
 Raw beat probabilities and detections remain on their native timeline.
-The Python inference benchmark has been removed. The ONNX asset exporter remains
-at [`benchmark/beat-this-browser/export.py`](benchmark/beat-this-browser/export.py).
 
 Install Chrome and the project dependencies, then run:
 
@@ -206,8 +203,9 @@ npm run benchmark:regression -- 13012
 WASM is the default benchmark backend. `--backend webgpu` requires actual WebGPU
 execution and fails if the worker falls back. Set `REDLINE_BROWSER_EXECUTABLE` for
 a custom Chrome path. In WSL, set `REDLINE_BROWSER_LAUNCHER` to a module exporting
-`launchBenchmarkBrowser()` returning `{ browser, close }` for Windows Chrome;
-see the [browser validation notes](benchmark/beat-this-browser/README.md).
+`launchBenchmarkBrowser()` returning `{ browser, close }` for Windows Chrome.
+The launcher must connect through Playwright and close its browser and any
+connection tunnels when `close()` is called.
 `--manifest path/to/manifest.json` selects another corpus (audio and osu paths are
 relative to that manifest); `--output-dir path` selects its output folder.
 Cached regression runs do not launch a browser. Browser backend and inference
