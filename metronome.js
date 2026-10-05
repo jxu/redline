@@ -8,7 +8,7 @@ function createClick(clickLength, sampleRate) {
         const time = index / sampleRate;
         return Math.sin(2 * Math.PI * 1000 * time)
             * (1 - index / clickLength)
-            * 0.4;
+            * 0.7;
     });
 }
 
@@ -29,7 +29,7 @@ export function createMetronomeBuffer(audioContext, ticks, duration, sampleRate)
     return buffer;
 }
 
-export function mixBuffers(audioContext, original, clicks) {
+export function mixBuffers(audioContext, original, clicks, audioGain = 1) {
     const mixed = audioContext.createBuffer(
         original.numberOfChannels,
         original.length,
@@ -41,7 +41,7 @@ export function mixBuffers(audioContext, original, clicks) {
         const input = original.getChannelData(channel);
         const output = mixed.getChannelData(channel);
         for (let index = 0; index < input.length; index++) {
-            output[index] = clampSample(input[index] + click[index]);
+            output[index] = clampSample(input[index] * audioGain + click[index]);
         }
     }
 

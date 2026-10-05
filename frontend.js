@@ -436,7 +436,8 @@ function renderTimingGrid(timing = null) {
     state.playback.mixedBuffer = mixBuffers(
         audioContext,
         state.track.audioBuffer,
-        clickBuffer
+        clickBuffer,
+        0.25 // Lower song volume by 12 dB so the timing clicks stand out.
     );
     if (wasPlaying) playMixed();
 
