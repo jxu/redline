@@ -30,7 +30,7 @@ caching so changes are visible after a refresh. A local HTTP server is required
 because the app loads JavaScript modules and WebAssembly in the browser.
 Choose the song's tempo pattern before Calculate. Fixed BPM fits one global grid;
 continuously variable BPM follows changes in sections of at most 16 beats;
-variable BPM with fixed sections extends steady sections as long as the beat
+multiple sections of fixed BPM extends steady sections as long as the beat
 evidence supports them. A warning appears if detected beats do not consistently
 support a requested fixed BPM. Changing the selection after calculation refits
 the export without rerunning beat detection. The ×2 and ÷2 controls preserve
@@ -131,7 +131,7 @@ changes can still win when the beat evidence supports them. Candidate scoring us
 the same rounded offsets and beat lengths as the export. The general fit starts
 each new section on a beat of the previous section. The waveform markers and click track follow the exported grid.
 Exported red timing points are limited to 300 BPM.
-For tracks marked variable BPM with fixed sections, Redline also looks for
+For tracks marked multiple sections of fixed BPM, Redline also looks for
 persistent tempo changes in long-span beat intervals and fits a steady grid to
 each run. It uses that simpler export when it retains nearly as much support
 from the observed beats as the general fit.

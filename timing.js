@@ -23,7 +23,7 @@ export function defaultTempoSmoothness(tempoPattern) {
 export const TEMPO_PATTERNS = Object.freeze({
     fixed: "Fixed BPM",
     continuous: "Continuously variable BPM",
-    sections: "Variable BPM with fixed sections",
+    sections: "Multiple sections of fixed BPM",
 });
 
 function clamp(value, minimum, maximum) {

@@ -72,7 +72,7 @@ async function detect(samples, id, threshold, requestedBackend) {
         (fraction) => progress("Preparing spectrogram", fraction * 0.4),
     );
     const spectrogramFinished = performance.now();
-    progress("Loading Beat This! Small", 0.4);
+    progress("Loading Beat This! Small model (10.4 MB)", 0.4);
     sessionPromise ??= loadSession(requestedBackend).catch((error) => {
         sessionPromise = undefined;
         throw error;
