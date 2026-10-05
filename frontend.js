@@ -17,6 +17,10 @@ import { calculateExportTiming as calculateTiming } from "./timing-export.js";
 
 const MIN_PX_PER_SEC = 1;
 const MAX_PX_PER_SEC = 500;
+let trackGeneration = 0;
+let loading = false;
+let analyzing = false;
+let waveformLoad = Promise.resolve();
 
 const state = {
     bpmChart: null,
@@ -112,6 +116,17 @@ function drawBpmGraph(raw, smoothed) {
 
 const fileInput = document.getElementById("audioFile");
 const resultsBox = document.getElementById("results");
+const calculateButton = document.getElementById("calculate");
+
+function updateControls() {
+    const busy = loading || analyzing;
+    calculateButton.disabled = busy || !state.track.samples;
+    for (const id of ["doubleTempo", "halveTempo"]) {
+        document.getElementById(id).disabled = busy || state.track.ticks.length < 2;
+    }
+    document.getElementById("play").disabled = busy || !state.playback.mixedBuffer;
+    document.getElementById("pause").disabled = busy || !state.playback.mixedBuffer;
+}
 
 const tempoPatternSelect = document.getElementById("tempoPattern");
 const tempoSmoothnessSlider = document.getElementById("tempoSmoothness");
@@ -134,12 +149,21 @@ const wavesurfer = WaveSurfer.create({
     plugins: [regions],
 });
 
-function playMixed() {
-    if (state.playback.playing || !state.playback.mixedBuffer) return;
+async function playMixed() {
+    if (loading || analyzing || state.playback.playing || !state.playback.mixedBuffer) return;
+    const generation = ++state.playback.cursorGeneration;
+    const buffer = state.playback.mixedBuffer;
 
-    if (audioContext.state === "suspended") {
-        audioContext.resume();
+    try {
+        if (audioContext.state === "suspended") await audioContext.resume();
+    } catch (error) {
+        if (generation === state.playback.cursorGeneration) {
+            resultsBox.textContent = `Playback failed: ${error}`;
+        }
+        return;
     }
+    if (generation !== state.playback.cursorGeneration || buffer !== state.playback.mixedBuffer) return;
+    if (state.playback.pausedAt >= buffer.duration) state.playback.pausedAt = 0;
 
     state.playback.source = audioContext.createBufferSource();
     state.playback.source.buffer = state.playback.mixedBuffer;
@@ -154,13 +178,14 @@ function playMixed() {
 
     state.playback.playing = true;
 
-    updateWaveSurferCursor(++state.playback.cursorGeneration);
+    updateWaveSurferCursor(generation);
 }
 
 function pauseMixed() {
+    // Also cancel a Play waiting for AudioContext.resume().
+    state.playback.cursorGeneration++;
     if (!state.playback.playing) return;
 
-    state.playback.cursorGeneration++;
     state.playback.source.stop();
 
     state.playback.pausedAt = audioContext.currentTime - state.playback.startTime;
@@ -203,6 +228,7 @@ document
 // even across the range) and clamp between fully zoomed-out and a tight view.
 document.getElementById("waveform").addEventListener("wheel", (event) => {
     event.preventDefault(); // don't scroll the page while zooming
+    if (loading || !state.track.audioBuffer) return;
     const factor = Math.exp(-event.deltaY * 0.002); // up = in, down = out
     state.zoomPxPerSec = clamp(
         state.zoomPxPerSec * factor,
@@ -235,11 +261,11 @@ tempoPatternSelect.onchange = () => {
     if (state.track.ticks.length) renderTicks();
 };
 
-document.getElementById("calculate").onclick = analyze;
+calculateButton.onclick = analyze;
 
 // octave fixes: reshape the detected beats in place, no re-detection needed
 document.getElementById("doubleTempo").onclick = () => {
-    if (state.track.ticks.length < 2) return;
+    if (loading || analyzing || state.track.ticks.length < 2) return;
     state.track.ticks = doubleTicks(state.track.ticks);
     state.track.observedTicks = doubleTicks(state.track.observedTicks);
     state.track.manualTempoLevel = true;
@@ -247,7 +273,7 @@ document.getElementById("doubleTempo").onclick = () => {
 };
 
 document.getElementById("halveTempo").onclick = () => {
-    if (state.track.ticks.length < 2) return;
+    if (loading || analyzing || state.track.ticks.length < 2) return;
     state.track.ticks = halveTicks(state.track.ticks);
     const gridTimes = new Set(state.track.ticks.map((tick) => Math.round(tick * 1e6)));
     state.track.observedTicks = state.track.observedTicks.filter(
@@ -259,20 +285,32 @@ document.getElementById("halveTempo").onclick = () => {
 
 // sync seeking (works whether paused or mid-playback)
 wavesurfer.on("interaction", (time) => {
+    if (loading || analyzing || !state.playback.mixedBuffer) return;
     const wasPlaying = state.playback.playing;
 
     // pause first so pauseMixed() can't overwrite the new position
-    if (wasPlaying) pauseMixed();
+    pauseMixed();
 
-    state.playback.pausedAt = time;
+    state.playback.pausedAt = clamp(time, 0, state.playback.mixedBuffer.duration);
 
     if (wasPlaying) playMixed();
 });
 
 // decode + resample once per file; store the results for reuse on re-calculation
-async function loadFile(file) {
+async function loadFile(file, generation) {
     const arrayBuffer = await file.arrayBuffer();
+    if (generation !== trackGeneration) return;
     const decoded = await decodeAudio(arrayBuffer, audioContext);
+    if (generation !== trackGeneration) return;
+    // WaveSurfer mutates its own state asynchronously. Serialize loads so an
+    // earlier render cannot overwrite the newest file's waveform.
+    const pendingLoad = waveformLoad.catch(() => {}).then(async () => {
+        if (generation !== trackGeneration) return;
+        await wavesurfer.loadBlob(file);
+    });
+    waveformLoad = pendingLoad;
+    await pendingLoad;
+    if (generation !== trackGeneration) return;
     state.track.audioBuffer = decoded.audioBuffer;
     state.track.samples = decoded.samples;
     state.track.file = file;
@@ -280,7 +318,7 @@ async function loadFile(file) {
 
 // run beat detection on the loaded file, then hand the ticks to renderTicks()
 async function analyze() {
-    if (!state.track.file) return;
+    if (loading || analyzing || !state.track.samples) return;
     if (!tempoPatternSelect.value) {
         resultsBox.textContent = "Choose the song's tempo pattern before calculating.";
         tempoPatternSelect.focus();
@@ -288,11 +326,17 @@ async function analyze() {
     }
 
     resultsBox.textContent = "Analyzing...";
+    const generation = trackGeneration;
+    const audioBuffer = state.track.audioBuffer;
+    analyzing = true;
+    updateControls();
+    pauseMixed();
     state.track.manualTempoLevel = false;
 
     try {
         const result = await detectBeats(state.track.samples, {
             onProgress: ({ stage, fraction }) => {
+                if (generation !== trackGeneration) return;
                 const percent = Math.round(fraction * 100);
                 resultsBox.innerHTML = `
                     <p>${stage} (${percent}%)</p>
@@ -300,10 +344,11 @@ async function analyze() {
                 `;
             },
         });
+        if (generation !== trackGeneration) return;
         const filteredTicks = filterSpuriousBeats(result.ticks);
         state.track.observedTicks = filteredTicks;
         state.track.ticks = interpolateBeatGaps(filteredTicks, {
-            endTime: state.track.audioBuffer.duration,
+            endTime: audioBuffer.duration,
         });
         state.track.filteredBeatCount = result.ticks.length - filteredTicks.length;
         state.track.interpolatedBeatCount = state.track.ticks.length - filteredTicks.length;
@@ -312,16 +357,20 @@ async function analyze() {
         state.track.inferenceTimings = result.timings;
         state.track.probabilities = result.probabilities;
         state.track.downbeats = result.downbeats;
+        analyzing = false;
+        if (state.track.ticks.length) renderTicks();
+        else resultsBox.textContent = "No beats detected. Try another audio file.";
     } catch (err) {
-        resultsBox.textContent = `Analysis failed: ${err}`;
-        return;
+        if (generation === trackGeneration) resultsBox.textContent = `Analysis failed: ${err}`;
+    } finally {
+        analyzing = false;
+        updateControls();
     }
-
-    renderTicks();
 }
 
 // Update the analysis readout, then fit the visible and audible timing grid.
 function renderTicks() {
+    if (loading || analyzing || !state.track.ticks.length) return;
     // A new detection starts playback from the beginning.
     pauseMixed();
     state.playback.pausedAt = 0;
@@ -354,11 +403,12 @@ function renderTicks() {
     `;
 
     renderTimingGrid(timing);
+    updateControls();
 }
 
 // The fitted export grid drives the waveform markers and audible click track.
 function renderTimingGrid(timing = null) {
-    if (!state.track.ticks.length) return;
+    if (loading || analyzing || !state.track.ticks.length) return;
 
     timing ??= calculateTiming(state.track.ticks, {
         toleranceMs: Number(toleranceSlider.value),
@@ -372,10 +422,11 @@ function renderTimingGrid(timing = null) {
         preserveInputPulse: state.track.manualTempoLevel,
     });
 
-    document.getElementById("fitWarning").hidden = !timing.fitWarning;
+    const warning = document.getElementById("fitWarning");
+    if (warning) warning.hidden = !timing.fitWarning;
 
     const wasPlaying = state.playback.playing;
-    if (wasPlaying) pauseMixed();
+    pauseMixed();
     const clickBuffer = createMetronomeBuffer(
         audioContext,
         timing.gridTicks,
@@ -420,11 +471,16 @@ function renderTimingGrid(timing = null) {
 fileInput.addEventListener("change", async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    const generation = ++trackGeneration;
+    loading = true;
 
     // reset state from any previous track; detection waits for Calculate
     pauseMixed();
     state.playback.pausedAt = 0;
     state.playback.mixedBuffer = null;
+    state.track.file = null;
+    state.track.audioBuffer = null;
+    state.track.samples = null;
     regions.clearRegions();
     state.track.ticks = [];
     state.track.observedTicks = [];
@@ -436,9 +492,23 @@ fileInput.addEventListener("change", async (event) => {
     state.track.probabilities = null;
     state.track.downbeats = null;
     document.getElementById("osuTimingPoints").value = "";
-    resultsBox.textContent = "Press Calculate after the waveform updates.";
+    state.bpmChart?.destroy();
+    state.bpmChart = null;
+    resultsBox.textContent = "Loading audio...";
+    updateControls();
 
     // decode + show the waveform now; run beat detection only on Calculate
-    await loadFile(file);
-    await wavesurfer.loadBlob(file);
+    try {
+        await loadFile(file, generation);
+        if (generation === trackGeneration) resultsBox.textContent = "Press Calculate to analyze.";
+    } catch (error) {
+        if (generation === trackGeneration) resultsBox.textContent = `Audio loading failed: ${error}`;
+    } finally {
+        if (generation === trackGeneration) {
+            loading = false;
+            updateControls();
+        }
+    }
 });
+
+updateControls();
