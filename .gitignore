@@ -1,3 +1,8 @@
 .vscode
 node_modules/
 benchmark/listening/
+benchmark/cache/
+benchmark/full-corpus/
+benchmark/**/results/
+benchmark/**/plots/
+.venv/

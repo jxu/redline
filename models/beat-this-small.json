@@ -1,0 +1,39 @@
+{
+  "checkpoint": "small0",
+  "checkpointSha256": "6074be2c4d490c5f6101fcc374a1ec72ae93456e23bb6019783b849f5dc7d47b",
+  "modelBytes": 10401061,
+  "opset": 17,
+  "versions": {
+    "beat-this": "1.1.0",
+    "torch": "2.11.0+cpu",
+    "torchaudio": "2.11.0+cpu",
+    "onnx": "1.23.1"
+  },
+  "preprocessing": {
+    "sampleRate": 22050,
+    "fftSize": 1024,
+    "hopLength": 441,
+    "melBands": 128,
+    "power": 1,
+    "normalized": "frame_length",
+    "logMultiplier": 1000,
+    "padding": "reflect"
+  },
+  "source": "https://github.com/CPJKU/beat_this",
+  "onnxSha256": "756ff713c26fadf9a054717c2386e60c43d875d2ddb574c19d0ff7dab12f9997",
+  "chunkFrames": 1500,
+  "borderFrames": 6,
+  "overlapMode": "keep_first",
+  "input": {
+    "name": "spectrogram",
+    "shape": [
+      1,
+      "frames",
+      128
+    ]
+  },
+  "outputs": [
+    "beat",
+    "downbeat"
+  ]
+}

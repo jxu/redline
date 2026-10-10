@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ESSENTIA_SAMPLE_RATE } from "../audio-decoder.js";
+import { MODEL_SAMPLE_RATE } from "../audio-decoder.js";
 import { decodeAudioFile } from "./audio-decoder.js";
 
 const benchmarkDirectory = dirname(fileURLToPath(import.meta.url));
@@ -20,19 +20,19 @@ const manifest = JSON.parse(await readFile(`${benchmarkDirectory}/manifest.json`
 const benchmarkCase = manifest.find(({ id }) => id === mapsetId);
 if (!benchmarkCase) throw new Error(`Unknown mapset ID: ${mapsetId}`);
 
-const resultPath = `${benchmarkDirectory}/results/${mapsetId}.json`;
+const resultPath = `${benchmarkDirectory}/beat-this-small/results/${mapsetId}.json`;
 const result = JSON.parse(await readFile(resultPath, "utf8"));
 const audioPath = fileURLToPath(new URL(benchmarkCase.audio, import.meta.url));
 const decoded = await decodeAudioFile(audioPath);
 
 function mixClicks(samples, ticksMs) {
     const mixed = samples.slice();
-    const clickLength = Math.floor(0.05 * ESSENTIA_SAMPLE_RATE);
+    const clickLength = Math.floor(0.05 * MODEL_SAMPLE_RATE);
 
     for (const tickMs of ticksMs) {
-        const start = Math.floor(tickMs / 1000 * ESSENTIA_SAMPLE_RATE);
+        const start = Math.floor(tickMs / 1000 * MODEL_SAMPLE_RATE);
         for (let index = 0; index < clickLength && start + index < mixed.length; index++) {
-            const time = index / ESSENTIA_SAMPLE_RATE;
+            const time = index / MODEL_SAMPLE_RATE;
             const click = Math.sin(2 * Math.PI * 1000 * time) *
                 (1 - index / clickLength) * 0.8;
             mixed[start + index] = Math.max(-1, Math.min(1, mixed[start + index] + click));
@@ -54,8 +54,8 @@ function encodeMonoPcm16Wav(samples) {
     wav.writeUInt32LE(16, 16);
     wav.writeUInt16LE(1, 20);
     wav.writeUInt16LE(1, 22);
-    wav.writeUInt32LE(ESSENTIA_SAMPLE_RATE, 24);
-    wav.writeUInt32LE(ESSENTIA_SAMPLE_RATE * bytesPerSample, 28);
+    wav.writeUInt32LE(MODEL_SAMPLE_RATE, 24);
+    wav.writeUInt32LE(MODEL_SAMPLE_RATE * bytesPerSample, 28);
     wav.writeUInt16LE(bytesPerSample, 32);
     wav.writeUInt16LE(16, 34);
     wav.write("data", 36);

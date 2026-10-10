@@ -1,37 +1,71 @@
-let Essentia;
-let EssentiaWASM;
-
-if (typeof window === "undefined") {
-    const essentiaPackage = (await import("essentia.js")).default;
-    Essentia = essentiaPackage.Essentia;
-    EssentiaWASM = essentiaPackage.EssentiaWASM;
-} else {
-    Essentia = (await import("essentia.js")).default;
-    EssentiaWASM = (await import("essentia.js/wasm")).EssentiaWASM;
+import FFT from "fft.js";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { createSpectrogram } from "./mel-spectrogram.js";
+import {
+    MODEL_URL,
+    FILTER_URL,
+    WINDOW_URL,
+    inferSpectrogram,
+} from "./beat-this-inference.js";
+import { beatsFromProbabilities } from "./beat-postprocessing.js";
+export {
+    DEFAULT_BEAT_THRESHOLD,
+    pickBeatPeaks,
+} from "./beat-postprocessing.js";
+let sessionPromise, coefficientsPromise;
+async function loadSession() {
+    const ort = await import("onnxruntime-node");
+    const session = await ort.InferenceSession.create(
+        fileURLToPath(MODEL_URL),
+        {
+            executionProviders: ["cpu"],
+            graphOptimizationLevel: "all",
+            intraOpNumThreads: 4,
+        },
+    );
+    return { ort, session };
 }
-
-const essentia = new Essentia(EssentiaWASM);
-
-// RhythmExtractor2013 requires 44.1 kHz mono samples. The caller owns decoding
-// and resampling; this adapter owns all temporary Essentia/WASM allocations.
-export function detectBeats(samples) {
-    const signal = essentia.arrayToVector(samples);
-    let result;
-
-    try {
-        result = essentia.RhythmExtractor2013(signal, 250, "multifeature", 40);
-
-        return {
-            ticks: Array.from(
-                { length: result.ticks.size() },
-                (_, index) => result.ticks.get(index)
-            ),
-            confidence: result.confidence,
-        };
-    } finally {
-        signal.delete();
-        result?.ticks?.delete?.();
-        result?.estimates?.delete?.();
-        result?.bpmIntervals?.delete?.();
-    }
+async function coefficients() {
+    const values = await Promise.all(
+        [FILTER_URL, WINDOW_URL].map(async (url) => {
+            const data = await readFile(url);
+            return new Float32Array(
+                data.buffer.slice(
+                    data.byteOffset,
+                    data.byteOffset + data.byteLength,
+                ),
+            );
+        }),
+    );
+    return { filters: values[0], window: values[1] };
+}
+export async function inferBeatFrames(samples, { onProgress } = {}) {
+    coefficientsPromise ??= coefficients();
+    const spect = createSpectrogram(
+        samples,
+        FFT,
+        await coefficientsPromise,
+        (fraction) =>
+            onProgress?.({
+                stage: "Preparing spectrogram",
+                fraction: fraction * 0.4,
+            }),
+    );
+    onProgress?.({ stage: "Loading Beat This! Small", fraction: 0.4 });
+    sessionPromise ??= loadSession();
+    const { ort, session } = await sessionPromise;
+    return inferSpectrogram(ort, session, spect, (fraction) =>
+        onProgress?.({
+            stage: "Detecting beats",
+            fraction: 0.4 + 0.6 * fraction,
+        }),
+    );
+}
+export async function detectBeats(samples, options = {}) {
+    const frames = await inferBeatFrames(samples, options);
+    return beatsFromProbabilities(frames.probabilities, {
+        ...options,
+        ...frames,
+    });
 }

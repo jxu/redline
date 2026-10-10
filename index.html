@@ -8,8 +8,6 @@
 <script type="importmap">
 {
   "imports": {
-    "essentia.js": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-core.es.js",
-    "essentia.js/wasm": "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.es.js",
     "wavesurfer.js": "https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js",
     "wavesurfer.js/regions": "https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.esm.js",
     "chart.js/auto": "https://esm.sh/chart.js@4/auto"
@@ -21,36 +19,41 @@
 
 <body>
 
-<h1>red<span class="red-l">l</span>ine demo</h1>
+<h1>red<span class="red-l">l</span>ine 2 β demo</h1>
 
 <input type="file" id="audioFile" accept="audio/*">
 
 <div id="controls">
-    <!-- smoothing: moving-average window (beats) that removes jitter;
-         keep small to preserve real tempo drift on live recordings -->
     <div class="control">
-        <label for="smoothing">Smoothing: <span id="smoothingValue">4</span></label>
-        <input type="range" id="smoothing" min="1" max="16" value="4">
+        <label for="tempoPattern">Tempo pattern</label>
+        <select id="tempoPattern" required>
+            <option value="" selected disabled>Choose tempo pattern</option>
+            <option value="fixed">Fixed BPM</option>
+            <option value="continuous">Continuously variable BPM (live music)</option>
+            <option value="sections">Multiple sections of fixed BPM</option>
+        </select>
     </div>
-
-    <!-- tolerance: collapse near-equal beats into one red line;
-         low = faithful to drift, high = treat the song as fixed tempo -->
+    <div class="control">
+        <label for="tempoSmoothness">Beat-time smoothing: <span id="tempoSmoothnessValue">5</span></label>
+        <input type="range" id="tempoSmoothness" min="0" max="10" value="5">
+    </div>
+    <!-- Higher tolerance allows longer fitted timing sections. -->
     <div class="control">
         <label for="tolerance">Tolerance (ms): <span id="toleranceValue">5</span></label>
         <input type="range" id="tolerance" min="0" max="20" value="5">
     </div>
 
-    <button id="calculate">Calculate</button>
+    <button id="calculate" disabled>Calculate</button>
     <!-- fix octave errors (e.g. detected 102 for a 204 BPM song) on the
          existing beats without re-running detection -->
-    <button id="halveTempo">÷2 tempo</button>
-    <button id="doubleTempo">×2 tempo</button>
+    <button id="halveTempo" disabled>÷2 tempo</button>
+    <button id="doubleTempo" disabled>×2 tempo</button>
 </div>
 
 <div id="waveform"></div>
 
-<button id="play">Play</button>
-<button id="pause">Pause</button>
+<button id="play" disabled>Play</button>
+<button id="pause" disabled>Pause</button>
 
 <div id="results">
     No analysis yet.
@@ -65,9 +68,8 @@
 <textarea id="osuTimingPoints" rows="10" cols="80"></textarea>
 
 <footer>
-    Built with
-    <a href="https://mtg.github.io/essentia.js/" target="_blank" rel="noopener">essentia.js</a>
-    and
+    Beat detection powered by Beat This! Small and ONNX Runtime Web.
+    Waveform powered by
     <a href="https://wavesurfer.xyz/" target="_blank" rel="noopener">wavesurfer.js</a>.
     <br>
     <a href="https://github.com/jxu/redline" target="_blank" rel="noopener">Source on GitHub</a>
