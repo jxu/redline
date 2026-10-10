@@ -45,6 +45,22 @@ scores are recorded in
 [the benchmark summary](benchmark/beat-this-small/summary.json). Detailed results,
 plots, and raw probability caches are generated locally and ignored by Git.
 
+### Timing precision limits
+
+Beat This! outputs one beat probability every 20 ms. It uses several seconds of
+musical context, so it rarely adds extra beats or picks the wrong beat level.
+However, it was trained on general beat-tracking annotations, not osu! timing.
+The weighted F1 score emphasizes 3 to 9 ms agreement, finer than one model frame.
+The fitter interpolates between frames, and the export applies a fixed −27 ms
+offset. On fixed-BPM maps, the model's phase can still differ from the mapped
+phase by up to about 20 ms, and a 0.1 BPM error drifts by tens of milliseconds over a
+song. On variable maps, most lost beats come from short sections fitted at the
+wrong BPM, where the grid slips and then catches up again. These sections tend
+to fall where the model's peaks are dense or ambiguous. Four sub-frame-shifted
+model passes give a 5 ms probability curve. That curve reproduces the same fixed
+offset, so finer model frames alone do not recover the per-song phase. Aligning
+the grid to audio onsets, which mappers time against, recovers part of it.
+
 ## Test
 
 Run the calculation tests with:
